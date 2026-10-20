@@ -1,8 +1,33 @@
-HELP.md
-target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+### Backend (Maven / Spring Boot) ###
+bakend/HELP.md
+bakend/target/
+bakend/.mvn/wrapper/maven-wrapper.jar
+!bakend/src/main/**/target/
+!bakend/src/test/**/target/
+bakend/src/main/resources/application.properties
+
+### Frontend (Node / Vite) ###
+frontend/logs
+frontend/*.log
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/lerna-debug.log*
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/coverage/
+frontend/*.local
+frontend/*.tsbuildinfo
+frontend/.eslintcache
+frontend/cypress/videos/
+frontend/cypress/screenshots/
+frontend/__screenshots__/
+frontend/*.timestamp-*-*.mjs
+
+### Operating system ###
+.DS_Store
 
 ### STS ###
 .apt_generated
@@ -14,7 +39,7 @@ target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -25,10 +50,9 @@ target/
 /dist/
 /nbdist/
 /.nb-gradle/
-build/
+/build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
 ### VS Code ###
 .vscode/
-src/main/resources/application.properties
