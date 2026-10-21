@@ -40,11 +40,11 @@ async function request(method, path, body) {
 
   let response
   try {
-    response = await fetch(`${BASE}${path}`, {
-      method,
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-    })
+    const options = { method, headers }
+    if (method !== 'GET' && method !== 'DELETE' && body !== undefined) {
+      options.body = JSON.stringify(body)
+    }
+    response = await fetch(`${BASE}${path}`, options)
   } catch {
     throw new ErreurApi('Le serveur est injoignable. Verifiez votre connexion.', { status: 0 })
   }
