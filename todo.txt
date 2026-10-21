@@ -104,6 +104,7 @@ Chaque étape correspond à un commit de la branche `Bloc1` : l'historique se li
 - `frontend/test_ui.mjs` : parcours navigateur automatisé (28 vérifications, Playwright).
 - `tests/api_bloc1.sh` : parcours API automatisé (56 vérifications, bash + curl + node,
   pas de dépendance à `jq` ni à `python`).
+- `bakend/src/main/resources/db/donnees_demo.sql` : données de test (INSERT) de toutes les tables.
 
 ### Étape 12 — Conservation du scaffold d'origine (`724458e`)
 - `frontend/init-vite/` : copie intacte du frontend initial Vite (styles, composants de
@@ -111,7 +112,65 @@ Chaque étape correspond à un commit de la branche `Bloc1` : l'historique se li
 
 ---
 
-## 2. Règles métier à ne pas oublier
+## 2. Les données de test (INSERT par table)
+
+### 2.1 Où sont-elles ?
+| Élément | Emplacement | Contenu |
+|---|---|---|
+| Schéma (11 tables) | `bakend/src/main/resources/db/migration/V1__bloc1_schema.sql` | tables, contraintes, index — appliqué par Flyway |
+| **Données de test (INSERT)** | `bakend/src/main/resources/db/donnees_demo.sql` | un INSERT par table, aligné sur le schéma |
+| Chargement automatique | `bakend/src/main/java/com/tovo/erp/config/DataInitializer.java` | insère le même jeu de données si la base est vide |
+
+### 2.2 Contenu du script `donnees_demo.sql`
+| Table | Lignes insérées |
+|---|---|
+| `role` | 4 rôles : MANAGER, RH, FINANCE, DIRECTION |
+| `departement` | 3 : Commercial, Production, Support |
+| `service` | 3 : Ventes, Atelier, Ressources Humaines (1 département → n services) |
+| `utilisateur` | 5 : les 4 comptes de démonstration + 1 compte désactivé |
+| `poste` | 3 postes officiels (salaires min/max) |
+| `employe` | 3 employés (2 ACTIF, 1 PARTI = cible d’un remplacement) |
+| `budget_service` | 9 : 3 services × 3 exercices (année-1, année, année+1) |
+| `demande_recrutement` | 5 demandes : FINALISEE, EN_VALIDATION, BROUILLON, A_CORRIGER, REFUSEE |
+| `demande_recrutement_poste` | 7 lignes (création + remplacement), avec `episode` et `etape_courante` |
+| `validation` | 10 décisions RH / FINANCE / DIRECTION (approbations, refus, demande de correction) |
+| `verification_budget` | 3 contrôles financiers (2 approbations, 1 refus budget insuffisant) |
+| `historique_statut` | 10 entrées du journal des statuts (lignes + demandes globales) |
+
+### 2.3 Charger les données
+```bash
+# Option 1 (recommandée) : rien à faire, le backend les insère au démarrage
+cd bakend && ./mvnw -o spring-boot:run
+
+# Option 2 : insertion manuelle dans une base déjà migrée
+PGPASSWORD=postgres psql -h localhost -U postgres -d erp \
+    -f bakend/src/main/resources/db/donnees_demo.sql
+
+# Vérification
+PGPASSWORD=postgres psql -h localhost -U postgres -d erp -c \
+  "SELECT 'utilisateur' t, count(*) FROM utilisateur
+   UNION ALL SELECT 'demande_recrutement', count(*) FROM demande_recrutement
+   UNION ALL SELECT 'demande_recrutement_poste', count(*) FROM demande_recrutement_poste
+   UNION ALL SELECT 'validation', count(*) FROM validation;"
+```
+Le script est **idempotent** (`ON CONFLICT DO NOTHING` + remise en état des séquences) :
+il peut être rechargé sans casser la base, et il n’écrase jamais une donnée métier existante.
+
+### 2.4 Mots de passe des comptes
+Les mots de passe sont stockés **hachés en BCrypt** (jamais en clair). Les hashes
+correspondants aux mots de passe ci-dessous figurent dans le script :
+
+| Rôle | Email | Mot de passe | Statut |
+|---|---|---|---|
+| MANAGER | manager@tovo.mg | Manager@2026 | actif |
+| RH | rh@tovo.mg | Rh@2026 | actif |
+| FINANCE | finance@tovo.mg | Finance@2026 | actif |
+| DIRECTION | direction@tovo.mg | Direction@2026 | actif |
+| MANAGER | ancien.manager@tovo.mg | Manager@2026 | **désactivé** (connexion refusée) |
+
+---
+
+## 3. Règles métier à ne pas oublier
 
 | Règle | Comportement attendu |
 |---|---|
@@ -135,13 +194,13 @@ Chaque étape correspond à un commit de la branche `Bloc1` : l'historique se li
 
 ---
 
-## 3. Mise en route
+## 4. Mise en route
 
-### 3.1 Pré-requis
+### 4.1 Pré-requis
 - Java 21, Maven Wrapper fourni (`bakend/mvnw`), Node.js 20+, PostgreSQL 14 ou plus.
 - Base `erp` créée et accessible.
 
-### 3.2 Base de données
+### 4.2 Base de données
 ```bash
 # configuration locale (le fichier application.properties est ignoré par git)
 cp bakend/src/main/resources/exemple.application.properties \
@@ -152,9 +211,10 @@ cp bakend/src/main/resources/exemple.application.properties \
 PGPASSWORD=postgres psql -h localhost -U postgres -d erp -c '\dt'
 ```
 Les tables sont créées automatiquement par **Flyway** au démarrage du backend
-(migration `V1__bloc1_schema.sql`).
+(migration `V1__bloc1_schema.sql`), puis les données de test sont insérées
+(voir section 2 : `donnees_demo.sql` ou `DataInitializer`).
 
-### 3.3 Backend (port 8080)
+### 4.3 Backend (port 8080)
 ```bash
 cd bakend
 ./mvnw -o compile          # compilation
@@ -171,7 +231,7 @@ Comptes créés (mot de passe commun `Role@2026`) :
 | FINANCE | finance@tovo.mg | Finance@2026 |
 | DIRECTION | direction@tovo.mg | Direction@2026 |
 
-### 3.4 Frontend (port 5173)
+### 4.4 Frontend (port 5173)
 ```bash
 cd frontend
 npm install
@@ -180,7 +240,7 @@ npm run dev      # http://localhost:5173
 
 ---
 
-## 4. Commandes récapitulatives
+## 5. Commandes récapitulatives
 
 ```bash
 # Backend
@@ -202,9 +262,9 @@ cd frontend && node test_ui.mjs     # 28 vérifications dans un vrai navigateur
 
 ---
 
-## 5. Tests à faire dans le navigateur
+## 6. Tests à faire dans le navigateur
 
-### 5.1 Test automatisé (Playwright)
+### 6.1 Test automatisé (Playwright)
 ```bash
 cd frontend
 npm install                # installe playwright
@@ -216,7 +276,7 @@ Le script parcourt : connexion → tableau de bord → liste des demandes → cr
 et création d'un poste → employés / utilisateurs → demande de correction puis correction et
 resoumission → rendu mobile. Il doit afficher **28 vérifications OK, 0 échec**.
 
-### 5.2 Parcours manuel (à faire dans Chrome, http://localhost:5173)
+### 6.2 Parcours manuel (à faire dans Chrome, http://localhost:5173)
 
 **A. Connexion — RM-001, RM-002**
 1. Ouvrir `/connexion` : le titre, le formulaire et les 4 boutons de comptes de démonstration
@@ -276,20 +336,20 @@ resoumission → rendu mobile. Il doit afficher **28 vérifications OK, 0 échec
 22. Réduire la fenêtre (≈ 420 px) : la sidebar se replie, les tableaux restent lisibles,
     aucune erreur dans la console du navigateur (F12 → Console).
 
-### 5.3 Cas d'erreur à vérifier
+### 6.3 Cas d'erreur à vérifier
 - Mot de passe incorrect, compte désactivé, jeton absent sur une URL protégée.
 - Budget insuffisant, doublon de poste, tentative de modifier une ligne déjà validée.
 - Un MANAGER ne voit pas les demandes des autres (RM-067) : vérifier dans la liste des demandes.
 
 ---
 
-## 6. Checklist de recette
+## 7. Checklist de recette
 
 - [ ] `./mvnw -o compile` et `npm run build` sans erreur
 - [ ] `npm run lint` sans erreur
 - [ ] `./tests/api_bloc1.sh` → 56 vérifications OK, 0 échec
 - [ ] `cd frontend && node test_ui.mjs` → 28 vérifications OK, 0 échec
-- [ ] Parcours manuel 5.2 réalisé de bout en bout (A → H)
+- [ ] Parcours manuel 6.2 réalisé de bout en bout (A → H)
 - [ ] Statut global cohérent à chaque étape (BROUILLON / A_CORRIGER / EN_VALIDATION /
       FINALISEE / FINALISEE_PARTIELLE / REFUSEE / ANNULEE)
 - [ ] Journal des statuts et historique des décisions consultables sur le détail d'une demande
