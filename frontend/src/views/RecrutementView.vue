@@ -1,29 +1,19 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-
-const api = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/recrutement'
+import { api, ErreurApi } from '../api/client'
 const offres = ref([])
 const candidatures = ref([])
 const selectedOffer = ref(null)
 const loading = ref(false)
 const error = ref('')
 
-async function request(path, options) {
-  const response = await fetch(`${api}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(options?.headers || {}) },
-    ...options,
-  })
-  if (!response.ok) throw new Error((await response.json()).error || 'La requête a échoué')
-  return response.json()
-}
-
 async function loadOffers() {
   loading.value = true
   error.value = ''
   try {
-    offres.value = await request('/offres')
+    offres.value = await api.get('/recrutement/offres')
   } catch (cause) {
-    error.value = cause.message
+    error.value = cause instanceof ErreurApi ? cause.message : 'Impossible de charger les offres.'
   } finally {
     loading.value = false
   }
@@ -31,7 +21,14 @@ async function loadOffers() {
 
 async function selectOffer(offer) {
   selectedOffer.value = offer
-  candidatures.value = await request(`/offres/${offer.idOffre}/candidatures`)
+  error.value = ''
+  try {
+    candidatures.value = await api.get(`/recrutement/offres/${offer.idOffre}/candidatures`)
+  } catch (cause) {
+    error.value =
+      cause instanceof ErreurApi ? cause.message : 'Impossible de charger les candidatures.'
+    candidatures.value = []
+  }
 }
 
 const publishedOffers = computed(() => offres.value.filter((offer) => offer.statut === 'PUBLIEE'))
