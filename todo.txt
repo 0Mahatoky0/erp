@@ -1,628 +1,295 @@
-1. Règle de calcul du statut global
-Je recommande les statuts suivants :
-Statut d'une ligne	Signification
-BROUILLON	La ligne n'est pas encore soumise
-EN_ATTENTE_RH	En attente de validation RH
-EN_ATTENTE_FINANCE	En attente de validation financière
-EN_ATTENTE_DIRECTION	En attente de validation de la direction
-A_CORRIGER	Le demandeur doit corriger la ligne
-ACCEPTEE	La ligne a passé les validations requises
-REFUSEE	La ligne a été refusée
-ANNULEE	La ligne a été annulée
-La demande globale possède son propre statut, calculé à partir de ses lignes.
-- Si toutes les lignes sont encore en brouillon, la demande est BROUILLON.
-- Si au moins une ligne est à corriger, la demande est A_CORRIGER.
-- Si au moins une ligne est encore en cours de validation, la demande est EN_VALIDATION.
-- Si toutes les lignes sont terminées et qu'au moins une est acceptée, la demande est FINALISEE_PARTIELLE ou FINALISEE selon la convention choisie.
-- Si toutes les lignes sont terminées et qu'aucune n'est acceptée, la demande est REFUSEE.
-- Si toutes les lignes sont annulées, la demande est ANNULEE.
-Point important : si une ligne est A_CORRIGER, les autres lignes peuvent poursuivre leur validation ou être terminées. La demande globale reste A_CORRIGER tant que cette correction n'est pas faite. Lorsqu'une ligne est corrigée et resoumise, son circuit de validation reprend à l'étape définie par les règles de l'entreprise.
-2. Tables finales du Bloc 1
-Je retiens 10 tables principales, avec une table employe ajoutée pour identifier l'employé remplacé. Les validations et les vérifications budgétaires seront rattachées à chaque ligne de demande, et non uniquement à la demande globale.
-Vue d'ensemble des relations
-departement
-
-1 département → plusieurs services
-
-
-service
-
-Postes officiels, budgets annuels et demandes
-
-
-demande_recrutement
-
-Une demande créée par un utilisateur
-
-
-demande_recrutement_poste
-
-Une ligne par besoin de recrutement, validée séparément
-
-validation
-
-Historique des décisions
-
-
-verification_budget
-
-Contrôle financier
-
-
-
-budget_service
-
-Budget alloué par service et par exercice
-
-employe
-
-Employé existant, éventuellement ciblé par un remplacement
-
-poste
-
-Catalogue des postes officiels
-
-utilisateur + role
-
-Comptes et droits d'accès au système
-
-
-Schéma DBML complet
-Tu peux copier ce schéma dans dbdiagram.io pour visualiser les tables et leurs relations.
-
-Table departement {
-  id_departement bigint [pk, increment]
-  nom varchar(100) [not null, unique]
-}
-
-Table service {
-  id_service bigint [pk, increment]
-  id_departement bigint [not null, ref: > departement.id_departement]
-  nom varchar(100) [not null]
-
-  indexes {
-    (id_departement, nom) [unique]
-  }
-}
-
-Table role {
-  id_role bigint [pk, increment]
-  nom varchar(50) [not null, unique]
-}
-
-Table utilisateur {
-  id_utilisateur bigint [pk, increment]
-  id_departement bigint [ref: > departement.id_departement]
-  id_role bigint [not null, ref: > role.id_role]
-  nom varchar(150) [not null]
-  email varchar(255) [not null, unique]
-  mot_de_passe text [not null, note: 'Stocker uniquement un hash sécurisé']
-  actif boolean [not null, default: true]
-}
-
-Table poste {
-  id_poste bigint [pk, increment]
-  id_service bigint [not null, ref: > service.id_service]
-  intitule varchar(150) [not null]
-  description text
-  salaire_min numeric(15,2)
-  salaire_max numeric(15,2)
-  actif boolean [not null, default: true]
-
-  indexes {
-    (id_service, intitule) [unique]
-  }
-}
-
-Table employe {
-  id_employe bigint [pk, increment]
-  matricule varchar(50) [not null, unique]
-  nom varchar(100) [not null]
-  prenom varchar(100) [not null]
-  email varchar(255) [unique]
-  telephone varchar(30)
-  date_embauche date
-  id_poste bigint [ref: > poste.id_poste]
-  statut varchar(30) [not null, default: 'ACTIF']
-  date_creation timestamp [not null, default: `CURRENT_TIMESTAMP`]
-}
-
-Table demande_recrutement {
-  id_demande bigint [pk, increment]
-  id_utilisateur bigint [not null, ref: > utilisateur.id_utilisateur]
-  motif text [not null]
-  date_souhaitee date [not null]
-  statut varchar(30) [not null, default: 'BROUILLON']
-  date_creation timestamp [not null, default: `CURRENT_TIMESTAMP`]
-  date_modification timestamp [not null, default: `CURRENT_TIMESTAMP`]
-}
-
-Table demande_recrutement_poste {
-  id_demande_poste bigint [pk, increment]
-  id_demande bigint [not null, ref: > demande_recrutement.id_demande]
-  id_service bigint [not null, ref: > service.id_service]
-  id_poste bigint [ref: > poste.id_poste]
-
-  type_besoin varchar(20) [not null, note: 'CREATION ou REMPLACEMENT']
-  type_remplacement varchar(20) [note: 'TEMPORAIRE ou DEFINITIF']
-  id_employe_remplace bigint [ref: > employe.id_employe]
-  motif_remplacement text
-  date_debut_remplacement date
-  date_fin_remplacement date
-
-  intitule_demande varchar(150) [not null]
-  description_poste text
-  profil_recherche text
-  salaire_min_estime numeric(15,2)
-  salaire_max_estime numeric(15,2)
-  effectif integer [not null, default: 1]
-  budget_estime numeric(15,2) [not null]
-
-  statut varchar(30) [not null, default: 'BROUILLON']
-  date_creation timestamp [not null, default: `CURRENT_TIMESTAMP`]
-  date_modification timestamp [not null, default: `CURRENT_TIMESTAMP`]
-
-  indexes {
-    (id_demande)
-    (id_service)
-    (id_poste)
-    (id_employe_remplace)
-  }
-}
-
-Table validation {
-  id_validation bigint [pk, increment]
-  id_demande_poste bigint [not null, ref: > demande_recrutement_poste.id_demande_poste]
-  id_utilisateur bigint [not null, ref: > utilisateur.id_utilisateur]
-  etape varchar(20) [not null, note: 'RH, FINANCE ou DIRECTION']
-  decision varchar(20) [not null, note: 'APPROUVE, REFUSE ou A_CORRIGER']
-  commentaire text
-  date_action timestamp [not null, default: `CURRENT_TIMESTAMP`]
-
-  indexes {
-    (id_demande_poste, date_action)
-  }
-}
-
-Table budget_service {
-  id_budget_service bigint [pk, increment]
-  id_service bigint [not null, ref: > service.id_service]
-  exercice integer [not null]
-  montant_alloue numeric(15,2) [not null]
-  date_creation timestamp [not null, default: `CURRENT_TIMESTAMP`]
-  date_modification timestamp [not null, default: `CURRENT_TIMESTAMP`]
-
-  indexes {
-    (id_service, exercice) [unique]
-  }
-}
-
-Table verification_budget {
-  id_verification bigint [pk, increment]
-  id_demande_poste bigint [not null, ref: > demande_recrutement_poste.id_demande_poste]
-  id_budget_service bigint [not null, ref: > budget_service.id_budget_service]
-  id_utilisateur bigint [not null, ref: > utilisateur.id_utilisateur]
-  budget_demande numeric(15,2) [not null]
-  budget_disponible numeric(15,2) [not null]
-  montant_estime numeric(15,2) [not null]
-  decision varchar(20) [not null, note: 'APPROUVE, REFUSE ou A_CORRIGER']
-  commentaire text
-  date_verification timestamp [not null, default: `CURRENT_TIMESTAMP`]
-
-  indexes {
-    (id_demande_poste, date_verification)
-  }
-}
-
-
-
-Ce DBML définit les relations et les colonnes principales. Les contraintes conditionnelles et les transitions de statut décrites plus bas devront être appliquées dans PostgreSQL et dans le backend.
-3. Règles métier détaillées
-Je les regroupe par domaine pour qu'elles puissent servir à la fois de cahier des charges et de guide pour l'implémentation.
-A. Gestion des utilisateurs et des droits
-RM-001 — Connexion
-
-Un utilisateur doit s'authentifier avec son adresse e-mail et son mot de passe.
-
-RM-002 — Sécurité du mot de passe
-
-Le mot de passe doit être enregistré sous forme de hash sécurisé, jamais en clair.
-
-RM-003 — Utilisateurs inactifs
-
-Un utilisateur inactif ne peut plus se connecter ni effectuer d'action.
-
-RM-004 — Rôles
-
-Les rôles initiaux sont :
-Rôle	Responsabilité
-MANAGER	Créer et suivre les demandes de recrutement de son périmètre
-RH	Vérifier la cohérence du besoin et les informations du poste
-FINANCE	Vérifier la disponibilité du budget
-DIRECTION	Prendre la décision finale lorsque son approbation est requise
-Les rôles ne doivent pas être codés uniquement dans l'interface. Le backend doit vérifier les autorisations à chaque action.
-
-RM-005 — Séparation des responsabilités
-
-Selon la politique de l'entreprise, un utilisateur ne doit pas pouvoir approuver sa propre demande. Cette règle doit être contrôlée côté serveur.
-B. Gestion des postes officiels
-RM-006 — Catalogue des postes
-
-La table poste contient les postes officiellement enregistrés dans l'entreprise.
-
-RM-007 — Poste existant
-
-Si le poste demandé existe déjà, demande_recrutement_poste.id_poste référence le poste correspondant.
-
-RM-008 — Nouveau poste proposé
-
-Si le poste n'existe pas, ses informations sont conservées dans la ligne de demande : intitule_demande, description_poste, profil_recherche et les informations salariales estimées. Aucun poste officiel n'est créé avant l'acceptation du besoin.
-
-RM-009 — Création du poste après acceptation
-
-Lorsque la ligne est acceptée et qu'un nouveau poste officiel est nécessaire, le système crée le poste et renseigne id_poste dans la ligne de demande. Ces opérations doivent être réalisées dans une même transaction SQL.
-
-RM-010 — Prévention des doublons
-
-Avant de créer un poste, le système vérifie qu'un poste équivalent n'existe pas déjà dans le service concerné. La contrainte unique (id_service, intitule) constitue une protection supplémentaire, mais la comparaison doit aussi tenir compte des différences de casse et des espaces si nécessaire.
-
-RM-011 — Désactivation d'un poste
-
-Un poste déjà utilisé dans l'historique ne doit pas être supprimé physiquement. Il peut être désactivé avec actif = false.
-C. Création d'une demande
-RM-012 — Création
-
-Un manager peut créer une demande à l'état BROUILLON.
-
-RM-013 — Motif obligatoire
-
-Le motif général de la demande est obligatoire.
-
-RM-014 — Date souhaitée
-
-La date souhaitée de recrutement est obligatoire et doit respecter les règles de planification de l'entreprise.
-
-RM-015 — Plusieurs lignes
-
-Une demande peut contenir plusieurs lignes dans demande_recrutement_poste.
-
-RM-016 — Effectif
-
-L'effectif doit être strictement supérieur à zéro.
-
-RM-017 — Informations salariales
-
-Les montants doivent être positifs ou nuls selon la politique de rémunération, et salaire_max_estime doit être supérieur ou égal à salaire_min_estime.
-
-RM-018 — Budget estimé
-
-budget_estime doit être positif ou nul. Le calcul doit être cohérent avec l'effectif, les rémunérations, les charges et la période budgétaire.
-
-RM-019 — Modification du brouillon
-
-Tant que la demande n'est pas soumise, son créateur peut modifier ses lignes.
-
-RM-020 — Soumission
-
-La demande ne peut être soumise que si elle contient au moins une ligne complète et valide.
-
-RM-021 — Modification après soumission
-
-Une ligne en cours de validation ne doit pas être modifiée silencieusement. Si une correction est nécessaire, le système doit enregistrer la demande de correction et conserver l'historique des décisions précédentes.
-D. Gestion des créations et des remplacements
-Le type de besoin se trouve sur demande_recrutement_poste, car une demande globale peut contenir plusieurs besoins de nature différente.
-
-RM-022 — Création
-
-Pour type_besoin = 'CREATION', le besoin correspond à un poste ou à un effectif supplémentaire.
-
-RM-023 — Remplacement
-
-Pour type_besoin = 'REMPLACEMENT', le besoin vise à remplacer un employé existant ou une personne dont le départ est confirmé.
-
-RM-024 — Type de remplacement
-
-Un remplacement doit préciser type_remplacement :
-- TEMPORAIRE : remplacement limité dans le temps.
-- DEFINITIF : remplacement durable, par exemple à la suite d'un départ définitif.
-RM-025 — Employé remplacé
-
-Pour un remplacement, id_employe_remplace doit référencer un employé connu si celui-ci est identifié.
-
-RM-026 — Employé inconnu
-
-Si l'employé concerné n'est pas encore identifié, id_employe_remplace peut rester NULL, à condition que la politique RH l'autorise. Le motif doit alors expliquer le remplacement.
-
-RM-027 — Employé valide
-
-L'employé référencé doit exister. Pour un remplacement ordinaire, il doit aussi correspondre à un employé actif ou à un départ documenté, selon le scénario.
-
-RM-028 — Remplacement temporaire
-
-Pour un remplacement temporaire, date_debut_remplacement est obligatoire et date_fin_remplacement doit être renseignée si la durée est connue ou si la politique de l'entreprise l'exige. La date de fin ne peut pas précéder la date de début.
-
-RM-029 — Remplacement définitif
-
-Pour un remplacement définitif, la date de fin du remplacement doit normalement être NULL. Le motif du remplacement est obligatoire.
-
-RM-030 — Poste remplacé
-
-Lorsque l'employé possède déjà un poste, le système doit vérifier si le recrutement vise le même poste. Le poste officiel correspondant doit être référencé lorsqu'il existe.
-
-RM-031 — Historique de l'employé
-
-Une demande de remplacement ne doit pas supprimer ni modifier l'historique de l'employé remplacé. La demande constitue un enregistrement distinct.
-E. Circuit de validation par ligne
-C'est la partie centrale de ton système.
-
-RM-032 — Validation indépendante
-
-Chaque demande_recrutement_poste possède son propre statut et suit son propre circuit de validation.
-
-RM-033 — Historique
-
-Chaque décision est enregistrée dans validation, avec l'utilisateur, l'étape, la décision, le commentaire et la date.
-
-RM-034 — Étapes
-
-Le circuit habituel est :
-1. RH vérifie le besoin et la cohérence du poste.
-2. Finance vérifie la disponibilité budgétaire.
-3. Direction approuve le besoin si son autorisation est requise.
-L'ordre exact peut être configuré selon l'organisation.
-
-RM-035 — Approbation
-
-Lorsqu'une étape est approuvée, la ligne passe à l'étape suivante. Elle ne devient ACCEPTEE qu'après toutes les validations obligatoires.
-
-RM-036 — Refus
-
-Si une étape refuse définitivement la ligne, celle-ci passe à REFUSEE. Les étapes suivantes ne doivent pas être exécutées pour cette version de la ligne.
-
-RM-037 — Correction
-
-Si une étape demande une correction, la ligne passe à A_CORRIGER et un commentaire explicatif est enregistré.
-
-RM-038 — Resoumission
-
-Après correction, le demandeur resoumet la ligne. Le système conserve l'historique antérieur et redémarre le circuit selon la règle retenue : reprise à l'étape concernée ou nouvelle validation complète.
-
-RM-039 — Interdiction de sauter une étape
-
-Un utilisateur ne peut pas approuver directement une ligne à une étape qui ne lui est pas destinée.
-
-RM-040 — Double validation
-
-Une même étape ne doit pas être approuvée plusieurs fois par erreur pour la même version de la ligne. Si les corrections entraînent une nouvelle validation, les décisions doivent être rattachées à la nouvelle version ou au nouvel épisode de validation.
-F. Calcul du statut global de la demande
-Le statut global est une synthèse des statuts de ses lignes.
-
-RM-041 — Brouillon global
-
-La demande reste BROUILLON tant qu'elle n'a pas été soumise.
-
-RM-042 — Correction en attente
-
-Si au moins une ligne est A_CORRIGER, la demande globale est A_CORRIGER, même si d'autres lignes sont déjà acceptées ou refusées.
-
-RM-043 — Validation en cours
-
-Si aucune ligne n'est à corriger, mais qu'au moins une ligne est en attente d'une validation, la demande globale est EN_VALIDATION.
-
-RM-044 — Finalisation complète
-
-La demande est finalisée lorsque toutes ses lignes ont atteint un statut terminal : ACCEPTEE, REFUSEE ou ANNULEE.
-
-RM-045 — Résultat mixte
-
-Si toutes les lignes sont terminées et qu'au moins une est acceptée, la demande globale peut être FINALISEE_PARTIELLE si certaines lignes ont été refusées ou annulées, ou FINALISEE si toutes les lignes ont été acceptées.
-
-RM-046 — Refus global
-
-Si toutes les lignes sont terminées et qu'aucune n'est acceptée, la demande globale devient REFUSEE, sauf si toutes les lignes ont été annulées, auquel cas elle devient ANNULEE.
-
-RM-047 — Calcul automatique
-
-Le backend recalcule le statut global après chaque transition de statut d'une ligne. Il ne faut pas dépendre uniquement du frontend pour maintenir cette cohérence.
-
-Voici le principe à appliquer :
-Si la demande est encore en brouillon :
-    statut global = BROUILLON
-
-Sinon, si au moins une ligne est A_CORRIGER :
-    statut global = A_CORRIGER
-
-Sinon, si au moins une ligne est en validation :
-    statut global = EN_VALIDATION
-
-Sinon, si toutes les lignes sont terminées :
-    Si toutes les lignes sont ANNULEE :
-        statut global = ANNULEE
-    Sinon, si aucune ligne n'est ACCEPTEE :
-        statut global = REFUSEE
-    Sinon, si toutes les lignes sont ACCEPTEE :
-        statut global = FINALISEE
-    Sinon :
-        statut global = FINALISEE_PARTIELLE
-
-
-Attention : une demande globale FINALISEE ne signifie pas que le recrutement est terminé ou qu'un salarié a été embauché. Cela signifie uniquement que les décisions du Bloc 1 sont terminées.
-G. Vérification du budget
-RM-048 — Budget annuel
-
-Chaque service peut posséder un budget pour un exercice donné dans budget_service.
-
-RM-049 — Unicité
-
-Un seul budget annuel doit exister pour un couple (id_service, exercice).
-
-RM-050 — Budget affecté au service
-
-La vérification budgétaire d'une ligne doit utiliser le budget du service concerné et du bon exercice.
-
-RM-051 — Budget disponible
-
-Le budget disponible doit être calculé à partir du budget alloué, des dépenses réelles et des engagements déjà réservés. Il ne suffit pas de soustraire toutes les demandes acceptées : l'entreprise doit définir précisément à quel moment un montant devient un engagement budgétaire.
-
-RM-052 — Décision financière
-
-Finance peut approuver le montant, demander une correction ou refuser la ligne pour insuffisance budgétaire.
-
-RM-053 — Historique des vérifications
-
-Chaque vérification est conservée dans verification_budget, même si le montant est recalculé après correction.
-
-RM-054 — Montant cohérent
-
-montant_estime doit correspondre au montant de la ligne vérifiée. Le backend doit empêcher qu'une ligne soit approuvée avec un montant différent de celui réellement soumis.
-
-RM-055 — Dépassement budgétaire
-
-Une ligne ne peut pas être considérée comme financièrement approuvée si elle dépasse le budget disponible, sauf procédure exceptionnelle autorisée et tracée.
-
-RM-056 — Concurrence
-
-Deux demandes peuvent être vérifiées simultanément. Pour éviter de dépasser le budget, le backend doit réserver ou contrôler les montants dans une transaction SQL avec un verrouillage adapté.
-H. Employés et intégrité des données
-RM-057 — Matricule
-
-Chaque employé possède un matricule unique.
-
-RM-058 — Employé distinct du compte utilisateur
-
-Un employé et un utilisateur du système sont deux concepts différents. Tous les employés n'ont pas nécessairement un compte applicatif.
-
-RM-059 — Poste de l'employé
-
-employe.id_poste peut indiquer le poste courant de l'employé. Pour conserver les affectations historiques successives, il faudra une table d'affectation dans le bloc dédié aux contrats et à l'onboarding.
-
-RM-060 — Pas de suppression historique
-
-Un employé ou un poste déjà référencé dans des dossiers historiques ne doit pas être supprimé physiquement sans procédure appropriée.
-
-RM-061 — Cohérence des services
-
-Le service d'une ligne de demande doit correspondre au service du poste référencé, lorsque id_poste est renseigné. Cette règle nécessite un contrôle côté backend ou une contrainte SQL adaptée.
-
-RM-062 — Cohérence des dates
-
-Toutes les dates de remplacement doivent respecter leur ordre chronologique.
-
-RM-063 — Valeurs autorisées
-
-Les champs tels que statut, type_besoin, type_remplacement, etape et decision doivent accepter uniquement les valeurs autorisées.
-I. Audit et fiabilité
-RM-064 — Horodatage
-
-Chaque création, modification et décision doit être horodatée.
-
-RM-065 — Modification du statut
-
-Chaque changement de statut doit être traçable. L'historique des validations ne doit pas être écrasé par la dernière décision.
-
-RM-066 — Transaction
-
-La création d'un poste officiel après acceptation et la mise à jour de la ligne correspondante doivent réussir ensemble ou être annulées ensemble.
-
-RM-067 — Contrôle des accès
-
-Le backend doit vérifier le rôle, le périmètre de service et l'état de la demande avant toute opération.
-
-RM-068 — Erreurs explicites
-
-Le système doit expliquer pourquoi une opération est refusée : budget insuffisant, poste inexistant, employé non valide, étape de validation incorrecte, etc.
-
-4. Contraintes SQL importantes à ajouter
-Le DBML sert à représenter le modèle. Pour PostgreSQL, je recommande d'ajouter notamment les contraintes suivantes.
-ALTER TABLE demande_recrutement_poste
-ADD CONSTRAINT chk_type_besoin
-CHECK (type_besoin IN ('CREATION', 'REMPLACEMENT'));
-
-ALTER TABLE demande_recrutement_poste
-ADD CONSTRAINT chk_type_remplacement
-CHECK (
-    (type_besoin = 'CREATION'
-        AND type_remplacement IS NULL
-        AND id_employe_remplace IS NULL
-        AND date_debut_remplacement IS NULL
-        AND date_fin_remplacement IS NULL)
-    OR
-    (type_besoin = 'REMPLACEMENT'
-        AND type_remplacement IN ('TEMPORAIRE', 'DEFINITIF'))
-);
-
-ALTER TABLE demande_recrutement_poste
-ADD CONSTRAINT chk_dates_remplacement
-CHECK (
-    date_fin_remplacement IS NULL
-    OR (
-        date_debut_remplacement IS NOT NULL
-        AND date_fin_remplacement >= date_debut_remplacement
-    )
-);
-
-ALTER TABLE demande_recrutement_poste
-ADD CONSTRAINT chk_effectif
-CHECK (effectif > 0);
-
-ALTER TABLE demande_recrutement_poste
-ADD CONSTRAINT chk_budget_estime
-CHECK (budget_estime >= 0);
-
-ALTER TABLE demande_recrutement_poste
-ADD CONSTRAINT chk_salaire
-CHECK (
-    (salaire_min_estime IS NULL OR salaire_min_estime >= 0)
-    AND
-    (salaire_max_estime IS NULL OR salaire_max_estime >= 0)
-    AND
-    (
-        salaire_min_estime IS NULL
-        OR salaire_max_estime IS NULL
-        OR salaire_max_estime >= salaire_min_estime
-    )
-);
-
-
-Ces contraintes couvrent les valeurs de base. La règle « remplacement temporaire : date de début obligatoire » et la cohérence entre le service du poste et celui de la demande doivent être contrôlées en complément, dans le backend ou avec des mécanismes SQL appropriés.
-5. Les statuts à retenir dans la base
-Pour éviter les incohérences, utilise une liste officielle de statuts.
-Table	Statuts recommandés
-demande_recrutement	BROUILLON, EN_VALIDATION, A_CORRIGER, FINALISEE, FINALISEE_PARTIELLE, REFUSEE, ANNULEE
-demande_recrutement_poste	BROUILLON, EN_ATTENTE_RH, EN_ATTENTE_FINANCE, EN_ATTENTE_DIRECTION, A_CORRIGER, ACCEPTEE, REFUSEE, ANNULEE
-validation.decision	APPROUVE, REFUSE, A_CORRIGER
-verification_budget.decision	APPROUVE, REFUSE, A_CORRIGER
-employe.statut	ACTIF, INACTIF, PARTI
-Je recommande de centraliser ces valeurs dans des contraintes CHECK ou dans des types ENUM PostgreSQL. Les contraintes doivent également empêcher les transitions illégales.
-6. Ce qui appartient aux blocs suivants
-La table employe est utile dès maintenant pour identifier la personne remplacée. En revanche, il ne faut pas essayer de gérer tous les aspects RH dans le Bloc 1.
-- Bloc 1 : besoins, demandes, remplacements, validation et contrôle budgétaire.
-- Bloc 2 : offres d'emploi, candidatures, présélection, entretiens, évaluations et décision finale.
-- Bloc 3 : proposition d'embauche, négociation des conditions et acceptation du candidat.
-- Bloc 4 : contrats successifs, affectations historiques, onboarding, documents, matériel et comptes professionnels.
-Le type de contrat ne doit donc pas être stocké comme unique information permanente dans employe : les contrats successifs seront conservés dans une table contrat.
-
-Conclusion : le modèle comprend désormais 11 tables principales. Le point essentiel est de conserver la validation par ligne, l'historique des décisions et le calcul automatique du statut global. Cela permet d'accepter un poste, d'en refuser un autre et d'en demander la correction pour un troisième, sans perdre l'historique ni bloquer inutilement toute la demande.
-
-
-
-
-
-Si la demande est encore en brouillon :
-    statut global = BROUILLON
-
-Sinon, si au moins une ligne est A_CORRIGER :
-    statut global = A_CORRIGER
-
-Sinon, si au moins une ligne est en validation :
-    statut global = EN_VALIDATION
-
-Sinon, si toutes les lignes sont terminées :
-    Si toutes les lignes sont ANNULEE :
-        statut global = ANNULEE
-    Sinon, si aucune ligne n'est ACCEPTEE :
-        statut global = REFUSEE
-    Sinon, si toutes les lignes sont ACCEPTEE :
-        statut global = FINALISEE
-    Sinon :
-        statut global = FINALISEE_PARTIELLE
+# Bloc 1 — ERP TOVO (recrutement)
+## Étapes de réalisation, commandes de lancement et tests navigateur
+
+Ce document remplace l'ancienne spécification textuelle : il décrit **ce qui a été fait,
+dans quel ordre**, **comment lancer le projet** et **quels tests faire dans le navigateur**.
+La spécification RM d'origine est conservée dans l'historique git (commit `f20beaf`).
+
+---
+
+## 1. Étapes de réalisation
+
+Chaque étape correspond à un commit de la branche `Bloc1` : l'historique se lit de bas en haut.
+
+### Étape 0 — Socle du projet (déjà en place)
+- Backend Maven `bakend/` (Spring Boot 4.1.1, Java 21) et frontend Vite `frontend/` (Vue 3).
+- Commit d'origine conservé : `64a2b40 init frontend` (le scaffold Vite d'origine est recopié
+  dans `frontend/init-vite/`, non utilisé par l'application, pour garder les styles de référence).
+
+### Étape 1 — Spécification fonctionnelle (`f20beaf`)
+- Cahier des charges RM-001 → RM-068 (statuts globaux, tables, règles de validation).
+- Fichier : `todo.txt` (version d'origine de ce document).
+
+### Étape 2 — Modèle de données (`efd2e0e`)
+- Entités JPA : `DemandeRecrutement`, `DemandeRecrutementPoste`, `Validation`,
+  `VerificationBudget`, `Budget`, `Poste`, `Employe`, `Service`, `Departement`,
+  `Utilisateur`, `Role`, `HistoriqueStatut`.
+- Énumérations : `StatutDemande`, `StatutLigne`, `StatutEmploye`, `TypeBesoin`,
+  `TypeRemplacement`, `EtapeValidation`, `Decision`, `RoleNom`.
+- Règles : validation **par ligne** (RM-003), historique conservé, statut global calculé.
+- Décision technique : toutes les relations `@ManyToOne` sont `EAGER`
+  (`spring.jpa.open-in-view=false` provoked des `LazyInitializationException` sinon).
+
+### Étape 3 — Repositories et utilitaires communs (`bf01813`)
+- Repositories : `DemandeRecrutementRepository`, `DemandeRecrutementPosteRepository`,
+  `ValidationRepository`, `VerificationBudgetRepository`, `BudgetRepository` (verrou pessimiste
+  pour le contrôle budgétaire, RM-051/056), `PosteRepository`, `EmployeRepository`,
+  `ServiceRepository`, `DepartementRepository`, `UtilisateurRepository`, `RoleRepository`,
+  `HistoriqueStatutRepository`.
+- `common/` : `BusinessException` (codes d'erreur RM-068), `ApiError`, `GlobalExceptionHandler`,
+  `Recherche` (construction du motif `%terme%` échappé — contourne l'erreur PostgreSQL
+  `lower(bytea) does not exist` sur `concat('%', :recherche, '%')`).
+
+### Étape 4 — Sécurité, CORS et circuit de validation (`5cb2c45`)
+- Dépendances ajoutées : `spring-boot-starter-security`, `spring-security-oauth2-jose`,
+  `spring-boot-starter-flyway`, `flyway-database-postgresql`.
+- `JwtService` / `JwtAuthenticationFilter` / `JwtProperties` / `UtilisateurCourant` :
+  jeton HS256, expiration 8 h, filtre instancié en `@Bean` (suppression du cycle
+  `SecurityConfig` ↔ `JwtAuthenticationFilter`).
+- `SecurityConfig` : CORS pour les origines `localhost` du front, rôles par URL.
+- `CircuitValidationProperties` : `erp.validation.etapes=RH,FINANCE,DIRECTION`,
+  `erp.validation.seuil-direction=0` (la DIRECTION valide toujours).
+
+### Étape 5 — Schéma de base et données de démarrage (`d1565cb`)
+- Migration Flyway `bakend/src/main/resources/db/migration/V1__bloc1_schema.sql`
+  (11 tables, contraintes, index).
+- `DataInitializer` : 3 départements, 3 services, 3 postes, 3 employés, budgets de l'exercice
+  courant et 4 comptes de démonstration.
+
+### Étape 6 — Services métier (`3546892`)
+- `DemandeService` : création multi-lignes, modification d'une ligne, soumission, resoumission
+  (épisode +1, RM-038/040), annulation, périmètre MANAGER (RM-067).
+- `LigneRegles` : contrôles de saisie (RM-006 → RM-018), doublons (RM-010), cohérence
+  remplacement/budget, contrôle de modifiabilité d'une ligne `A_CORRIGER` (RM-021/037).
+- `ValidationService` : décision par ligne, contrôle du rôle = étape (RM-039), refus
+  automatique si budget insuffisant (RM-053), montant vérifié facultatif (RM-054).
+- `BudgetService` : disponible = alloué − dépensé − engagé, engagement à l'acceptation.
+- `PosteService` : création de poste en transaction avec la ligne (RM-009/066),
+  désactivation, doublon de intitulé (RM-010).
+- `StatutService` : calcul du statut global de la demande à partir des lignes.
+- `DashboardService`, `AuthService`, `EmployeService`, `UtilisateurService`.
+
+### Étape 7 — API REST (`797a4d8`)
+- Contrôleurs : `AuthController`, `DemandeController`, `ValidationController`, `PosteController`,
+  `BudgetController`, `EmployeController` (`ReferentielController`), `UtilisateurController`,
+  `DashboardController`.
+- DTO : `AuthDto`, `DemandeDto`, `ValidationDto`, `PosteDto`, `BudgetDto`, `EmployeDto`,
+  `DashboardDto`.
+- Format d'erreur unique : `{code, message, status, chemin}` (RM-068).
+
+### Étape 8 — Thème, client API et stores front (`92067b4`)
+- `frontend/src/assets/base.css` + `main.css` : palette de `Catalogue des postes (RH).png`
+  (fond `#F4F6F8`, sidebar `#12302D`, primaire `#0F766E`, cartes blanches, badges
+  succès / attention).
+- `frontend/src/api/client.js` : client `fetch` unique, injection du jeton, conversion des
+  erreurs en `ErreurApi`, déconnexion automatique sur 401.
+- `frontend/src/stores/auth.js` (session, rôle, helpers) et `stores/notification.js`
+  (messages succès / erreur).
+
+### Étape 9 — Navigation, layout et composants (`80faad2`)
+- `App.vue`, `main.js`, `router/index.js` : routes protégées par rôle, redirection vers
+  `/connexion` si non connecté.
+- `layouts/AppLayout.vue`, `components/AppSidebar.vue` (menu selon le rôle),
+  `AppTopbar.vue`, `StatusBadge.vue`, `ModalDialog.vue`, `NotificationContainer.vue`,
+  `EmptyState.vue`, `HistoriqueValidations.vue`.
+
+### Étape 10 — Écrans du Bloc 1 (`daa33b8`)
+- `ConnexionView`, `TableauBordView`, `DemandesView`, `DemandeNouvelleView`,
+  `DemandeDetailView`, `ValidationView`, `PostesView`, `BudgetsView`, `EmployesView`,
+  `UtilisateursView`, `IntrouvableView`.
+- La correction demandée par un validateur est gérée dans `DemandeDetailView` :
+  bouton « Corriger » (RM-021) puis « Resoumettre » (RM-038).
+
+### Étape 11 — Tests (`dac1657`)
+- `frontend/test_ui.mjs` : parcours navigateur automatisé (28 vérifications, Playwright).
+- `tests/api_bloc1.sh` : parcours API automatisé (56 vérifications, bash + curl + node,
+  pas de dépendance à `jq` ni à `python`).
+
+### Étape 12 — Conservation du scaffold d'origine (`724458e`)
+- `frontend/init-vite/` : copie intacte du frontend initial Vite (styles, composants de
+  démonstration), hors build.
+
+---
+
+## 2. Règles métier à ne pas oublier
+
+| Règle | Comportement attendu |
+|---|---|
+| RM-001/002 | Connexion par email + mot de passe, jeton JWT, message d'erreur explicite |
+| RM-003 | Une ligne = une décision ; la demande globale est calculée à partir de ses lignes |
+| RM-005 | Un validateur ne peut pas valider sa propre ligne |
+| RM-009/066 | Un poste peut être créé à l'acceptation, dans la même transaction |
+| RM-010 | Doublon de poste ou de demande détecté (insensible à la casse et aux espaces) |
+| RM-019/021/037 | Une ligne `A_CORRIGER` peut être modifiée par le demandeur, puis resoumise |
+| RM-038/040 | Resoumission : retour à l'étape de la ligne, épisode incrémenté |
+| RM-039 | Seul le rôle de l'étape courante peut décider sur une ligne |
+| RM-051/056 | Budget disponible = alloué − dépensé − engagé ; refus si insuffisant |
+| RM-054 | Montant vérifié facultatif (contrôle financier) |
+| RM-063 | Seules les valeurs d'énumération autorisées sont acceptées |
+| RM-067 | Un MANAGER ne voit que ses propres demandes |
+| RM-068 | Erreur = `{code, message, status, chemin}` |
+
+**Statut global d'une demande** (ordre de calcul) :
+`BROUILLON` → `A_CORRIGER` → `EN_VALIDATION` → sinon `ANNULEE` / `REFUSEE` / `FINALISEE` /
+`FINALISEE_PARTIELLE` selon les lignes terminées.
+
+---
+
+## 3. Mise en route
+
+### 3.1 Pré-requis
+- Java 21, Maven Wrapper fourni (`bakend/mvnw`), Node.js 20+, PostgreSQL 14 ou plus.
+- Base `erp` créée et accessible.
+
+### 3.2 Base de données
+```bash
+# configuration locale (le fichier application.properties est ignoré par git)
+cp bakend/src/main/resources/exemple.application.properties \
+   bakend/src/main/resources/application.properties
+# puis renseigner spring.datasource.url / username / password
+
+# vérifier l'accès
+PGPASSWORD=postgres psql -h localhost -U postgres -d erp -c '\dt'
+```
+Les tables sont créées automatiquement par **Flyway** au démarrage du backend
+(migration `V1__bloc1_schema.sql`).
+
+### 3.3 Backend (port 8080)
+```bash
+cd bakend
+./mvnw -o compile          # compilation
+./mvnw -o spring-boot:run  # démarrage
+# arrêter : pkill -f "[c]om.tovo.erp.ErpApplication"
+```
+Au démarrage : Flyway applique la migration, puis `DataInitializer` crée les données de départ.
+Comptes créés (mot de passe commun `Role@2026`) :
+
+| Rôle | Email | Mot de passe |
+|---|---|---|
+| MANAGER | manager@tovo.mg | Manager@2026 |
+| RH | rh@tovo.mg | Rh@2026 |
+| FINANCE | finance@tovo.mg | Finance@2026 |
+| DIRECTION | direction@tovo.mg | Direction@2026 |
+
+### 3.4 Frontend (port 5173)
+```bash
+cd frontend
+npm install
+npm run dev      # http://localhost:5173
+```
+
+---
+
+## 4. Commandes récapitulatives
+
+```bash
+# Backend
+cd bakend && ./mvnw -q -o compile
+cd bakend && ./mvnw -o spring-boot:run
+pkill -f "[c]om.tovo.erp.ErpApplication"
+
+# Frontend
+cd frontend && npm install
+cd frontend && npm run dev
+cd frontend && npm run build
+cd frontend && npm run lint
+cd frontend && npm run format
+
+# Tests automatisés
+./tests/api_bloc1.sh               # 56 vérifications sur l'API (bash + curl + node)
+cd frontend && node test_ui.mjs     # 28 vérifications dans un vrai navigateur
+```
+
+---
+
+## 5. Tests à faire dans le navigateur
+
+### 5.1 Test automatisé (Playwright)
+```bash
+cd frontend
+npm install                # installe playwright
+npx playwright install chromium   # si Chrome du système absent (/usr/bin/google-chrome)
+node test_ui.mjs           # captures dans /tmp/opencode/captures
+```
+Le script parcourt : connexion → tableau de bord → liste des demandes → création d'une demande
+→ validation RH → contrôle budgétaire (FINANCE) → validation DIRECTION → catalogue des postes
+et création d'un poste → employés / utilisateurs → demande de correction puis correction et
+resoumission → rendu mobile. Il doit afficher **28 vérifications OK, 0 échec**.
+
+### 5.2 Parcours manuel (à faire dans Chrome, http://localhost:5173)
+
+**A. Connexion — RM-001, RM-002**
+1. Ouvrir `/connexion` : le titre, le formulaire et les 4 boutons de comptes de démonstration
+   sont visibles.
+2. Se connecter avec `manager@tovo.mg / Manager@2026` → le tableau de bord s'affiche
+   (« Bonjour Manager Commercial »), la sidebar contient Tableau de bord, Demandes,
+   Nouvelle demande, File de validation, Employes.
+3. Se connecter avec un mauvais mot de passe → message d'erreur, pas de redirection.
+
+**B. Tableau de bord**
+4. Vérifier les 4 cartes (Demandes, En attente de validation, Lignes acceptées, Budget
+   disponible), la jauge de consommation du budget, la liste des dernières demandes et le
+   raccourci « Nouvelle demande ».
+5. En tant que FINANCE, un bouton « Budgets » apparaît ; en tant que RH, « Catalogue des postes »
+   et « Utilisateurs » apparaissent (menu filtré par rôle).
+
+**C. Créer une demande — RM-006 → RM-018**
+6. « Nouvelle demande » : saisir le motif, la date souhaitée, puis une ligne
+   (service, type de besoin, intitulé, effectif, budget estimé, salaire min/max, profil,
+   description). « Ajouter une ligne » permet une demande multi-lignes.
+7. « Enregistrer et soumettre » → le détail `DEM-xxxx` s'affiche, statut **En validation**,
+   la ligne porte son étape courante (badge « Étape : RH »).
+8. « Enregistrer en brouillon » → le statut **Brouillon**, puis le bouton « Soumettre la
+   demande » est disponible sur le détail. Une fois soumise, la ligne n'est plus modifiable
+   (RM-019) : le refus est vérifié par le test API `./tests/api_bloc1.sh`.
+
+**D. Valider la ligne — RM-039, RM-051 → RM-054**
+9. Se connecter en RH → « File de validation » → la ligne apparaît avec l'étape **RH**.
+10. « Traiter » → modale : choisir Approuver / Demander une correction / Refuser, saisir un
+    commentaire → « Enregistrer la décision » : notification verte, la ligne passe à l'étape
+    FINANCE.
+11. Se connecter en FINANCE → la ligne est à l'étape FINANCE. Le champ « Montant vérifié »
+    apparaît (facultatif, RM-054).
+12. Demander un besoin supérieur au budget disponible → refus avec le message
+    « Budget insuffisant : … » (RM-053), la ligne reste en attente.
+
+**E. Correction d'une ligne — RM-021, RM-037, RM-038**
+13. En tant que RH, demander une correction (« Demander une correction » + commentaire).
+14. Se reconnecter en MANAGER, ouvrir la demande : l'encart « Des lignes vous ont été renvoyées
+    à corriger » et le bouton « Corriger » sont visibles (le demandeur seul peut corriger).
+15. « Corriger » → modifier l'intitulé / le profil / le budget → « Enregistrer la correction »,
+    puis « Resoumettre » : la ligne repart en validation et l'épisode est incrémenté.
+
+**F. Catalogue des postes — RM-009, RM-010, RM-066**
+16. En tant que RH : « Catalogue des postes » → filtres (recherche, service, actif) et bouton
+    « Nouveau poste ».
+17. Créer un poste, puis créer de nouveau un poste de même intitulé → refus « doublon ».
+18. Valider en FINANCE une ligne de création de poste sans poste rattaché : le poste est créé
+    automatiquement et rattaché à la ligne (RM-009).
+
+**G. Employés et utilisateurs — RM-004**
+19. « Employes » : liste filtrable par service et par statut.
+20. « Utilisateurs » (RH) : création d'un utilisateur, désactivation / réactivation d'un compte.
+21. Se connecter avec un compte désactivé → connexion refusée.
+
+**H. Responsive — RM-057**
+22. Réduire la fenêtre (≈ 420 px) : la sidebar se replie, les tableaux restent lisibles,
+    aucune erreur dans la console du navigateur (F12 → Console).
+
+### 5.3 Cas d'erreur à vérifier
+- Mot de passe incorrect, compte désactivé, jeton absent sur une URL protégée.
+- Budget insuffisant, doublon de poste, tentative de modifier une ligne déjà validée.
+- Un MANAGER ne voit pas les demandes des autres (RM-067) : vérifier dans la liste des demandes.
+
+---
+
+## 6. Checklist de recette
+
+- [ ] `./mvnw -o compile` et `npm run build` sans erreur
+- [ ] `npm run lint` sans erreur
+- [ ] `./tests/api_bloc1.sh` → 56 vérifications OK, 0 échec
+- [ ] `cd frontend && node test_ui.mjs` → 28 vérifications OK, 0 échec
+- [ ] Parcours manuel 5.2 réalisé de bout en bout (A → H)
+- [ ] Statut global cohérent à chaque étape (BROUILLON / A_CORRIGER / EN_VALIDATION /
+      FINALISEE / FINALISEE_PARTIELLE / REFUSEE / ANNULEE)
+- [ ] Journal des statuts et historique des décisions consultables sur le détail d'une demande
