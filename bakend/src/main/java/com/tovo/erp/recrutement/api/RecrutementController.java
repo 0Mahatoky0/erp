@@ -110,8 +110,10 @@ public class RecrutementController {
     }
 
     @DeleteMapping("/candidatures/{id}")
-    public Candidature retirer(@PathVariable Long id, @RequestParam Long idUtilisateur) {
-        return candidatures.changerStatut(id, CandidatureStatut.RETIREE, idUtilisateur, "Retrait de candidature");
+    public Candidature retirer(@PathVariable Long id) {
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        return candidatures.changerStatut(id, CandidatureStatut.RETIREE,
+                utilisateurCourant.exiger().getId(), "Retrait de candidature");
     }
 
     @PostMapping(value = "/candidatures/{id}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
