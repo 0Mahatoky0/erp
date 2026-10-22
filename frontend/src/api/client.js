@@ -2,85 +2,80 @@ const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
 const TOKEN_KEY = 'erp.token'
 
 export class ErreurApi extends Error {
-  constructor(message, details = {}) {
+  constructor(message, { code, statut, chemin } = {}) {
     super(message)
     this.name = 'ErreurApi'
-    Object.assign(this, details)
+    this.code = code
+    this.statut = statut
+    this.chemin = chemin
   }
 }
 
-let token = localStorage.getItem(TOKEN_KEY)
-let onUnauthorized = null
+let jeton = localStorage.getItem(TOKEN_KEY)
+let surExpiration = null
 
-export function definirJeton(value) {
-  token = value
-  if (value) {
-    localStorage.setItem(TOKEN_KEY, value)
-  } else {
-    localStorage.removeItem(TOKEN_KEY)
-  }
+export function definirJeton(valeur) {
+  jeton = valeur
+  if (valeur) localStorage.setItem(TOKEN_KEY, valeur)
+  else localStorage.removeItem(TOKEN_KEY)
 }
 
 export function obtenirJeton() {
-  return token
+  return jeton
 }
 
 export function surJetonExpire(callback) {
-  onUnauthorized = callback
+  surExpiration = callback
 }
 
-async function request(method, path, body) {
-  const headers = { Accept: 'application/json' }
-  if (body !== undefined) {
-    headers['Content-Type'] = 'application/json'
-  }
-  if (token) {
-    headers.Authorization = 'Bearer ' + token
+async function requete(methode, chemin, corps) {
+  const entetes = { Accept: 'application/json' }
+  if (corps !== undefined) entetes['Content-Type'] = 'application/json'
+  if (jeton) entetes.Authorization = `Bearer ${jeton}`
+
+  const options = { method: methode, headers: entetes }
+  if (methode !== 'GET' && methode !== 'DELETE' && corps !== undefined) {
+    options.body = JSON.stringify(corps)
   }
 
-  let response
+  let reponse
   try {
-    const options = { method, headers }
-    if (method !== 'GET' && method !== 'DELETE' && body !== undefined) {
-      options.body = JSON.stringify(body)
-    }
-    response = await fetch(`${BASE}${path}`, options)
+    reponse = await fetch(`${BASE}${chemin}`, options)
   } catch {
-    throw new ErreurApi('Le serveur est injoignable. Verifiez votre connexion.', { status: 0 })
+    throw new ErreurApi('Le serveur est injoignable. Verifiez votre connexion.', { statut: 0 })
   }
 
-  if (response.status === 204) {
-    return null
-  }
+  if (reponse.status === 204) return null
 
-  const text = await response.text()
-  let data = null
-  if (text) {
+  const texte = await reponse.text()
+  let donnees = null
+  if (texte) {
     try {
-      data = JSON.parse(text)
+      donnees = JSON.parse(texte)
     } catch {
-      data = text
+      donnees = texte
     }
   }
 
-  if (!response.ok) {
-    if (response.status === 401 && onUnauthorized) {
-      onUnauthorized()
-    }
-    throw new ErreurApi(
-      (data && typeof data === 'object' && (data.message || data.error)) ||
-        `Erreur ${response.status} lors de l'appel ${path}.`,
-      { status: response.status, path },
-    )
+  if (!reponse.ok) {
+    if (reponse.status === 401 && surExpiration) surExpiration()
+    const message =
+      (donnees && typeof donnees === 'object' && (donnees.message || donnees.error)) ||
+      `Erreur ${reponse.status} lors de l'appel ${chemin}.`
+    throw new ErreurApi(message, {
+      code: donnees && donnees.code,
+      statut: reponse.status,
+      chemin: donnees && donnees.chemin,
+    })
   }
 
-  return data
+  return donnees
 }
 
 export const api = {
-  get: (path) => request('GET', path),
-  post: (path, body) => request('POST', path, body ?? {}),
-  put: (path, body) => request('PUT', path, body ?? {}),
-  patch: (path, body) => request('PATCH', path, body ?? {}),
-  delete: (path) => request('DELETE', path),
+  get: (chemin) => requete('GET', chemin),
+  post: (chemin, corps) => requete('POST', chemin, corps ?? {}),
+  put: (chemin, corps) => requete('PUT', chemin, corps ?? {}),
+  patch: (chemin, corps) => requete('PATCH', chemin, corps ?? {}),
+  delete: (chemin) => requete('DELETE', chemin),
 }

@@ -1,0 +1,355 @@
+# Bloc 1 — ERP TOVO (recrutement)
+## Étapes de réalisation, commandes de lancement et tests navigateur
+
+Ce document remplace l'ancienne spécification textuelle : il décrit **ce qui a été fait,
+dans quel ordre**, **comment lancer le projet** et **quels tests faire dans le navigateur**.
+La spécification RM d'origine est conservée dans l'historique git (commit `f20beaf`).
+
+---
+
+## 1. Étapes de réalisation
+
+Chaque étape correspond à un commit de la branche `Bloc1` : l'historique se lit de bas en haut.
+
+### Étape 0 — Socle du projet (déjà en place)
+- Backend Maven `bakend/` (Spring Boot 4.1.1, Java 21) et frontend Vite `frontend/` (Vue 3).
+- Commit d'origine conservé : `64a2b40 init frontend` (le scaffold Vite d'origine est recopié
+  dans `frontend/init-vite/`, non utilisé par l'application, pour garder les styles de référence).
+
+### Étape 1 — Spécification fonctionnelle (`f20beaf`)
+- Cahier des charges RM-001 → RM-068 (statuts globaux, tables, règles de validation).
+- Fichier : `todo.txt` (version d'origine de ce document).
+
+### Étape 2 — Modèle de données (`efd2e0e`)
+- Entités JPA : `DemandeRecrutement`, `DemandeRecrutementPoste`, `Validation`,
+  `VerificationBudget`, `Budget`, `Poste`, `Employe`, `Service`, `Departement`,
+  `Utilisateur`, `Role`, `HistoriqueStatut`.
+- Énumérations : `StatutDemande`, `StatutLigne`, `StatutEmploye`, `TypeBesoin`,
+  `TypeRemplacement`, `EtapeValidation`, `Decision`, `RoleNom`.
+- Règles : validation **par ligne** (RM-003), historique conservé, statut global calculé.
+- Décision technique : toutes les relations `@ManyToOne` sont `EAGER`
+  (`spring.jpa.open-in-view=false` provoked des `LazyInitializationException` sinon).
+
+### Étape 3 — Repositories et utilitaires communs (`bf01813`)
+- Repositories : `DemandeRecrutementRepository`, `DemandeRecrutementPosteRepository`,
+  `ValidationRepository`, `VerificationBudgetRepository`, `BudgetRepository` (verrou pessimiste
+  pour le contrôle budgétaire, RM-051/056), `PosteRepository`, `EmployeRepository`,
+  `ServiceRepository`, `DepartementRepository`, `UtilisateurRepository`, `RoleRepository`,
+  `HistoriqueStatutRepository`.
+- `common/` : `BusinessException` (codes d'erreur RM-068), `ApiError`, `GlobalExceptionHandler`,
+  `Recherche` (construction du motif `%terme%` échappé — contourne l'erreur PostgreSQL
+  `lower(bytea) does not exist` sur `concat('%', :recherche, '%')`).
+
+### Étape 4 — Sécurité, CORS et circuit de validation (`5cb2c45`)
+- Dépendances ajoutées : `spring-boot-starter-security`, `spring-security-oauth2-jose`,
+  `spring-boot-starter-flyway`, `flyway-database-postgresql`.
+- `JwtService` / `JwtAuthenticationFilter` / `JwtProperties` / `UtilisateurCourant` :
+  jeton HS256, expiration 8 h, filtre instancié en `@Bean` (suppression du cycle
+  `SecurityConfig` ↔ `JwtAuthenticationFilter`).
+- `SecurityConfig` : CORS pour les origines `localhost` du front, rôles par URL.
+- `CircuitValidationProperties` : `erp.validation.etapes=RH,FINANCE,DIRECTION`,
+  `erp.validation.seuil-direction=0` (la DIRECTION valide toujours).
+
+### Étape 5 — Schéma de base et données de démarrage (`d1565cb`)
+- Migration Flyway `bakend/src/main/resources/db/migration/V1__bloc1_schema.sql`
+  (11 tables, contraintes, index).
+- `DataInitializer` : 3 départements, 3 services, 3 postes, 3 employés, budgets de l'exercice
+  courant et 4 comptes de démonstration.
+
+### Étape 6 — Services métier (`3546892`)
+- `DemandeService` : création multi-lignes, modification d'une ligne, soumission, resoumission
+  (épisode +1, RM-038/040), annulation, périmètre MANAGER (RM-067).
+- `LigneRegles` : contrôles de saisie (RM-006 → RM-018), doublons (RM-010), cohérence
+  remplacement/budget, contrôle de modifiabilité d'une ligne `A_CORRIGER` (RM-021/037).
+- `ValidationService` : décision par ligne, contrôle du rôle = étape (RM-039), refus
+  automatique si budget insuffisant (RM-053), montant vérifié facultatif (RM-054).
+- `BudgetService` : disponible = alloué − dépensé − engagé, engagement à l'acceptation.
+- `PosteService` : création de poste en transaction avec la ligne (RM-009/066),
+  désactivation, doublon de intitulé (RM-010).
+- `StatutService` : calcul du statut global de la demande à partir des lignes.
+- `DashboardService`, `AuthService`, `EmployeService`, `UtilisateurService`.
+
+### Étape 7 — API REST (`797a4d8`)
+- Contrôleurs : `AuthController`, `DemandeController`, `ValidationController`, `PosteController`,
+  `BudgetController`, `EmployeController` (`ReferentielController`), `UtilisateurController`,
+  `DashboardController`.
+- DTO : `AuthDto`, `DemandeDto`, `ValidationDto`, `PosteDto`, `BudgetDto`, `EmployeDto`,
+  `DashboardDto`.
+- Format d'erreur unique : `{code, message, status, chemin}` (RM-068).
+
+### Étape 8 — Thème, client API et stores front (`92067b4`)
+- `frontend/src/assets/base.css` + `main.css` : palette de `Catalogue des postes (RH).png`
+  (fond `#F4F6F8`, sidebar `#12302D`, primaire `#0F766E`, cartes blanches, badges
+  succès / attention).
+- `frontend/src/api/client.js` : client `fetch` unique, injection du jeton, conversion des
+  erreurs en `ErreurApi`, déconnexion automatique sur 401.
+- `frontend/src/stores/auth.js` (session, rôle, helpers) et `stores/notification.js`
+  (messages succès / erreur).
+
+### Étape 9 — Navigation, layout et composants (`80faad2`)
+- `App.vue`, `main.js`, `router/index.js` : routes protégées par rôle, redirection vers
+  `/connexion` si non connecté.
+- `layouts/AppLayout.vue`, `components/AppSidebar.vue` (menu selon le rôle),
+  `AppTopbar.vue`, `StatusBadge.vue`, `ModalDialog.vue`, `NotificationContainer.vue`,
+  `EmptyState.vue`, `HistoriqueValidations.vue`.
+
+### Étape 10 — Écrans du Bloc 1 (`daa33b8`)
+- `ConnexionView`, `TableauBordView`, `DemandesView`, `DemandeNouvelleView`,
+  `DemandeDetailView`, `ValidationView`, `PostesView`, `BudgetsView`, `EmployesView`,
+  `UtilisateursView`, `IntrouvableView`.
+- La correction demandée par un validateur est gérée dans `DemandeDetailView` :
+  bouton « Corriger » (RM-021) puis « Resoumettre » (RM-038).
+
+### Étape 11 — Tests (`dac1657`)
+- `frontend/test_ui.mjs` : parcours navigateur automatisé (28 vérifications, Playwright).
+- `tests/api_bloc1.sh` : parcours API automatisé (56 vérifications, bash + curl + node,
+  pas de dépendance à `jq` ni à `python`).
+- `bakend/src/main/resources/db/donnees_demo.sql` : données de test (INSERT) de toutes les tables.
+
+### Étape 12 — Conservation du scaffold d'origine (`724458e`)
+- `frontend/init-vite/` : copie intacte du frontend initial Vite (styles, composants de
+  démonstration), hors build.
+
+---
+
+## 2. Les données de test (INSERT par table)
+
+### 2.1 Où sont-elles ?
+| Élément | Emplacement | Contenu |
+|---|---|---|
+| Schéma (11 tables) | `bakend/src/main/resources/db/migration/V1__bloc1_schema.sql` | tables, contraintes, index — appliqué par Flyway |
+| **Données de test (INSERT)** | `bakend/src/main/resources/db/donnees_demo.sql` | un INSERT par table, aligné sur le schéma |
+| Chargement automatique | `bakend/src/main/java/com/tovo/erp/config/DataInitializer.java` | insère le même jeu de données si la base est vide |
+
+### 2.2 Contenu du script `donnees_demo.sql`
+| Table | Lignes insérées |
+|---|---|
+| `role` | 4 rôles : MANAGER, RH, FINANCE, DIRECTION |
+| `departement` | 3 : Commercial, Production, Support |
+| `service` | 3 : Ventes, Atelier, Ressources Humaines (1 département → n services) |
+| `utilisateur` | 5 : les 4 comptes de démonstration + 1 compte désactivé |
+| `poste` | 3 postes officiels (salaires min/max) |
+| `employe` | 3 employés (2 ACTIF, 1 PARTI = cible d’un remplacement) |
+| `budget_service` | 9 : 3 services × 3 exercices (année-1, année, année+1) |
+| `demande_recrutement` | 5 demandes : FINALISEE, EN_VALIDATION, BROUILLON, A_CORRIGER, REFUSEE |
+| `demande_recrutement_poste` | 7 lignes (création + remplacement), avec `episode` et `etape_courante` |
+| `validation` | 10 décisions RH / FINANCE / DIRECTION (approbations, refus, demande de correction) |
+| `verification_budget` | 3 contrôles financiers (2 approbations, 1 refus budget insuffisant) |
+| `historique_statut` | 10 entrées du journal des statuts (lignes + demandes globales) |
+
+### 2.3 Charger les données
+```bash
+# Option 1 (recommandée) : rien à faire, le backend les insère au démarrage
+cd bakend && ./mvnw -o spring-boot:run
+
+# Option 2 : insertion manuelle dans une base déjà migrée
+PGPASSWORD=postgres psql -h localhost -U postgres -d erp \
+    -f bakend/src/main/resources/db/donnees_demo.sql
+
+# Vérification
+PGPASSWORD=postgres psql -h localhost -U postgres -d erp -c \
+  "SELECT 'utilisateur' t, count(*) FROM utilisateur
+   UNION ALL SELECT 'demande_recrutement', count(*) FROM demande_recrutement
+   UNION ALL SELECT 'demande_recrutement_poste', count(*) FROM demande_recrutement_poste
+   UNION ALL SELECT 'validation', count(*) FROM validation;"
+```
+Le script est **idempotent** (`ON CONFLICT DO NOTHING` + remise en état des séquences) :
+il peut être rechargé sans casser la base, et il n’écrase jamais une donnée métier existante.
+
+### 2.4 Mots de passe des comptes
+Les mots de passe sont stockés **hachés en BCrypt** (jamais en clair). Les hashes
+correspondants aux mots de passe ci-dessous figurent dans le script :
+
+| Rôle | Email | Mot de passe | Statut |
+|---|---|---|---|
+| MANAGER | manager@tovo.mg | Manager@2026 | actif |
+| RH | rh@tovo.mg | Rh@2026 | actif |
+| FINANCE | finance@tovo.mg | Finance@2026 | actif |
+| DIRECTION | direction@tovo.mg | Direction@2026 | actif |
+| MANAGER | ancien.manager@tovo.mg | Manager@2026 | **désactivé** (connexion refusée) |
+
+---
+
+## 3. Règles métier à ne pas oublier
+
+| Règle | Comportement attendu |
+|---|---|
+| RM-001/002 | Connexion par email + mot de passe, jeton JWT, message d'erreur explicite |
+| RM-003 | Une ligne = une décision ; la demande globale est calculée à partir de ses lignes |
+| RM-005 | Un validateur ne peut pas valider sa propre ligne |
+| RM-009/066 | Un poste peut être créé à l'acceptation, dans la même transaction |
+| RM-010 | Doublon de poste ou de demande détecté (insensible à la casse et aux espaces) |
+| RM-019/021/037 | Une ligne `A_CORRIGER` peut être modifiée par le demandeur, puis resoumise |
+| RM-038/040 | Resoumission : retour à l'étape de la ligne, épisode incrémenté |
+| RM-039 | Seul le rôle de l'étape courante peut décider sur une ligne |
+| RM-051/056 | Budget disponible = alloué − dépensé − engagé ; refus si insuffisant |
+| RM-054 | Montant vérifié facultatif (contrôle financier) |
+| RM-063 | Seules les valeurs d'énumération autorisées sont acceptées |
+| RM-067 | Un MANAGER ne voit que ses propres demandes |
+| RM-068 | Erreur = `{code, message, status, chemin}` |
+
+**Statut global d'une demande** (ordre de calcul) :
+`BROUILLON` → `A_CORRIGER` → `EN_VALIDATION` → sinon `ANNULEE` / `REFUSEE` / `FINALISEE` /
+`FINALISEE_PARTIELLE` selon les lignes terminées.
+
+---
+
+## 4. Mise en route
+
+### 4.1 Pré-requis
+- Java 21, Maven Wrapper fourni (`bakend/mvnw`), Node.js 20+, PostgreSQL 14 ou plus.
+- Base `erp` créée et accessible.
+
+### 4.2 Base de données
+```bash
+# configuration locale (le fichier application.properties est ignoré par git)
+cp bakend/src/main/resources/exemple.application.properties \
+   bakend/src/main/resources/application.properties
+# puis renseigner spring.datasource.url / username / password
+
+# vérifier l'accès
+PGPASSWORD=postgres psql -h localhost -U postgres -d erp -c '\dt'
+```
+Les tables sont créées automatiquement par **Flyway** au démarrage du backend
+(migration `V1__bloc1_schema.sql`), puis les données de test sont insérées
+(voir section 2 : `donnees_demo.sql` ou `DataInitializer`).
+
+### 4.3 Backend (port 8080)
+```bash
+cd bakend
+./mvnw -o compile          # compilation
+./mvnw -o spring-boot:run  # démarrage
+# arrêter : pkill -f "[c]om.tovo.erp.ErpApplication"
+```
+Au démarrage : Flyway applique la migration, puis `DataInitializer` crée les données de départ.
+Comptes créés (mot de passe commun `Role@2026`) :
+
+| Rôle | Email | Mot de passe |
+|---|---|---|
+| MANAGER | manager@tovo.mg | Manager@2026 |
+| RH | rh@tovo.mg | Rh@2026 |
+| FINANCE | finance@tovo.mg | Finance@2026 |
+| DIRECTION | direction@tovo.mg | Direction@2026 |
+
+### 4.4 Frontend (port 5173)
+```bash
+cd frontend
+npm install
+npm run dev      # http://localhost:5173
+```
+
+---
+
+## 5. Commandes récapitulatives
+
+```bash
+# Backend
+cd bakend && ./mvnw -q -o compile
+cd bakend && ./mvnw -o spring-boot:run
+pkill -f "[c]om.tovo.erp.ErpApplication"
+
+# Frontend
+cd frontend && npm install
+cd frontend && npm run dev
+cd frontend && npm run build
+cd frontend && npm run lint
+cd frontend && npm run format
+
+# Tests automatisés
+./tests/api_bloc1.sh               # 56 vérifications sur l'API (bash + curl + node)
+cd frontend && node test_ui.mjs     # 28 vérifications dans un vrai navigateur
+```
+
+---
+
+## 6. Tests à faire dans le navigateur
+
+### 6.1 Test automatisé (Playwright)
+```bash
+cd frontend
+npm install                # installe playwright
+npx playwright install chromium   # si Chrome du système absent (/usr/bin/google-chrome)
+node test_ui.mjs           # captures dans /tmp/opencode/captures
+```
+Le script parcourt : connexion → tableau de bord → liste des demandes → création d'une demande
+→ validation RH → contrôle budgétaire (FINANCE) → validation DIRECTION → catalogue des postes
+et création d'un poste → employés / utilisateurs → demande de correction puis correction et
+resoumission → rendu mobile. Il doit afficher **28 vérifications OK, 0 échec**.
+
+### 6.2 Parcours manuel (à faire dans Chrome, http://localhost:5173)
+
+**A. Connexion — RM-001, RM-002**
+1. Ouvrir `/connexion` : le titre, le formulaire et les 4 boutons de comptes de démonstration
+   sont visibles.
+2. Se connecter avec `manager@tovo.mg / Manager@2026` → le tableau de bord s'affiche
+   (« Bonjour Manager Commercial »), la sidebar contient Tableau de bord, Demandes,
+   Nouvelle demande, File de validation, Employes.
+3. Se connecter avec un mauvais mot de passe → message d'erreur, pas de redirection.
+
+**B. Tableau de bord**
+4. Vérifier les 4 cartes (Demandes, En attente de validation, Lignes acceptées, Budget
+   disponible), la jauge de consommation du budget, la liste des dernières demandes et le
+   raccourci « Nouvelle demande ».
+5. En tant que FINANCE, un bouton « Budgets » apparaît ; en tant que RH, « Catalogue des postes »
+   et « Utilisateurs » apparaissent (menu filtré par rôle).
+
+**C. Créer une demande — RM-006 → RM-018**
+6. « Nouvelle demande » : saisir le motif, la date souhaitée, puis une ligne
+   (service, type de besoin, intitulé, effectif, budget estimé, salaire min/max, profil,
+   description). « Ajouter une ligne » permet une demande multi-lignes.
+7. « Enregistrer et soumettre » → le détail `DEM-xxxx` s'affiche, statut **En validation**,
+   la ligne porte son étape courante (badge « Étape : RH »).
+8. « Enregistrer en brouillon » → le statut **Brouillon**, puis le bouton « Soumettre la
+   demande » est disponible sur le détail. Une fois soumise, la ligne n'est plus modifiable
+   (RM-019) : le refus est vérifié par le test API `./tests/api_bloc1.sh`.
+
+**D. Valider la ligne — RM-039, RM-051 → RM-054**
+9. Se connecter en RH → « File de validation » → la ligne apparaît avec l'étape **RH**.
+10. « Traiter » → modale : choisir Approuver / Demander une correction / Refuser, saisir un
+    commentaire → « Enregistrer la décision » : notification verte, la ligne passe à l'étape
+    FINANCE.
+11. Se connecter en FINANCE → la ligne est à l'étape FINANCE. Le champ « Montant vérifié »
+    apparaît (facultatif, RM-054).
+12. Demander un besoin supérieur au budget disponible → refus avec le message
+    « Budget insuffisant : … » (RM-053), la ligne reste en attente.
+
+**E. Correction d'une ligne — RM-021, RM-037, RM-038**
+13. En tant que RH, demander une correction (« Demander une correction » + commentaire).
+14. Se reconnecter en MANAGER, ouvrir la demande : l'encart « Des lignes vous ont été renvoyées
+    à corriger » et le bouton « Corriger » sont visibles (le demandeur seul peut corriger).
+15. « Corriger » → modifier l'intitulé / le profil / le budget → « Enregistrer la correction »,
+    puis « Resoumettre » : la ligne repart en validation et l'épisode est incrémenté.
+
+**F. Catalogue des postes — RM-009, RM-010, RM-066**
+16. En tant que RH : « Catalogue des postes » → filtres (recherche, service, actif) et bouton
+    « Nouveau poste ».
+17. Créer un poste, puis créer de nouveau un poste de même intitulé → refus « doublon ».
+18. Valider en FINANCE une ligne de création de poste sans poste rattaché : le poste est créé
+    automatiquement et rattaché à la ligne (RM-009).
+
+**G. Employés et utilisateurs — RM-004**
+19. « Employes » : liste filtrable par service et par statut.
+20. « Utilisateurs » (RH) : création d'un utilisateur, désactivation / réactivation d'un compte.
+21. Se connecter avec un compte désactivé → connexion refusée.
+
+**H. Responsive — RM-057**
+22. Réduire la fenêtre (≈ 420 px) : la sidebar se replie, les tableaux restent lisibles,
+    aucune erreur dans la console du navigateur (F12 → Console).
+
+### 6.3 Cas d'erreur à vérifier
+- Mot de passe incorrect, compte désactivé, jeton absent sur une URL protégée.
+- Budget insuffisant, doublon de poste, tentative de modifier une ligne déjà validée.
+- Un MANAGER ne voit pas les demandes des autres (RM-067) : vérifier dans la liste des demandes.
+
+---
+
+## 7. Checklist de recette
+
+- [ ] `./mvnw -o compile` et `npm run build` sans erreur
+- [ ] `npm run lint` sans erreur
+- [ ] `./tests/api_bloc1.sh` → 56 vérifications OK, 0 échec
+- [ ] `cd frontend && node test_ui.mjs` → 28 vérifications OK, 0 échec
+- [ ] Parcours manuel 6.2 réalisé de bout en bout (A → H)
+- [ ] Statut global cohérent à chaque étape (BROUILLON / A_CORRIGER / EN_VALIDATION /
+      FINALISEE / FINALISEE_PARTIELLE / REFUSEE / ANNULEE)
+- [ ] Journal des statuts et historique des décisions consultables sur le détail d'une demande

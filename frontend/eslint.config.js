@@ -11,12 +11,22 @@ export default defineConfig([
     files: ['**/*.{vue,js,mjs,jsx}'],
   },
 
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**']),
+  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**', 'init-vite/**']),
 
   {
     languageOptions: {
       globals: {
         ...globals.browser,
+      },
+    },
+  },
+
+  {
+    name: 'app/scripts-node',
+    files: ['**/*.mjs'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
       },
     },
   },
