@@ -72,6 +72,36 @@ const routes = [
         component: () => import('@/views/RecrutementView.vue'),
         meta: { titre: 'Recrutement' },
       },
+      {
+        path: 'recrutement/demandes-acceptees',
+        name: 'recrutement-demandes',
+        component: () => import('@/views/RecrutementDemandesView.vue'),
+        meta: { titre: 'Demandes acceptees · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
+      },
+      {
+        path: 'recrutement/offres',
+        name: 'recrutement-offres',
+        component: () => import('@/views/RecrutementView.vue'),
+        meta: { titre: 'Offres d’emploi · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
+      },
+      {
+        path: 'recrutement/candidatures',
+        name: 'recrutement-candidatures',
+        component: () => import('@/views/RecrutementCandidaturesView.vue'),
+        meta: { titre: 'Candidatures · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
+      },
+      {
+        path: 'recrutement/selection',
+        name: 'recrutement-selection',
+        component: () => import('@/views/RecrutementSelectionView.vue'),
+        meta: { titre: 'Présélection · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
+      },
+      {
+        path: 'recrutement/suivi',
+        name: 'recrutement-suivi',
+        component: () => import('@/views/RecrutementSuiviView.vue'),
+        meta: { titre: 'Suivi des candidats · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
+      },
     ],
   },
   {

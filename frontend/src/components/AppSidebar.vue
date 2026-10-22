@@ -25,6 +25,13 @@ const liens = computed(() => {
   if (auth.estRh) {
     liste.push({ nom: 'utilisateurs', libelle: 'Utilisateurs', icone: '⚙' })
   }
+  if (auth.estRh || auth.estDirection || auth.estManager) {
+    liste.push({ nom: 'recrutement-demandes', libelle: 'Demandes acceptees', icone: '▥' })
+    liste.push({ nom: 'recrutement-offres', libelle: 'Offres d’emploi', icone: '▣' })
+    liste.push({ nom: 'recrutement-candidatures', libelle: 'Candidatures', icone: '☷' })
+    liste.push({ nom: 'recrutement-selection', libelle: 'Présélection', icone: '✓' })
+    liste.push({ nom: 'recrutement-suivi', libelle: 'Suivi candidats', icone: '◉' })
+  }
   return liste
 })
 
@@ -32,6 +39,7 @@ function estActif(nom) {
   if (nom === 'demandes') {
     return route.name === 'demandes' || route.name === 'demande-detail'
   }
+  if (nom.startsWith('recrutement-')) return route.name === nom
   return route.name === nom
 }
 </script>

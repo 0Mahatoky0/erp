@@ -85,6 +85,15 @@ public class DemandeService {
                 .toList();
     }
 
+    /** Lignes acceptees disponibles pour la transformation en offre d'emploi. */
+    @Transactional(readOnly = true)
+    public List<DemandeDto.LigneDetail> listerLignesAcceptees() {
+        return ligneRepository.findByStatutOrderByDateCreationDesc(StatutLigne.ACCEPTEE)
+                .stream()
+                .map(this::versLigneDetail)
+                .toList();
+    }
+
     /** Detail complet d'une demande : lignes, historique de decisions et journal des statuts. */
     @Transactional(readOnly = true)
     public DemandeDto.Detail detail(Long idDemande, Utilisateur lecteur) {

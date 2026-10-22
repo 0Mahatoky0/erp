@@ -46,6 +46,11 @@ public class DemandeController {
         return ResponseEntity.ok(demandeService.detail(id, utilisateurCourant.exiger()));
     }
 
+    @GetMapping("/lignes/acceptees")
+    public ResponseEntity<List<DemandeDto.LigneDetail>> lignesAcceptees() {
+        return ResponseEntity.ok(demandeService.listerLignesAcceptees());
+    }
+
     @PostMapping
     public ResponseEntity<DemandeDto.Resume> creer(@Valid @RequestBody DemandeDto.Creation demande) {
         return ResponseEntity.ok(demandeService.creer(utilisateurCourant.exiger(), demande));

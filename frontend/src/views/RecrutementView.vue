@@ -1,6 +1,10 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { api, ErreurApi } from '../api/client'
+import { useAuthStore } from '@/stores/auth'
+import { useRoute } from 'vue-router'
+const auth = useAuthStore()
+const route = useRoute()
 const offres = ref([])
 const candidatures = ref([])
 const selectedOffer = ref(null)
@@ -9,11 +13,11 @@ const error = ref('')
 const editing = ref(false)
 const saving = ref(false)
 const form = ref(emptyOffer())
+const peutGerer = computed(() => auth.estRh || auth.estDirection)
 
 function emptyOffer() {
   return {
     idDemandePoste: '',
-    idUtilisateurCreateur: '',
     reference: '',
     titre: '',
     description: '',
@@ -57,6 +61,7 @@ function startCreate() {
   form.value = emptyOffer()
   editing.value = true
   error.value = ''
+  if (route.query.idDemandePoste) form.value.idDemandePoste = route.query.idDemandePoste
 }
 
 function startEdit(offer) {
@@ -73,7 +78,7 @@ async function saveOffer() {
   saving.value = true
   error.value = ''
   try {
-    const payload = { ...form.value, idDemandePoste: Number(form.value.idDemandePoste), idUtilisateurCreateur: Number(form.value.idUtilisateurCreateur) }
+    const payload = { ...form.value, idDemandePoste: Number(form.value.idDemandePoste) }
     const saved = form.value.idOffre
       ? await api.put(`/recrutement/offres/${form.value.idOffre}`, payload)
       : await api.post('/recrutement/offres', payload)
@@ -123,17 +128,16 @@ onMounted(loadOffers)
         <p>Suivez la publication des offres et la présélection des candidats.</p>
       </div>
       <div class="actions">
-        <button type="button" @click="startCreate">Nouvelle offre</button>
+        <button v-if="peutGerer" type="button" @click="startCreate">Nouvelle offre</button>
         <button type="button" @click="loadOffers">Actualiser</button>
       </div>
     </header>
 
     <p v-if="error" class="error" role="alert">{{ error }}</p>
-    <form v-if="editing" class="panel offer-form" @submit.prevent="saveOffer">
+    <form v-if="editing && peutGerer" class="panel offer-form" @submit.prevent="saveOffer">
       <h2>{{ form.idOffre ? 'Modifier l’offre brouillon' : 'Créer une offre' }}</h2>
       <div class="form-grid">
         <label>Demande validée (ID)<input v-model="form.idDemandePoste" required type="number" min="1"></label>
-        <label>Utilisateur créateur (ID)<input v-model="form.idUtilisateurCreateur" required type="number" min="1"></label>
         <label>Référence<input v-model="form.reference" required maxlength="50"></label>
         <label>Titre<input v-model="form.titre" required maxlength="150"></label>
         <label>Type de contrat<input v-model="form.typeContrat" maxlength="50"></label>
@@ -167,11 +171,11 @@ onMounted(loadOffers)
         <h3>Toutes les offres</h3>
         <div v-for="offer in offres" :key="`manage-${offer.idOffre}`" class="manage-offer">
           <span><strong>{{ offer.reference }}</strong> · {{ offer.statut }}</span>
-          <button v-if="offer.statut === 'BROUILLON'" type="button" @click="startEdit(offer)">Modifier</button>
-          <button v-if="offer.statut === 'BROUILLON'" type="button" @click="changeOfferStatus(offer, 'publier')">Publier</button>
-          <button v-if="offer.statut === 'PUBLIEE'" type="button" @click="changeOfferStatus(offer, 'cloturer')">Clôturer</button>
-          <button v-if="!['CLOTUREE', 'ANNULEE'].includes(offer.statut)" type="button" @click="changeOfferStatus(offer, 'annuler')">Annuler</button>
-          <button v-if="offer.statut === 'BROUILLON'" type="button" @click="deleteOffer(offer)">Supprimer</button>
+          <button v-if="peutGerer && offer.statut === 'BROUILLON'" type="button" @click="startEdit(offer)">Modifier</button>
+          <button v-if="peutGerer && offer.statut === 'BROUILLON'" type="button" @click="changeOfferStatus(offer, 'publier')">Publier</button>
+          <button v-if="peutGerer && offer.statut === 'PUBLIEE'" type="button" @click="changeOfferStatus(offer, 'cloturer')">Clôturer</button>
+          <button v-if="peutGerer && !['CLOTUREE', 'ANNULEE'].includes(offer.statut)" type="button" @click="changeOfferStatus(offer, 'annuler')">Annuler</button>
+          <button v-if="peutGerer && offer.statut === 'BROUILLON'" type="button" @click="deleteOffer(offer)">Supprimer</button>
         </div>
       </article>
 

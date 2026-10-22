@@ -3,6 +3,8 @@ package com.tovo.erp.recrutement.api;
 import com.tovo.erp.recrutement.domain.*;
 import com.tovo.erp.recrutement.repository.*;
 import com.tovo.erp.recrutement.service.*;
+import com.tovo.erp.domain.enums.RoleNom;
+import com.tovo.erp.security.UtilisateurCourant;
 import jakarta.validation.Valid;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +26,7 @@ public class RecrutementController {
     private final EntretienRepository entretienRepository;
     private final TestRecrutementRepository testRepository;
     private final PassageTestRepository passageRepository;
+    private final UtilisateurCourant utilisateurCourant;
 
     public RecrutementController(CandidatureService candidatures, DocumentCandidatureService documents,
                                  EntretienTestService entretienTests, EvaluationDecisionService evaluations,
@@ -31,17 +34,19 @@ public class RecrutementController {
                                  HistoriqueCandidatureRepository historiqueRepository,
                                  OffreEmploiRepository offreRepository, EvaluationCandidatRepository evaluationRepository,
                                  EntretienRepository entretienRepository, TestRecrutementRepository testRepository,
-                                 PassageTestRepository passageRepository) {
+                                 PassageTestRepository passageRepository, UtilisateurCourant utilisateurCourant) {
         this.candidatures = candidatures; this.documents = documents; this.entretienTests = entretienTests;
         this.evaluations = evaluations; this.offres = offres; this.candidatureRepository = candidatureRepository;
         this.historiqueRepository = historiqueRepository;
         this.offreRepository = offreRepository; this.evaluationRepository = evaluationRepository;
         this.entretienRepository = entretienRepository; this.testRepository = testRepository;
-        this.passageRepository = passageRepository;
+        this.passageRepository = passageRepository; this.utilisateurCourant = utilisateurCourant;
     }
 
     @PostMapping("/offres")
     public ResponseEntity<OffreEmploi> creerOffre(@Valid @RequestBody OffreEmploi offre) {
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        offre.setIdUtilisateurCreateur(utilisateurCourant.exiger().getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(offres.creer(offre));
     }
 
@@ -52,28 +57,33 @@ public class RecrutementController {
 
     @PutMapping("/offres/{id}")
     public OffreEmploi modifierOffre(@PathVariable Long id, @Valid @RequestBody OffreEmploi offre) {
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
         return offres.modifier(id, offre);
     }
 
     @DeleteMapping("/offres/{id}")
     public ResponseEntity<Void> supprimerOffre(@PathVariable Long id) {
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
         offres.supprimer(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/offres/{id}/publier")
     public OffreEmploi publier(@PathVariable Long id, @RequestParam Long idUtilisateur) {
-        return offres.publier(id, idUtilisateur);
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        return offres.publier(id, utilisateurCourant.exiger().getId());
     }
 
     @PostMapping("/offres/{id}/cloturer")
     public OffreEmploi cloturer(@PathVariable Long id, @RequestParam Long idUtilisateur) {
-        return offres.cloturer(id, idUtilisateur);
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        return offres.cloturer(id, utilisateurCourant.exiger().getId());
     }
 
     @PostMapping("/offres/{id}/annuler")
     public OffreEmploi annuler(@PathVariable Long id, @RequestParam Long idUtilisateur) {
-        return offres.annuler(id, idUtilisateur);
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        return offres.annuler(id, utilisateurCourant.exiger().getId());
     }
 
     @PostMapping("/candidatures")
@@ -92,7 +102,8 @@ public class RecrutementController {
 
     @PatchMapping("/candidatures/{id}/statut")
     public Candidature statut(@PathVariable Long id, @Valid @RequestBody RecrutementRequests.StatutRequest request) {
-        return candidatures.changerStatut(id, request.statut(), request.idUtilisateur(), request.commentaire());
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        return candidatures.changerStatut(id, request.statut(), utilisateurCourant.exiger().getId(), request.commentaire());
     }
 
     @DeleteMapping("/candidatures/{id}")
@@ -103,6 +114,7 @@ public class RecrutementController {
     @PostMapping(value = "/candidatures/{id}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DocumentCandidature> document(@PathVariable Long id, @RequestParam TypeDocument type,
                                                         @RequestPart MultipartFile fichier) throws java.io.IOException {
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
         return ResponseEntity.status(HttpStatus.CREATED).body(documents.deposer(id, type, fichier));
     }
 
@@ -111,8 +123,9 @@ public class RecrutementController {
 
     @PostMapping("/entretiens")
     public ResponseEntity<Entretien> entretien(@Valid @RequestBody RecrutementRequests.EntretienRequest r) {
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
         Entretien e = new Entretien(); e.setCandidature(candidatureRepository.getReferenceById(r.idCandidature()));
-        e.setIdUtilisateurOrganisateur(r.idUtilisateurOrganisateur()); e.setTypeEntretien(r.typeEntretien());
+        e.setIdUtilisateurOrganisateur(utilisateurCourant.exiger().getId()); e.setTypeEntretien(r.typeEntretien());
         e.setDateDebut(r.dateDebut()); e.setDateFin(r.dateFin()); e.setLieu(r.lieu()); e.setLienVisio(r.lienVisio());
         return ResponseEntity.status(HttpStatus.CREATED).body(entretienTests.planifierEntretien(e));
     }
@@ -124,6 +137,7 @@ public class RecrutementController {
 
     @PostMapping("/tests")
     public ResponseEntity<TestRecrutement> test(@Valid @RequestBody TestRecrutement test) {
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
         return ResponseEntity.status(HttpStatus.CREATED).body(entretienTests.creerTest(test));
     }
 
@@ -134,6 +148,7 @@ public class RecrutementController {
 
     @PostMapping("/passages-tests")
     public ResponseEntity<PassageTest> passageTest(@Valid @RequestBody PassageTest passage) {
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
         return ResponseEntity.status(HttpStatus.CREATED).body(entretienTests.planifierPassage(passage));
     }
 
@@ -149,6 +164,7 @@ public class RecrutementController {
 
     @PostMapping("/evaluations")
     public ResponseEntity<EvaluationCandidat> evaluation(@Valid @RequestBody EvaluationCandidat evaluation) {
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
         return ResponseEntity.status(HttpStatus.CREATED).body(evaluations.evaluer(evaluation));
     }
 
@@ -159,9 +175,10 @@ public class RecrutementController {
 
     @PostMapping("/decisions")
     public ResponseEntity<DecisionCandidature> decision(@Valid @RequestBody RecrutementRequests.DecisionRequest r) {
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
         DecisionCandidature d = new DecisionCandidature();
         d.setCandidature(candidatureRepository.getReferenceById(r.idCandidature()));
-        d.setIdUtilisateur(r.idUtilisateur()); d.setDecision(r.decision()); d.setMotif(r.motif());
+        d.setIdUtilisateur(utilisateurCourant.exiger().getId()); d.setDecision(r.decision()); d.setMotif(r.motif());
         return ResponseEntity.status(HttpStatus.CREATED).body(evaluations.decider(d));
     }
 }
