@@ -9,6 +9,7 @@ import com.tovo.erp.domain.entity.DemandeRecrutementPoste;
 import com.tovo.erp.domain.entity.HistoriqueStatut;
 import com.tovo.erp.domain.entity.Utilisateur;
 import com.tovo.erp.domain.enums.EtapeValidation;
+import com.tovo.erp.domain.enums.Decision;
 import com.tovo.erp.domain.enums.StatutDemande;
 import com.tovo.erp.domain.enums.StatutLigne;
 import com.tovo.erp.domain.enums.TypeBesoin;
@@ -88,7 +89,11 @@ public class DemandeService {
     /** Lignes acceptees disponibles pour la transformation en offre d'emploi. */
     @Transactional(readOnly = true)
     public List<DemandeDto.LigneDetail> listerLignesAcceptees() {
-        return ligneRepository.findDejaApprouvees()
+        List<Long> lignesApprouvees = validationRepository.findDemandePosteIdsByDecision(Decision.APPROUVE);
+        if (lignesApprouvees.isEmpty()) {
+            return List.of();
+        }
+        return ligneRepository.findDejaApprouvees(lignesApprouvees)
                 .stream()
                 .map(this::versLigneDetail)
                 .toList();
