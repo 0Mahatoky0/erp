@@ -11,13 +11,16 @@ import java.time.LocalDateTime;
 public class OffreEmploiService {
     private final OffreEmploiRepository offres;
     private final HistoriqueOffreRepository historiques;
+    private final CandidatureRepository candidatures;
     private final JdbcTemplate jdbc;
 
     public OffreEmploiService(OffreEmploiRepository offres,
                                HistoriqueOffreRepository historiques,
+                               CandidatureRepository candidatures,
                                JdbcTemplate jdbc) {
         this.offres = offres;
         this.historiques = historiques;
+        this.candidatures = candidatures;
         this.jdbc = jdbc;
     }
 
@@ -28,6 +31,39 @@ public class OffreEmploiService {
         OffreEmploi sauvegardee = offres.save(offre);
         enregistrerHistorique(sauvegardee, null, OffreStatut.BROUILLON, offre.getIdUtilisateurCreateur());
         return sauvegardee;
+    }
+
+    @Transactional
+    public OffreEmploi modifier(Long idOffre, OffreEmploi modifications) {
+        OffreEmploi offre = charger(idOffre);
+        if (offre.getStatut() != OffreStatut.BROUILLON) {
+            throw new IllegalStateException("Seule une offre BROUILLON peut être modifiée");
+        }
+        verifierDemandeAcceptee(modifications.getIdDemandePoste());
+        offre.setIdDemandePoste(modifications.getIdDemandePoste());
+        offre.setTitre(modifications.getTitre());
+        offre.setDescription(modifications.getDescription());
+        offre.setProfilRecherche(modifications.getProfilRecherche());
+        offre.setLieuTravail(modifications.getLieuTravail());
+        offre.setTypeContrat(modifications.getTypeContrat());
+        offre.setEffectifRecherche(modifications.getEffectifRecherche());
+        offre.setSalaireMin(modifications.getSalaireMin());
+        offre.setSalaireMax(modifications.getSalaireMax());
+        offre.setModeSelection(modifications.getModeSelection());
+        offre.setDateLimiteCandidature(modifications.getDateLimiteCandidature());
+        return offres.save(offre);
+    }
+
+    @Transactional
+    public void supprimer(Long idOffre) {
+        OffreEmploi offre = charger(idOffre);
+        if (offre.getStatut() != OffreStatut.BROUILLON) {
+            throw new IllegalStateException("Seule une offre BROUILLON peut être supprimée");
+        }
+        if (candidatures.existsByOffreIdOffre(idOffre)) {
+            throw new IllegalStateException("Une offre ayant des candidatures ne peut pas être supprimée");
+        }
+        offres.delete(offre);
     }
 
     @Transactional

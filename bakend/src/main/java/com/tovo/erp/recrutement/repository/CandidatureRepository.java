@@ -6,6 +6,7 @@ import java.util.List;
 
 public interface CandidatureRepository extends JpaRepository<Candidature, Long> {
     boolean existsByOffreIdOffreAndCandidatIdCandidat(Long idOffre, Long idCandidat);
+    boolean existsByOffreIdOffre(Long idOffre);
     List<Candidature> findByOffreIdOffre(Long idOffre);
     List<Candidature> findByOffreIdOffreAndStatut(Long idOffre, CandidatureStatut statut);
     List<Candidature> findByCandidatIdCandidat(Long idCandidat);

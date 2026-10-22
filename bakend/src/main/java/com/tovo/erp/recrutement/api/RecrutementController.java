@@ -21,16 +21,23 @@ public class RecrutementController {
     private final HistoriqueCandidatureRepository historiqueRepository;
     private final OffreEmploiRepository offreRepository;
     private final EvaluationCandidatRepository evaluationRepository;
+    private final EntretienRepository entretienRepository;
+    private final TestRecrutementRepository testRepository;
+    private final PassageTestRepository passageRepository;
 
     public RecrutementController(CandidatureService candidatures, DocumentCandidatureService documents,
                                  EntretienTestService entretienTests, EvaluationDecisionService evaluations,
                                  OffreEmploiService offres, CandidatureRepository candidatureRepository,
                                  HistoriqueCandidatureRepository historiqueRepository,
-                                 OffreEmploiRepository offreRepository, EvaluationCandidatRepository evaluationRepository) {
+                                 OffreEmploiRepository offreRepository, EvaluationCandidatRepository evaluationRepository,
+                                 EntretienRepository entretienRepository, TestRecrutementRepository testRepository,
+                                 PassageTestRepository passageRepository) {
         this.candidatures = candidatures; this.documents = documents; this.entretienTests = entretienTests;
         this.evaluations = evaluations; this.offres = offres; this.candidatureRepository = candidatureRepository;
         this.historiqueRepository = historiqueRepository;
         this.offreRepository = offreRepository; this.evaluationRepository = evaluationRepository;
+        this.entretienRepository = entretienRepository; this.testRepository = testRepository;
+        this.passageRepository = passageRepository;
     }
 
     @PostMapping("/offres")
@@ -41,6 +48,17 @@ public class RecrutementController {
     @GetMapping("/offres")
     public List<OffreEmploi> offres(@RequestParam(required = false) OffreStatut statut) {
         return statut == null ? offreRepository.findAll() : offreRepository.findByStatut(statut);
+    }
+
+    @PutMapping("/offres/{id}")
+    public OffreEmploi modifierOffre(@PathVariable Long id, @Valid @RequestBody OffreEmploi offre) {
+        return offres.modifier(id, offre);
+    }
+
+    @DeleteMapping("/offres/{id}")
+    public ResponseEntity<Void> supprimerOffre(@PathVariable Long id) {
+        offres.supprimer(id);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/offres/{id}/publier")
@@ -97,6 +115,31 @@ public class RecrutementController {
         e.setIdUtilisateurOrganisateur(r.idUtilisateurOrganisateur()); e.setTypeEntretien(r.typeEntretien());
         e.setDateDebut(r.dateDebut()); e.setDateFin(r.dateFin()); e.setLieu(r.lieu()); e.setLienVisio(r.lienVisio());
         return ResponseEntity.status(HttpStatus.CREATED).body(entretienTests.planifierEntretien(e));
+    }
+
+    @GetMapping("/candidatures/{id}/entretiens")
+    public List<Entretien> entretiens(@PathVariable Long id) {
+        return entretienRepository.findByCandidatureIdCandidature(id);
+    }
+
+    @PostMapping("/tests")
+    public ResponseEntity<TestRecrutement> test(@Valid @RequestBody TestRecrutement test) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(entretienTests.creerTest(test));
+    }
+
+    @GetMapping("/offres/{idOffre}/tests")
+    public List<TestRecrutement> tests(@PathVariable Long idOffre) {
+        return testRepository.findByOffreIdOffre(idOffre);
+    }
+
+    @PostMapping("/passages-tests")
+    public ResponseEntity<PassageTest> passageTest(@Valid @RequestBody PassageTest passage) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(entretienTests.planifierPassage(passage));
+    }
+
+    @GetMapping("/candidatures/{id}/passages-tests")
+    public List<PassageTest> passagesTests(@PathVariable Long id) {
+        return passageRepository.findByCandidatureIdCandidature(id);
     }
 
     @GetMapping("/candidatures/{id}/historique")

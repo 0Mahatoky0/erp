@@ -3,6 +3,7 @@ package com.tovo.erp.recrutement.service;
 import com.tovo.erp.recrutement.domain.*;
 import com.tovo.erp.recrutement.repository.HistoriqueOffreRepository;
 import com.tovo.erp.recrutement.repository.OffreEmploiRepository;
+import com.tovo.erp.recrutement.repository.CandidatureRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,12 +22,13 @@ import static org.mockito.Mockito.*;
 class OffreEmploiServiceTest {
     @Mock OffreEmploiRepository offres;
     @Mock HistoriqueOffreRepository historiques;
+    @Mock CandidatureRepository candidatures;
     @Mock JdbcTemplate jdbc;
     private OffreEmploiService service;
 
     @BeforeEach
     void setUp() {
-        service = new OffreEmploiService(offres, historiques, jdbc);
+        service = new OffreEmploiService(offres, historiques, candidatures, jdbc);
     }
 
     @Test
