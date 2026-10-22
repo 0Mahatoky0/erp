@@ -66,6 +66,12 @@ const routes = [
         component: () => import('@/views/UtilisateursView.vue'),
         meta: { titre: 'Utilisateurs' },
       },
+      {
+        path: 'recrutement',
+        name: 'recrutement',
+        component: () => import('@/views/RecrutementView.vue'),
+        meta: { titre: 'Recrutement' },
+      },
     ],
   },
   {
@@ -81,30 +87,17 @@ const router = createRouter({
   routes,
 })
 
-/**
- * Garde de navigation : les ecrans demandes exigent une session ouverte
- * et, pour certains, un role particulier (RM-067).
- */
 router.beforeEach(async (vers) => {
   const auth = useAuthStore()
 
-  if (auth.token && !auth.profil) {
-    await auth.rechargerProfil()
-  }
-
+  if (auth.token && !auth.profil) await auth.rechargerProfil()
   if (!vers.meta.public && !auth.connecte) {
     return { name: 'connexion', query: { suite: vers.fullPath } }
   }
-
-  if (vers.name === 'connexion' && auth.connecte) {
-    return { name: 'tableau-bord' }
-  }
+  if (vers.name === 'connexion' && auth.connecte) return { name: 'tableau-bord' }
 
   const roles = vers.meta.roles
-  if (roles && !roles.includes(auth.role)) {
-    return { name: 'tableau-bord' }
-  }
-
+  if (roles && !roles.includes(auth.role)) return { name: 'tableau-bord' }
   return true
 })
 
