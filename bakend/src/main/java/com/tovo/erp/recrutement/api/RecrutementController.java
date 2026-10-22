@@ -52,6 +52,9 @@ public class RecrutementController {
 
     @GetMapping("/offres")
     public List<OffreEmploi> offres(@RequestParam(required = false) OffreStatut statut) {
+        if (utilisateurCourant.optionnel() == null) {
+            return offreRepository.findByStatut(OffreStatut.PUBLIEE);
+        }
         return statut == null ? offreRepository.findAll() : offreRepository.findByStatut(statut);
     }
 

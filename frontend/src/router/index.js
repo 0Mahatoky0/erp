@@ -10,6 +10,12 @@ const routes = [
   },
   {
     path: '/',
+    name: 'accueil-candidat',
+    component: () => import('@/views/AccueilCandidatView.vue'),
+    meta: { titre: 'Offres d’emploi', public: true },
+  },
+  {
+    path: '/admin',
     component: () => import('@/layouts/AppLayout.vue'),
     children: [
       {
