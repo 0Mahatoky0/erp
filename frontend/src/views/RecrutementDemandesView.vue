@@ -30,7 +30,7 @@ onMounted(charger)
       <div>
         <p class="eyebrow">Recrutement · Etape 1</p>
         <h1>Demandes acceptees</h1>
-        <p>Les lignes validees par le circuit du bloc 1 peuvent devenir des offres d’emploi.</p>
+        <p>Une ligne apparait ici des la premiere approbation et reste suivie pendant les validations suivantes.</p>
       </div>
       <button type="button" @click="charger">Actualiser</button>
     </header>
@@ -40,11 +40,11 @@ onMounted(charger)
       <article v-for="ligne in lignes" :key="ligne.id" class="card">
         <div class="card__top">
           <strong>{{ ligne.intituleDemande }}</strong>
-          <span class="badge">{{ ligne.statut }}</span>
+          <span class="badge">APPROBATION RECUE</span>
         </div>
         <p>{{ ligne.service }} · {{ ligne.departement }}</p>
         <p>{{ ligne.profilRecherche || 'Profil non precise' }}</p>
-        <small>Demande #{{ ligne.idDemande }} · Effectif : {{ ligne.effectif }}</small>
+        <small>Demande #{{ ligne.idDemande }} · Effectif : {{ ligne.effectif }} · Etape actuelle : {{ ligne.etapeCourante || 'Terminee' }}</small>
         <RouterLink v-if="auth.estRh || auth.estDirection" class="button" :to="{ name: 'recrutement-offres', query: { idDemandePoste: ligne.id } }">
           Creer une offre
         </RouterLink>

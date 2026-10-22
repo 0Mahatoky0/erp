@@ -18,6 +18,26 @@ public interface DemandeRecrutementPosteRepository extends JpaRepository<Demande
     List<DemandeRecrutementPoste> findByStatutOrderByDateCreationDesc(StatutLigne statut);
 
     /**
+     * Lignes deja approuvees par au moins une etape, y compris celles qui attendent
+     * encore Finance ou Direction.
+     */
+    @Query("""
+            select distinct l from DemandeRecrutementPoste l
+            join fetch l.service s
+            join fetch s.departement
+            join fetch l.demande d
+            left join fetch l.poste
+            where exists (
+                select v.id from Validation v
+                where v.demandePoste = l
+                  and v.decision = com.tovo.erp.domain.enums.Decision.APPROUVE
+            )
+            and l.statut <> com.tovo.erp.domain.enums.StatutLigne.REFUSEE
+            order by l.dateCreation desc
+            """)
+    List<DemandeRecrutementPoste> findDejaApprouvees();
+
+    /**
      * Lignes en attente d'une decision a l'etape donnee : c'est la file de travail
      * d'un validateur (RM-067).
      */

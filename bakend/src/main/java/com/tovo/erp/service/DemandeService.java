@@ -88,7 +88,7 @@ public class DemandeService {
     /** Lignes acceptees disponibles pour la transformation en offre d'emploi. */
     @Transactional(readOnly = true)
     public List<DemandeDto.LigneDetail> listerLignesAcceptees() {
-        return ligneRepository.findByStatutOrderByDateCreationDesc(StatutLigne.ACCEPTEE)
+        return ligneRepository.findDejaApprouvees()
                 .stream()
                 .map(this::versLigneDetail)
                 .toList();
