@@ -77,19 +77,19 @@ public class RecrutementController {
     }
 
     @PostMapping("/offres/{id}/publier")
-    public OffreEmploiDto publier(@PathVariable Long id, @RequestParam Long idUtilisateur) {
+    public OffreEmploiDto publier(@PathVariable Long id) {
         utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
         return OffreEmploiDto.de(offres.publier(id, utilisateurCourant.exiger().getId()));
     }
 
     @PostMapping("/offres/{id}/cloturer")
-    public OffreEmploiDto cloturer(@PathVariable Long id, @RequestParam Long idUtilisateur) {
+    public OffreEmploiDto cloturer(@PathVariable Long id) {
         utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
         return OffreEmploiDto.de(offres.cloturer(id, utilisateurCourant.exiger().getId()));
     }
 
     @PostMapping("/offres/{id}/annuler")
-    public OffreEmploiDto annuler(@PathVariable Long id, @RequestParam Long idUtilisateur) {
+    public OffreEmploiDto annuler(@PathVariable Long id) {
         utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
         return OffreEmploiDto.de(offres.annuler(id, utilisateurCourant.exiger().getId()));
     }
@@ -188,8 +188,23 @@ public class RecrutementController {
     }
 
     @PostMapping("/evaluations")
-    public ResponseEntity<EvaluationCandidatDto> evaluation(@Valid @RequestBody EvaluationCandidat evaluation) {
+    public ResponseEntity<EvaluationCandidatDto> evaluation(
+            @Valid @RequestBody RecrutementRequests.EvaluationRequest request) {
         utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        EvaluationCandidat evaluation = new EvaluationCandidat();
+        evaluation.setCandidature(candidatureRepository.getReferenceById(request.idCandidature()));
+        evaluation.setIdUtilisateurEvaluateur(utilisateurCourant.exiger().getId());
+        evaluation.setTypeEvaluation(request.typeEvaluation());
+        evaluation.setNote(request.note());
+        evaluation.setNoteMax(request.noteMax());
+        evaluation.setAppreciation(request.appreciation());
+        evaluation.setCommentaire(request.commentaire());
+        if (request.idEntretien() != null) {
+            evaluation.setEntretien(entretienRepository.getReferenceById(request.idEntretien()));
+        }
+        if (request.idPassage() != null) {
+            evaluation.setPassage(passageRepository.getReferenceById(request.idPassage()));
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(EvaluationCandidatDto.de(evaluations.evaluer(evaluation)));
     }
 

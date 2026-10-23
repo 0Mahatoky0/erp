@@ -82,8 +82,7 @@ function planifierEntretien() {
 function enregistrerEvaluation() {
   return executer(
     () => api.post('/recrutement/evaluations', {
-      candidature: { idCandidature: Number(id) },
-      idUtilisateurEvaluateur: auth.profil?.id,
+      idCandidature: Number(id),
       ...evaluation,
       note: evaluation.note === '' ? null : Number(evaluation.note),
       noteMax: Number(evaluation.noteMax),
@@ -94,7 +93,7 @@ function enregistrerEvaluation() {
 
 function prendreDecision() {
   return executer(
-    () => api.post('/recrutement/decisions', { idCandidature: Number(id), idUtilisateur: auth.profil?.id, ...decision }),
+    () => api.post('/recrutement/decisions', { idCandidature: Number(id), ...decision }),
     'Décision enregistrée.',
   )
 }

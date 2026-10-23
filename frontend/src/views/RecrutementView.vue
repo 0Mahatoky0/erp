@@ -106,7 +106,7 @@ async function deleteOffer(offer) {
 async function changeOfferStatus(offer, action) {
   try {
     const updated = await api.post(
-      `/recrutement/offres/${offer.idOffre}/${action}?idUtilisateur=${Number(offer.idUtilisateurCreateur)}`,
+      `/recrutement/offres/${offer.idOffre}/${action}`,
     )
     await loadOffers()
     selectedOffer.value = updated

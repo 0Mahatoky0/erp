@@ -24,7 +24,7 @@ async function chargerCandidatures() {
 async function changerStatut(candidature, statut) {
   try {
     await api.patch(`/recrutement/candidatures/${candidature.idCandidature}/statut`, {
-      statut, idUtilisateur: auth.profil?.id,
+      statut,
       commentaire: `Statut modifie par ${auth.profil?.nom || 'le recruteur'}`,
     })
     await chargerCandidatures()
