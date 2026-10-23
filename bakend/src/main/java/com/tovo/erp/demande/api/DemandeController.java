@@ -1,9 +1,9 @@
-package com.tovo.erp.web.controller;
+package com.tovo.erp.demande.api;
 
-import com.tovo.erp.domain.enums.StatutDemande;
+import com.tovo.erp.demande.domain.StatutDemande;
 import com.tovo.erp.security.UtilisateurCourant;
-import com.tovo.erp.service.DemandeService;
-import com.tovo.erp.web.dto.DemandeDto;
+import com.tovo.erp.demande.service.DemandeService;
+import com.tovo.erp.demande.dto.DemandeDto;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;

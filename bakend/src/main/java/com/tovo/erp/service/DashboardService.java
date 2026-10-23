@@ -1,13 +1,13 @@
 package com.tovo.erp.service;
 
-import com.tovo.erp.domain.entity.DemandeRecrutement;
+import com.tovo.erp.demande.domain.DemandeRecrutement;
 import com.tovo.erp.domain.entity.Utilisateur;
-import com.tovo.erp.domain.enums.EtapeValidation;
-import com.tovo.erp.domain.enums.StatutDemande;
-import com.tovo.erp.domain.enums.StatutLigne;
+import com.tovo.erp.demande.domain.EtapeValidation;
+import com.tovo.erp.demande.domain.StatutDemande;
+import com.tovo.erp.demande.domain.StatutLigne;
 import com.tovo.erp.repository.BudgetRepository;
-import com.tovo.erp.repository.DemandeRecrutementPosteRepository;
-import com.tovo.erp.repository.DemandeRecrutementRepository;
+import com.tovo.erp.demande.repository.DemandeRecrutementPosteRepository;
+import com.tovo.erp.demande.repository.DemandeRecrutementRepository;
 import com.tovo.erp.web.dto.DashboardDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -1,22 +1,23 @@
-package com.tovo.erp.service;
+package com.tovo.erp.demande.service;
 
 import com.tovo.erp.common.BusinessException;
-import com.tovo.erp.config.CircuitValidationProperties;
-import com.tovo.erp.domain.entity.DemandeRecrutement;
-import com.tovo.erp.domain.entity.DemandeRecrutementPoste;
-import com.tovo.erp.domain.entity.HistoriqueStatut;
+import com.tovo.erp.demande.config.CircuitValidationProperties;
+import com.tovo.erp.demande.domain.DemandeRecrutement;
+import com.tovo.erp.demande.domain.DemandeRecrutementPoste;
+import com.tovo.erp.demande.domain.HistoriqueStatut;
 import com.tovo.erp.domain.entity.Poste;
 import com.tovo.erp.domain.entity.Utilisateur;
-import com.tovo.erp.domain.entity.Validation;
-import com.tovo.erp.domain.enums.Decision;
-import com.tovo.erp.domain.enums.EtapeValidation;
-import com.tovo.erp.domain.enums.StatutLigne;
-import com.tovo.erp.repository.DemandeRecrutementPosteRepository;
-import com.tovo.erp.repository.HistoriqueStatutRepository;
+import com.tovo.erp.demande.domain.Validation;
+import com.tovo.erp.demande.domain.Decision;
+import com.tovo.erp.demande.domain.EtapeValidation;
+import com.tovo.erp.demande.domain.StatutLigne;
+import com.tovo.erp.demande.repository.DemandeRecrutementPosteRepository;
+import com.tovo.erp.demande.repository.HistoriqueStatutRepository;
 import com.tovo.erp.repository.PosteRepository;
-import com.tovo.erp.repository.ValidationRepository;
-import com.tovo.erp.web.dto.DemandeDto;
-import com.tovo.erp.web.dto.ValidationDto;
+import com.tovo.erp.demande.repository.ValidationRepository;
+import com.tovo.erp.demande.dto.DemandeDto;
+import com.tovo.erp.demande.dto.ValidationDto;
+import com.tovo.erp.service.BudgetService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

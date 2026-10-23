@@ -52,6 +52,7 @@ onMounted(chargerOffres)
         <strong>{{ candidature.candidat.prenom }} {{ candidature.candidat.nom }}</strong>
         <span>{{ candidature.candidat.email }}</span>
         <b>{{ candidature.statut }}</b>
+        <RouterLink :to="{ name: 'recrutement-candidature-detail', params: { id: candidature.idCandidature } }">Voir le parcours</RouterLink>
         <div v-if="gestionnaire" class="actions">
           <button type="button" @click="changerStatut(candidature, 'PRESELECTIONNEE')">Présélectionner</button>
           <button type="button" @click="changerStatut(candidature, 'REFUSEE')">Refuser</button>

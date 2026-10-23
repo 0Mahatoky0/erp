@@ -1,12 +1,12 @@
-package com.tovo.erp.web.dto;
+package com.tovo.erp.demande.dto;
 
-import com.tovo.erp.domain.entity.DemandeRecrutement;
-import com.tovo.erp.domain.entity.DemandeRecrutementPoste;
-import com.tovo.erp.domain.enums.EtapeValidation;
-import com.tovo.erp.domain.enums.StatutDemande;
-import com.tovo.erp.domain.enums.StatutLigne;
-import com.tovo.erp.domain.enums.TypeBesoin;
-import com.tovo.erp.domain.enums.TypeRemplacement;
+import com.tovo.erp.demande.domain.DemandeRecrutement;
+import com.tovo.erp.demande.domain.DemandeRecrutementPoste;
+import com.tovo.erp.demande.domain.EtapeValidation;
+import com.tovo.erp.demande.domain.StatutDemande;
+import com.tovo.erp.demande.domain.StatutLigne;
+import com.tovo.erp.demande.domain.TypeBesoin;
+import com.tovo.erp.demande.domain.TypeRemplacement;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;

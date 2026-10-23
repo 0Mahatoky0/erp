@@ -1,4 +1,4 @@
-package com.tovo.erp.domain.enums;
+package com.tovo.erp.demande.domain;
 
 /**
  * Statut global d'une demande de recrutement.

@@ -1,7 +1,7 @@
-package com.tovo.erp.repository;
+package com.tovo.erp.demande.repository;
 
-import com.tovo.erp.domain.entity.Validation;
-import com.tovo.erp.domain.enums.Decision;
+import com.tovo.erp.demande.domain.Validation;
+import com.tovo.erp.demande.domain.Decision;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 

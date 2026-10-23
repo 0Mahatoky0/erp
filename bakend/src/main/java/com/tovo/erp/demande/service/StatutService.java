@@ -1,12 +1,12 @@
-package com.tovo.erp.service;
+package com.tovo.erp.demande.service;
 
-import com.tovo.erp.domain.entity.DemandeRecrutement;
-import com.tovo.erp.domain.entity.DemandeRecrutementPoste;
-import com.tovo.erp.domain.entity.HistoriqueStatut;
+import com.tovo.erp.demande.domain.DemandeRecrutement;
+import com.tovo.erp.demande.domain.DemandeRecrutementPoste;
+import com.tovo.erp.demande.domain.HistoriqueStatut;
 import com.tovo.erp.domain.entity.Utilisateur;
-import com.tovo.erp.domain.enums.StatutDemande;
-import com.tovo.erp.domain.enums.StatutLigne;
-import com.tovo.erp.repository.HistoriqueStatutRepository;
+import com.tovo.erp.demande.domain.StatutDemande;
+import com.tovo.erp.demande.domain.StatutLigne;
+import com.tovo.erp.demande.repository.HistoriqueStatutRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

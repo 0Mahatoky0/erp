@@ -113,6 +113,12 @@ public class RecrutementController {
                 .map(CandidatureDto::de).collect(Collectors.toList());
     }
 
+    @GetMapping("/candidatures/{id}")
+    public CandidatureDto candidature(@PathVariable Long id) {
+        return CandidatureDto.de(candidatureRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Candidature introuvable: " + id)));
+    }
+
     @PatchMapping("/candidatures/{id}/statut")
     public CandidatureDto statut(@PathVariable Long id, @Valid @RequestBody RecrutementRequests.StatutRequest request) {
         utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);

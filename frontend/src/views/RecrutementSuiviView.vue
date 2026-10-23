@@ -35,7 +35,7 @@ onMounted(charger)
       <article v-for="candidature in candidatures" :key="candidature.idCandidature" class="card">
         <strong>{{ candidature.candidat.prenom }} {{ candidature.candidat.nom }}</strong>
         <span>{{ candidature.statut }}</span>
-        <RouterLink :to="{ name: 'recrutement-selection', query: { candidature: candidature.idCandidature } }">Voir le parcours</RouterLink>
+        <RouterLink :to="{ name: 'recrutement-candidature-detail', params: { id: candidature.idCandidature } }">Voir le parcours</RouterLink>
       </article>
     </div>
   </section>

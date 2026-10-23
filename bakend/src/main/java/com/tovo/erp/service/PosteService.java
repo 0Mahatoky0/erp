@@ -3,7 +3,7 @@ package com.tovo.erp.service;
 import com.tovo.erp.common.BusinessException;
 import com.tovo.erp.common.Recherche;
 import com.tovo.erp.domain.entity.Poste;
-import com.tovo.erp.repository.DemandeRecrutementPosteRepository;
+import com.tovo.erp.demande.repository.DemandeRecrutementPosteRepository;
 import com.tovo.erp.repository.PosteRepository;
 import com.tovo.erp.repository.ServiceRepository;
 import com.tovo.erp.web.dto.PosteDto;

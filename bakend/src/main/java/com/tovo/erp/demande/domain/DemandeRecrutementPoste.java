@@ -1,9 +1,12 @@
-package com.tovo.erp.domain.entity;
+package com.tovo.erp.demande.domain;
 
-import com.tovo.erp.domain.enums.EtapeValidation;
-import com.tovo.erp.domain.enums.StatutLigne;
-import com.tovo.erp.domain.enums.TypeBesoin;
-import com.tovo.erp.domain.enums.TypeRemplacement;
+import com.tovo.erp.domain.entity.Employe;
+import com.tovo.erp.domain.entity.Poste;
+import com.tovo.erp.domain.entity.Service;
+import com.tovo.erp.demande.domain.EtapeValidation;
+import com.tovo.erp.demande.domain.StatutLigne;
+import com.tovo.erp.demande.domain.TypeBesoin;
+import com.tovo.erp.demande.domain.TypeRemplacement;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

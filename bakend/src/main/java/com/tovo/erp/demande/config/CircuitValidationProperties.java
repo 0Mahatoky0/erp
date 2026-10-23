@@ -1,6 +1,6 @@
-package com.tovo.erp.config;
+package com.tovo.erp.demande.config;
 
-import com.tovo.erp.domain.enums.EtapeValidation;
+import com.tovo.erp.demande.domain.EtapeValidation;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.math.BigDecimal;

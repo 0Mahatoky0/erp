@@ -1,9 +1,9 @@
-package com.tovo.erp.web.controller;
+package com.tovo.erp.demande.api;
 
 import com.tovo.erp.security.UtilisateurCourant;
-import com.tovo.erp.service.ValidationService;
-import com.tovo.erp.web.dto.DemandeDto;
-import com.tovo.erp.web.dto.ValidationDto;
+import com.tovo.erp.demande.service.ValidationService;
+import com.tovo.erp.demande.dto.DemandeDto;
+import com.tovo.erp.demande.dto.ValidationDto;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

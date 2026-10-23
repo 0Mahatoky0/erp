@@ -1,18 +1,18 @@
-package com.tovo.erp.service;
+package com.tovo.erp.demande.service;
 
 import com.tovo.erp.common.BusinessException;
-import com.tovo.erp.domain.entity.DemandeRecrutement;
-import com.tovo.erp.domain.entity.DemandeRecrutementPoste;
+import com.tovo.erp.demande.domain.DemandeRecrutement;
+import com.tovo.erp.demande.domain.DemandeRecrutementPoste;
 import com.tovo.erp.domain.entity.Employe;
 import com.tovo.erp.domain.entity.Poste;
 import com.tovo.erp.domain.entity.Service;
 import com.tovo.erp.domain.enums.StatutEmploye;
-import com.tovo.erp.domain.enums.TypeBesoin;
-import com.tovo.erp.domain.enums.TypeRemplacement;
+import com.tovo.erp.demande.domain.TypeBesoin;
+import com.tovo.erp.demande.domain.TypeRemplacement;
 import com.tovo.erp.repository.EmployeRepository;
 import com.tovo.erp.repository.PosteRepository;
 import com.tovo.erp.repository.ServiceRepository;
-import com.tovo.erp.web.dto.DemandeDto;
+import com.tovo.erp.demande.dto.DemandeDto;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;

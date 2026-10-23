@@ -1,6 +1,8 @@
-package com.tovo.erp.domain.entity;
+package com.tovo.erp.demande.domain;
 
-import com.tovo.erp.domain.enums.Decision;
+import com.tovo.erp.domain.entity.Budget;
+import com.tovo.erp.domain.entity.Utilisateur;
+import com.tovo.erp.demande.domain.Decision;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

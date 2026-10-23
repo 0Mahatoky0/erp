@@ -1,6 +1,6 @@
-package com.tovo.erp.repository;
+package com.tovo.erp.demande.repository;
 
-import com.tovo.erp.domain.entity.VerificationBudget;
+import com.tovo.erp.demande.domain.VerificationBudget;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

@@ -1,8 +1,8 @@
-package com.tovo.erp.web.dto;
+package com.tovo.erp.demande.dto;
 
-import com.tovo.erp.domain.entity.HistoriqueStatut;
-import com.tovo.erp.domain.entity.Validation;
-import com.tovo.erp.domain.enums.EtapeValidation;
+import com.tovo.erp.demande.domain.HistoriqueStatut;
+import com.tovo.erp.demande.domain.Validation;
+import com.tovo.erp.demande.domain.EtapeValidation;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
@@ -20,14 +20,14 @@ public final class ValidationDto {
      * @param montantVerifie montant acknowledges par la finance ; s'il est renseigne, il doit
      *                        correspondre exactement au montant soumis pour la ligne (RM-054)
      */
-    public record DecisionRequest(@NotNull com.tovo.erp.domain.enums.Decision decision,
+    public record DecisionRequest(@NotNull com.tovo.erp.demande.domain.Decision decision,
                                   String commentaire,
                                   BigDecimal montantVerifie) {
     }
 
     /** Entree d'historique d'une decision. */
     public record Historique(Long id, EtapeValidation etape,
-                              com.tovo.erp.domain.enums.Decision decision, String commentaire,
+                              com.tovo.erp.demande.domain.Decision decision, String commentaire,
                               LocalDateTime dateAction, String utilisateur, Long idUtilisateur, int episode) {
 
         public static Historique de(Validation validation) {
@@ -47,10 +47,10 @@ public final class ValidationDto {
     public record VerificationBudgetaire(Long id, Long idBudgetService, Integer exercice,
                                          BigDecimal budgetDemande, BigDecimal budgetDisponible,
                                          BigDecimal montantEstime,
-                                         com.tovo.erp.domain.enums.Decision decision, String commentaire,
+                                         com.tovo.erp.demande.domain.Decision decision, String commentaire,
                                          LocalDateTime dateVerification, String utilisateur, int episode) {
 
-        public static VerificationBudgetaire de(com.tovo.erp.domain.entity.VerificationBudget verification) {
+        public static VerificationBudgetaire de(com.tovo.erp.demande.domain.VerificationBudget verification) {
             return new VerificationBudgetaire(
                     verification.getId(),
                     verification.getBudgetService().getId(),

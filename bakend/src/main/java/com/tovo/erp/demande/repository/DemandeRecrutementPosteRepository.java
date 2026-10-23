@@ -1,7 +1,7 @@
-package com.tovo.erp.repository;
+package com.tovo.erp.demande.repository;
 
-import com.tovo.erp.domain.entity.DemandeRecrutementPoste;
-import com.tovo.erp.domain.enums.StatutLigne;
+import com.tovo.erp.demande.domain.DemandeRecrutementPoste;
+import com.tovo.erp.demande.domain.StatutLigne;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -25,7 +25,7 @@ public interface DemandeRecrutementPosteRepository extends JpaRepository<Demande
             join fetch l.demande d
             left join fetch l.poste
             where l.id in :ids
-              and l.statut <> com.tovo.erp.domain.enums.StatutLigne.REFUSEE
+              and l.statut <> com.tovo.erp.demande.domain.StatutLigne.REFUSEE
             order by l.dateCreation desc
             """)
     List<DemandeRecrutementPoste> findDejaApprouvees(@Param("ids") List<Long> ids);
@@ -39,13 +39,13 @@ public interface DemandeRecrutementPosteRepository extends JpaRepository<Demande
             join fetch l.service s
             join fetch l.demande d
             where l.etapeCourante = :etape
-              and l.statut in (com.tovo.erp.domain.enums.StatutLigne.EN_ATTENTE_RH,
-                               com.tovo.erp.domain.enums.StatutLigne.EN_ATTENTE_FINANCE,
-                               com.tovo.erp.domain.enums.StatutLigne.EN_ATTENTE_DIRECTION)
+              and l.statut in (com.tovo.erp.demande.domain.StatutLigne.EN_ATTENTE_RH,
+                               com.tovo.erp.demande.domain.StatutLigne.EN_ATTENTE_FINANCE,
+                               com.tovo.erp.demande.domain.StatutLigne.EN_ATTENTE_DIRECTION)
             order by l.dateCreation
             """)
     List<DemandeRecrutementPoste> findFileAttente(
-            @Param("etape") com.tovo.erp.domain.enums.EtapeValidation etape);
+            @Param("etape") com.tovo.erp.demande.domain.EtapeValidation etape);
 
     /** Lignes rattachees a une demande, avec les jointures utiles au detail. */
     @Query("""

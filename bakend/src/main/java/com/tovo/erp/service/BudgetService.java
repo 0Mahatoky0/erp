@@ -2,12 +2,12 @@ package com.tovo.erp.service;
 
 import com.tovo.erp.common.BusinessException;
 import com.tovo.erp.domain.entity.Budget;
-import com.tovo.erp.domain.entity.DemandeRecrutementPoste;
+import com.tovo.erp.demande.domain.DemandeRecrutementPoste;
 import com.tovo.erp.domain.entity.Utilisateur;
-import com.tovo.erp.domain.entity.VerificationBudget;
-import com.tovo.erp.domain.enums.Decision;
+import com.tovo.erp.demande.domain.VerificationBudget;
+import com.tovo.erp.demande.domain.Decision;
 import com.tovo.erp.repository.BudgetRepository;
-import com.tovo.erp.repository.VerificationBudgetRepository;
+import com.tovo.erp.demande.repository.VerificationBudgetRepository;
 import com.tovo.erp.web.dto.BudgetDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
