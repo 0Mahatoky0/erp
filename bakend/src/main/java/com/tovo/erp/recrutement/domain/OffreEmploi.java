@@ -16,7 +16,7 @@ public class OffreEmploi {
     private Long idOffre;
     @Column(name = "id_demande_poste", nullable = false) @NotNull
     private Long idDemandePoste;
-    @Column(name = "id_utilisateur_createur", nullable = false) @NotNull
+    @Column(name = "id_utilisateur_createur", nullable = false)
     private Long idUtilisateurCreateur;
     @NotBlank @Size(max = 50) @Column(nullable = false, unique = true)
     private String reference;
