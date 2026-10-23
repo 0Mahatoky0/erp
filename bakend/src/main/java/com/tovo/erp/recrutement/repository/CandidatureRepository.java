@@ -2,12 +2,18 @@ package com.tovo.erp.recrutement.repository;
 
 import com.tovo.erp.recrutement.domain.*;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import java.util.List;
 
 public interface CandidatureRepository extends JpaRepository<Candidature, Long> {
     boolean existsByOffreIdOffreAndCandidatIdCandidat(Long idOffre, Long idCandidat);
     boolean existsByOffreIdOffre(Long idOffre);
+    @EntityGraph(attributePaths = {"offre", "candidat"})
     List<Candidature> findByOffreIdOffre(Long idOffre);
+    @EntityGraph(attributePaths = {"offre", "candidat"})
     List<Candidature> findByOffreIdOffreAndStatut(Long idOffre, CandidatureStatut statut);
+    @EntityGraph(attributePaths = {"offre", "candidat"})
     List<Candidature> findByCandidatIdCandidat(Long idCandidat);
+    @EntityGraph(attributePaths = {"offre", "candidat"})
+    java.util.Optional<Candidature> findById(Long id);
 }

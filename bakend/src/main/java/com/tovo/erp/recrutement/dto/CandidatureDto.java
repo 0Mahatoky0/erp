@@ -1,0 +1,30 @@
+package com.tovo.erp.recrutement.dto;
+
+import com.tovo.erp.recrutement.domain.Candidature;
+import com.tovo.erp.recrutement.domain.CandidatureStatut;
+
+import java.time.LocalDateTime;
+
+/** Representation sans cycle de la candidature et de ses relations utiles a l'UI. */
+public record CandidatureDto(
+        Long idCandidature,
+        CandidatDto candidat,
+        OffreEmploiDto.OffreResumeDto offre,
+        String messageCandidat,
+        String source,
+        CandidatureStatut statut,
+        LocalDateTime dateCandidature,
+        LocalDateTime dateModification) {
+
+    public static CandidatureDto de(Candidature candidature) {
+        return new CandidatureDto(
+                candidature.getIdCandidature(),
+                CandidatDto.de(candidature.getCandidat()),
+                OffreEmploiDto.resume(candidature.getOffre()),
+                candidature.getMessageCandidat(),
+                candidature.getSource(),
+                candidature.getStatut(),
+                candidature.getDateCandidature(),
+                candidature.getDateModification());
+    }
+}
