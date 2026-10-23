@@ -108,6 +108,12 @@ const routes = [
         component: () => import('@/views/RecrutementSuiviView.vue'),
         meta: { titre: 'Suivi des candidats · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
       },
+      {
+        path: 'recrutement/candidatures/:id',
+        name: 'recrutement-candidature-detail',
+        component: () => import('@/views/RecrutementCandidatureDetailView.vue'),
+        meta: { titre: 'Parcours candidat · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
+      },
     ],
   },
   {

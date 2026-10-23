@@ -37,6 +37,7 @@ onMounted(charger)
         <strong>{{ candidature.candidat.prenom }} {{ candidature.candidat.nom }}</strong>
         <span>{{ candidature.candidat.email }}</span>
         <b>PRESELECTIONNEE</b>
+        <RouterLink :to="{ name: 'recrutement-candidature-detail', params: { id: candidature.idCandidature } }">Ouvrir le parcours</RouterLink>
       </article>
       <p v-if="offreId && !candidatures.length">Aucun candidat présélectionné.</p>
     </div>
