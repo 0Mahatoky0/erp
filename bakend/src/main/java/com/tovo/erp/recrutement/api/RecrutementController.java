@@ -1,8 +1,7 @@
 package com.tovo.erp.recrutement.api;
 
 import com.tovo.erp.recrutement.domain.*;
-import com.tovo.erp.recrutement.dto.CandidatureDto;
-import com.tovo.erp.recrutement.dto.OffreEmploiDto;
+import com.tovo.erp.recrutement.dto.*;
 import com.tovo.erp.recrutement.repository.*;
 import com.tovo.erp.recrutement.service.*;
 import com.tovo.erp.domain.enums.RoleNom;
@@ -129,73 +128,76 @@ public class RecrutementController {
     }
 
     @PostMapping(value = "/candidatures/{id}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<DocumentCandidature> document(@PathVariable Long id, @RequestParam TypeDocument type,
-                                                        @RequestPart MultipartFile fichier) throws java.io.IOException {
+    public ResponseEntity<DocumentCandidatureDto> document(@PathVariable Long id, @RequestParam TypeDocument type,
+                                                           @RequestPart MultipartFile fichier) throws java.io.IOException {
         utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
-        return ResponseEntity.status(HttpStatus.CREATED).body(documents.deposer(id, type, fichier));
+        return ResponseEntity.status(HttpStatus.CREATED).body(DocumentCandidatureDto.de(documents.deposer(id, type, fichier)));
     }
 
     @GetMapping("/candidatures/{id}/documents")
-    public List<DocumentCandidature> documents(@PathVariable Long id) { return documents.lister(id); }
+    public List<DocumentCandidatureDto> documents(@PathVariable Long id) {
+        return documents.lister(id).stream().map(DocumentCandidatureDto::de).toList();
+    }
 
     @PostMapping("/entretiens")
-    public ResponseEntity<Entretien> entretien(@Valid @RequestBody RecrutementRequests.EntretienRequest r) {
+    public ResponseEntity<EntretienDto> entretien(@Valid @RequestBody RecrutementRequests.EntretienRequest r) {
         utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
         Entretien e = new Entretien(); e.setCandidature(candidatureRepository.getReferenceById(r.idCandidature()));
         e.setIdUtilisateurOrganisateur(utilisateurCourant.exiger().getId()); e.setTypeEntretien(r.typeEntretien());
         e.setDateDebut(r.dateDebut()); e.setDateFin(r.dateFin()); e.setLieu(r.lieu()); e.setLienVisio(r.lienVisio());
-        return ResponseEntity.status(HttpStatus.CREATED).body(entretienTests.planifierEntretien(e));
+        return ResponseEntity.status(HttpStatus.CREATED).body(EntretienDto.de(entretienTests.planifierEntretien(e)));
     }
 
     @GetMapping("/candidatures/{id}/entretiens")
-    public List<Entretien> entretiens(@PathVariable Long id) {
-        return entretienRepository.findByCandidatureIdCandidature(id);
+    public List<EntretienDto> entretiens(@PathVariable Long id) {
+        return entretienRepository.findByCandidatureIdCandidature(id).stream().map(EntretienDto::de).toList();
     }
 
     @PostMapping("/tests")
-    public ResponseEntity<TestRecrutement> test(@Valid @RequestBody TestRecrutement test) {
+    public ResponseEntity<TestRecrutementDto> test(@Valid @RequestBody TestRecrutement test) {
         utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
-        return ResponseEntity.status(HttpStatus.CREATED).body(entretienTests.creerTest(test));
+        return ResponseEntity.status(HttpStatus.CREATED).body(TestRecrutementDto.de(entretienTests.creerTest(test)));
     }
 
     @GetMapping("/offres/{idOffre}/tests")
-    public List<TestRecrutement> tests(@PathVariable Long idOffre) {
-        return testRepository.findByOffreIdOffre(idOffre);
+    public List<TestRecrutementDto> tests(@PathVariable Long idOffre) {
+        return testRepository.findByOffreIdOffre(idOffre).stream().map(TestRecrutementDto::de).toList();
     }
 
     @PostMapping("/passages-tests")
-    public ResponseEntity<PassageTest> passageTest(@Valid @RequestBody PassageTest passage) {
+    public ResponseEntity<PassageTestDto> passageTest(@Valid @RequestBody PassageTest passage) {
         utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
-        return ResponseEntity.status(HttpStatus.CREATED).body(entretienTests.planifierPassage(passage));
+        return ResponseEntity.status(HttpStatus.CREATED).body(PassageTestDto.de(entretienTests.planifierPassage(passage)));
     }
 
     @GetMapping("/candidatures/{id}/passages-tests")
-    public List<PassageTest> passagesTests(@PathVariable Long id) {
-        return passageRepository.findByCandidatureIdCandidature(id);
+    public List<PassageTestDto> passagesTests(@PathVariable Long id) {
+        return passageRepository.findByCandidatureIdCandidature(id).stream().map(PassageTestDto::de).toList();
     }
 
     @GetMapping("/candidatures/{id}/historique")
-    public List<HistoriqueCandidature> historique(@PathVariable Long id) {
-        return historiqueRepository.findByCandidatureIdCandidatureOrderByDateActionAsc(id);
+    public List<HistoriqueCandidatureDto> historique(@PathVariable Long id) {
+        return historiqueRepository.findByCandidatureIdCandidatureOrderByDateActionAsc(id)
+                .stream().map(HistoriqueCandidatureDto::de).toList();
     }
 
     @PostMapping("/evaluations")
-    public ResponseEntity<EvaluationCandidat> evaluation(@Valid @RequestBody EvaluationCandidat evaluation) {
+    public ResponseEntity<EvaluationCandidatDto> evaluation(@Valid @RequestBody EvaluationCandidat evaluation) {
         utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
-        return ResponseEntity.status(HttpStatus.CREATED).body(evaluations.evaluer(evaluation));
+        return ResponseEntity.status(HttpStatus.CREATED).body(EvaluationCandidatDto.de(evaluations.evaluer(evaluation)));
     }
 
     @GetMapping("/candidatures/{id}/evaluations")
-    public List<EvaluationCandidat> evaluations(@PathVariable Long id) {
-        return evaluationRepository.findByCandidatureIdCandidature(id);
+    public List<EvaluationCandidatDto> evaluations(@PathVariable Long id) {
+        return evaluationRepository.findByCandidatureIdCandidature(id).stream().map(EvaluationCandidatDto::de).toList();
     }
 
     @PostMapping("/decisions")
-    public ResponseEntity<DecisionCandidature> decision(@Valid @RequestBody RecrutementRequests.DecisionRequest r) {
+    public ResponseEntity<DecisionCandidatureDto> decision(@Valid @RequestBody RecrutementRequests.DecisionRequest r) {
         utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
         DecisionCandidature d = new DecisionCandidature();
         d.setCandidature(candidatureRepository.getReferenceById(r.idCandidature()));
         d.setIdUtilisateur(utilisateurCourant.exiger().getId()); d.setDecision(r.decision()); d.setMotif(r.motif());
-        return ResponseEntity.status(HttpStatus.CREATED).body(evaluations.decider(d));
+        return ResponseEntity.status(HttpStatus.CREATED).body(DecisionCandidatureDto.de(evaluations.decider(d)));
     }
 }
