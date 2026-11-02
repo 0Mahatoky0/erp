@@ -1,6 +1,6 @@
 package com.tovo.erp.recrutement.repository;
 
-import com.tovo.erp.recrutement.domain.*;
+import com.tovo.erp.recrutement.model.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;

@@ -1,4 +1,4 @@
-package com.tovo.erp.common;
+package com.tovo.erp.shared;
 
 /**
  * Erreur renvoyee au client. Le format est stable : le frontend peut

@@ -1,4 +1,4 @@
-package com.tovo.erp.demande.domain;
+package com.tovo.erp.besoin.model;
 
 /** Duree du remplacement (RM-024). */
 public enum TypeRemplacement {

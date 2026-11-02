@@ -1,4 +1,4 @@
-package com.tovo.erp.demande.config;
+package com.tovo.erp.besoin.service;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

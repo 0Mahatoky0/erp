@@ -1,9 +1,9 @@
-package com.tovo.erp.service;
+package com.tovo.erp.employe.service;
 
-import com.tovo.erp.common.Recherche;
-import com.tovo.erp.domain.enums.StatutEmploye;
-import com.tovo.erp.repository.EmployeRepository;
-import com.tovo.erp.web.dto.EmployeDto;
+import com.tovo.erp.shared.Recherche;
+import com.tovo.erp.employe.model.StatutEmploye;
+import com.tovo.erp.employe.repository.EmployeRepository;
+import com.tovo.erp.iam.dto.EmployeDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

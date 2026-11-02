@@ -1,4 +1,4 @@
-package com.tovo.erp.security;
+package com.tovo.erp.shared;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

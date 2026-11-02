@@ -1,14 +1,14 @@
-package com.tovo.erp.service;
+package com.tovo.erp.besoin.service;
 
-import com.tovo.erp.common.BusinessException;
-import com.tovo.erp.domain.entity.Budget;
-import com.tovo.erp.demande.domain.DemandeRecrutementPoste;
-import com.tovo.erp.domain.entity.Utilisateur;
-import com.tovo.erp.demande.domain.VerificationBudget;
-import com.tovo.erp.demande.domain.Decision;
-import com.tovo.erp.repository.BudgetRepository;
-import com.tovo.erp.demande.repository.VerificationBudgetRepository;
-import com.tovo.erp.web.dto.BudgetDto;
+import com.tovo.erp.shared.BusinessException;
+import com.tovo.erp.besoin.model.Budget;
+import com.tovo.erp.besoin.model.DemandeRecrutementPoste;
+import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.besoin.model.VerificationBudget;
+import com.tovo.erp.besoin.model.Decision;
+import com.tovo.erp.besoin.repository.BudgetRepository;
+import com.tovo.erp.besoin.repository.VerificationBudgetRepository;
+import com.tovo.erp.besoin.dto.BudgetDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,11 +24,11 @@ public class BudgetService {
 
     private final BudgetRepository budgetRepository;
     private final VerificationBudgetRepository verificationRepository;
-    private final com.tovo.erp.repository.ServiceRepository serviceRepository;
+    private final com.tovo.erp.besoin.repository.ServiceRepository serviceRepository;
 
     public BudgetService(BudgetRepository budgetRepository,
                          VerificationBudgetRepository verificationRepository,
-                         com.tovo.erp.repository.ServiceRepository serviceRepository) {
+                         com.tovo.erp.besoin.repository.ServiceRepository serviceRepository) {
         this.budgetRepository = budgetRepository;
         this.verificationRepository = verificationRepository;
         this.serviceRepository = serviceRepository;
@@ -54,7 +54,7 @@ public class BudgetService {
      */
     @Transactional
     public BudgetDto.Liste definirBudget(BudgetDto.MiseAJour demande) {
-        com.tovo.erp.domain.entity.Service service = serviceRepository.getReferenceById(demande.idService());
+        com.tovo.erp.besoin.model.Service service = serviceRepository.getReferenceById(demande.idService());
         if (demande.montantAlloue() == null || demande.montantAlloue().compareTo(BigDecimal.ZERO) < 0) {
             throw new BusinessException("BUDGET_INVALIDE",
                     "Le montant alloue doit etre positif ou nul.");

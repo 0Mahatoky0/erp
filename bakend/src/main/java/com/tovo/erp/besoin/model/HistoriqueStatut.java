@@ -1,6 +1,6 @@
-package com.tovo.erp.demande.domain;
+package com.tovo.erp.besoin.model;
 
-import com.tovo.erp.domain.entity.Utilisateur;
+import com.tovo.erp.iam.model.Utilisateur;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

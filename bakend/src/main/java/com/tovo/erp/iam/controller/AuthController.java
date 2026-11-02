@@ -1,8 +1,8 @@
-package com.tovo.erp.web.controller;
+package com.tovo.erp.iam.controller;
 
-import com.tovo.erp.security.UtilisateurCourant;
-import com.tovo.erp.service.AuthService;
-import com.tovo.erp.web.dto.AuthDto;
+import com.tovo.erp.shared.UtilisateurCourant;
+import com.tovo.erp.iam.service.AuthService;
+import com.tovo.erp.iam.dto.AuthDto;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

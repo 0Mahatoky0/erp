@@ -1,9 +1,9 @@
-package com.tovo.erp.config;
+package com.tovo.erp.shared;
 
-import com.tovo.erp.repository.UtilisateurRepository;
-import com.tovo.erp.security.JwtAuthenticationFilter;
-import com.tovo.erp.security.JwtProperties;
-import com.tovo.erp.security.JwtService;
+import com.tovo.erp.iam.repository.UtilisateurRepository;
+import com.tovo.erp.shared.JwtAuthenticationFilter;
+import com.tovo.erp.shared.JwtProperties;
+import com.tovo.erp.shared.JwtService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;

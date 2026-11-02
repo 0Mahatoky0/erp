@@ -1,7 +1,7 @@
-package com.tovo.erp.security;
+package com.tovo.erp.shared;
 
-import com.tovo.erp.domain.entity.Utilisateur;
-import com.tovo.erp.domain.enums.RoleNom;
+import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.iam.model.RoleNom;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;

@@ -1,17 +1,28 @@
-package com.tovo.erp.domain.entity;
+package com.tovo.erp.employe.model;
 
-import com.tovo.erp.domain.enums.StatutEmploye;
+import com.tovo.erp.employe.model.StatutEmploye;
 import jakarta.persistence.Column;
+import com.tovo.erp.besoin.model.Poste;
 import jakarta.persistence.Entity;
+import com.tovo.erp.besoin.model.Poste;
 import jakarta.persistence.EnumType;
+import com.tovo.erp.besoin.model.Poste;
 import jakarta.persistence.Enumerated;
+import com.tovo.erp.besoin.model.Poste;
 import jakarta.persistence.FetchType;
+import com.tovo.erp.besoin.model.Poste;
 import jakarta.persistence.GeneratedValue;
+import com.tovo.erp.besoin.model.Poste;
 import jakarta.persistence.GenerationType;
+import com.tovo.erp.besoin.model.Poste;
 import jakarta.persistence.Id;
+import com.tovo.erp.besoin.model.Poste;
 import jakarta.persistence.JoinColumn;
+import com.tovo.erp.besoin.model.Poste;
 import jakarta.persistence.ManyToOne;
+import com.tovo.erp.besoin.model.Poste;
 import jakarta.persistence.Table;
+import com.tovo.erp.besoin.model.Poste;
 import lombok.Getter;
 import lombok.Setter;
 

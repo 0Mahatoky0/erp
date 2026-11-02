@@ -1,6 +1,6 @@
-package com.tovo.erp.repository;
+package com.tovo.erp.iam.repository;
 
-import com.tovo.erp.domain.entity.Role;
+import com.tovo.erp.iam.model.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

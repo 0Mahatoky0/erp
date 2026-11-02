@@ -1,10 +1,10 @@
-package com.tovo.erp.service;
+package com.tovo.erp.iam.service;
 
-import com.tovo.erp.common.BusinessException;
-import com.tovo.erp.domain.entity.Utilisateur;
-import com.tovo.erp.repository.UtilisateurRepository;
-import com.tovo.erp.security.JwtService;
-import com.tovo.erp.web.dto.AuthDto;
+import com.tovo.erp.shared.BusinessException;
+import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.iam.repository.UtilisateurRepository;
+import com.tovo.erp.shared.JwtService;
+import com.tovo.erp.iam.dto.AuthDto;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

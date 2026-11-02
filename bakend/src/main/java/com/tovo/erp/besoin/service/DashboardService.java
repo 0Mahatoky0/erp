@@ -1,14 +1,14 @@
-package com.tovo.erp.service;
+package com.tovo.erp.besoin.service;
 
-import com.tovo.erp.demande.domain.DemandeRecrutement;
-import com.tovo.erp.domain.entity.Utilisateur;
-import com.tovo.erp.demande.domain.EtapeValidation;
-import com.tovo.erp.demande.domain.StatutDemande;
-import com.tovo.erp.demande.domain.StatutLigne;
-import com.tovo.erp.repository.BudgetRepository;
-import com.tovo.erp.demande.repository.DemandeRecrutementPosteRepository;
-import com.tovo.erp.demande.repository.DemandeRecrutementRepository;
-import com.tovo.erp.web.dto.DashboardDto;
+import com.tovo.erp.besoin.model.DemandeRecrutement;
+import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.besoin.model.EtapeValidation;
+import com.tovo.erp.besoin.model.StatutDemande;
+import com.tovo.erp.besoin.model.StatutLigne;
+import com.tovo.erp.besoin.repository.BudgetRepository;
+import com.tovo.erp.besoin.repository.DemandeRecrutementPosteRepository;
+import com.tovo.erp.besoin.repository.DemandeRecrutementRepository;
+import com.tovo.erp.besoin.dto.DashboardDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,16 +60,16 @@ public class DashboardService {
         long lignesACorriger = ligneRepository.findByStatutOrderByDateCreationDesc(StatutLigne.A_CORRIGER).size();
 
         int exerciceCourant = exercice == null ? java.time.Year.now().getValue() : exercice;
-        List<com.tovo.erp.domain.entity.Budget> budgets =
+        List<com.tovo.erp.besoin.model.Budget> budgets =
                 budgetRepository.rechercher(null, exerciceCourant);
         BigDecimal alloue = budgets.stream()
-                .map(com.tovo.erp.domain.entity.Budget::getMontantAlloue)
+                .map(com.tovo.erp.besoin.model.Budget::getMontantAlloue)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal engage = budgets.stream()
-                .map(com.tovo.erp.domain.entity.Budget::getMontantEngage)
+                .map(com.tovo.erp.besoin.model.Budget::getMontantEngage)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal disponible = budgets.stream()
-                .map(com.tovo.erp.domain.entity.Budget::getMontantDisponible)
+                .map(com.tovo.erp.besoin.model.Budget::getMontantDisponible)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return new DashboardDto.Resume(

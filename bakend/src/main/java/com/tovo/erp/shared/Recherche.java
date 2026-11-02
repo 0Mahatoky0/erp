@@ -1,4 +1,4 @@
-package com.tovo.erp.common;
+package com.tovo.erp.shared;
 
 import java.util.Locale;
 

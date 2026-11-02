@@ -1,6 +1,6 @@
-package com.tovo.erp.web.dto;
+package com.tovo.erp.besoin.dto;
 
-import com.tovo.erp.domain.entity.Budget;
+import com.tovo.erp.besoin.model.Budget;
 
 import java.math.BigDecimal;
 

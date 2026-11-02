@@ -1,7 +1,7 @@
-package com.tovo.erp.web.dto;
+package com.tovo.erp.iam.dto;
 
-import com.tovo.erp.domain.entity.Employe;
-import com.tovo.erp.domain.enums.StatutEmploye;
+import com.tovo.erp.employe.model.Employe;
+import com.tovo.erp.employe.model.StatutEmploye;
 
 import java.time.LocalDate;
 

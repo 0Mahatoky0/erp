@@ -1,7 +1,7 @@
-package com.tovo.erp.demande.repository;
+package com.tovo.erp.besoin.repository;
 
-import com.tovo.erp.demande.domain.DemandeRecrutement;
-import com.tovo.erp.demande.domain.StatutDemande;
+import com.tovo.erp.besoin.model.DemandeRecrutement;
+import com.tovo.erp.besoin.model.StatutDemande;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

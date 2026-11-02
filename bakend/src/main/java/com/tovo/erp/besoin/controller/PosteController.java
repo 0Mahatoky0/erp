@@ -1,9 +1,9 @@
-package com.tovo.erp.web.controller;
+package com.tovo.erp.besoin.controller;
 
-import com.tovo.erp.domain.enums.RoleNom;
-import com.tovo.erp.security.UtilisateurCourant;
-import com.tovo.erp.service.PosteService;
-import com.tovo.erp.web.dto.PosteDto;
+import com.tovo.erp.iam.model.RoleNom;
+import com.tovo.erp.shared.UtilisateurCourant;
+import com.tovo.erp.besoin.service.PosteService;
+import com.tovo.erp.besoin.dto.PosteDto;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

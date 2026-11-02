@@ -1,14 +1,23 @@
-package com.tovo.erp.domain.entity;
+package com.tovo.erp.iam.model;
 
 import jakarta.persistence.Column;
+import com.tovo.erp.besoin.model.Departement;
 import jakarta.persistence.Entity;
+import com.tovo.erp.besoin.model.Departement;
 import jakarta.persistence.FetchType;
+import com.tovo.erp.besoin.model.Departement;
 import jakarta.persistence.GeneratedValue;
+import com.tovo.erp.besoin.model.Departement;
 import jakarta.persistence.GenerationType;
+import com.tovo.erp.besoin.model.Departement;
 import jakarta.persistence.Id;
+import com.tovo.erp.besoin.model.Departement;
 import jakarta.persistence.JoinColumn;
+import com.tovo.erp.besoin.model.Departement;
 import jakarta.persistence.ManyToOne;
+import com.tovo.erp.besoin.model.Departement;
 import jakarta.persistence.Table;
+import com.tovo.erp.besoin.model.Departement;
 import lombok.Getter;
 import lombok.Setter;
 

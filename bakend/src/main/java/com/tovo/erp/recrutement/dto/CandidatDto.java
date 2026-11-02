@@ -1,6 +1,6 @@
 package com.tovo.erp.recrutement.dto;
 
-import com.tovo.erp.recrutement.domain.Candidat;
+import com.tovo.erp.recrutement.model.Candidat;
 
 import java.time.LocalDateTime;
 

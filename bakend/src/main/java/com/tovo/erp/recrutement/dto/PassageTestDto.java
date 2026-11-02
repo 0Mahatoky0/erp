@@ -1,6 +1,6 @@
 package com.tovo.erp.recrutement.dto;
 
-import com.tovo.erp.recrutement.domain.*;
+import com.tovo.erp.recrutement.model.*;
 import java.time.LocalDateTime;
 
 public record PassageTestDto(Long idPassage, Long idTest, Long idCandidature, Integer numeroTentative,

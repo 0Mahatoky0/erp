@@ -1,8 +1,8 @@
-package com.tovo.erp.security;
+package com.tovo.erp.shared;
 
-import com.tovo.erp.common.BusinessException;
-import com.tovo.erp.domain.entity.Utilisateur;
-import com.tovo.erp.domain.enums.RoleNom;
+import com.tovo.erp.shared.BusinessException;
+import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.iam.model.RoleNom;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;

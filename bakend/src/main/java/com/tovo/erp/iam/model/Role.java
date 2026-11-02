@@ -1,4 +1,4 @@
-package com.tovo.erp.domain.entity;
+package com.tovo.erp.iam.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

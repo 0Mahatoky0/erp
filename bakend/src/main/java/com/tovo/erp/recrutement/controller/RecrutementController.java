@@ -1,11 +1,11 @@
-package com.tovo.erp.recrutement.api;
+package com.tovo.erp.recrutement.controller;
 
-import com.tovo.erp.recrutement.domain.*;
+import com.tovo.erp.recrutement.model.*;
 import com.tovo.erp.recrutement.dto.*;
 import com.tovo.erp.recrutement.repository.*;
 import com.tovo.erp.recrutement.service.*;
-import com.tovo.erp.domain.enums.RoleNom;
-import com.tovo.erp.security.UtilisateurCourant;
+import com.tovo.erp.iam.model.RoleNom;
+import com.tovo.erp.shared.UtilisateurCourant;
 import jakarta.validation.Valid;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;

@@ -1,4 +1,4 @@
-package com.tovo.erp.recrutement.api;
+package com.tovo.erp.recrutement.controller;
 
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;

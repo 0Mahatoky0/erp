@@ -1,4 +1,4 @@
-package com.tovo.erp.demande.domain;
+package com.tovo.erp.besoin.model;
 
 /** Nature du besoin porte par une ligne de demande (RM-022, RM-023). */
 public enum TypeBesoin {

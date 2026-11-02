@@ -1,7 +1,7 @@
 package com.tovo.erp.recrutement.repository;
 
-import com.tovo.erp.recrutement.domain.OffreEmploi;
-import com.tovo.erp.recrutement.domain.OffreStatut;
+import com.tovo.erp.recrutement.model.OffreEmploi;
+import com.tovo.erp.recrutement.model.OffreStatut;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;

@@ -1,4 +1,4 @@
-package com.tovo.erp.domain.enums;
+package com.tovo.erp.iam.model;
 
 /**
  * Roles applicatifs et responsabilites associees (RM-004).

@@ -1,6 +1,6 @@
 package com.tovo.erp.recrutement.repository;
 
-import com.tovo.erp.recrutement.domain.TestRecrutement;
+import com.tovo.erp.recrutement.model.TestRecrutement;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
 import java.util.List;

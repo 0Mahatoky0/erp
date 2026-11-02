@@ -1,6 +1,6 @@
-package com.tovo.erp.web.dto;
+package com.tovo.erp.besoin.dto;
 
-import com.tovo.erp.domain.entity.Poste;
+import com.tovo.erp.besoin.model.Poste;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;

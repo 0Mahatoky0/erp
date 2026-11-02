@@ -1,18 +1,18 @@
-package com.tovo.erp.demande.service;
+package com.tovo.erp.besoin.service;
 
-import com.tovo.erp.common.BusinessException;
-import com.tovo.erp.demande.domain.DemandeRecrutement;
-import com.tovo.erp.demande.domain.DemandeRecrutementPoste;
-import com.tovo.erp.domain.entity.Employe;
-import com.tovo.erp.domain.entity.Poste;
-import com.tovo.erp.domain.entity.Service;
-import com.tovo.erp.domain.enums.StatutEmploye;
-import com.tovo.erp.demande.domain.TypeBesoin;
-import com.tovo.erp.demande.domain.TypeRemplacement;
-import com.tovo.erp.repository.EmployeRepository;
-import com.tovo.erp.repository.PosteRepository;
-import com.tovo.erp.repository.ServiceRepository;
-import com.tovo.erp.demande.dto.DemandeDto;
+import com.tovo.erp.shared.BusinessException;
+import com.tovo.erp.besoin.model.DemandeRecrutement;
+import com.tovo.erp.besoin.model.DemandeRecrutementPoste;
+import com.tovo.erp.employe.model.Employe;
+import com.tovo.erp.besoin.model.Poste;
+import com.tovo.erp.besoin.model.Service;
+import com.tovo.erp.employe.model.StatutEmploye;
+import com.tovo.erp.besoin.model.TypeBesoin;
+import com.tovo.erp.besoin.model.TypeRemplacement;
+import com.tovo.erp.employe.repository.EmployeRepository;
+import com.tovo.erp.besoin.repository.PosteRepository;
+import com.tovo.erp.besoin.repository.ServiceRepository;
+import com.tovo.erp.besoin.dto.DemandeDto;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;

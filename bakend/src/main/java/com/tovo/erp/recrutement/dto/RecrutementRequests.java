@@ -1,6 +1,6 @@
-package com.tovo.erp.recrutement.api;
+package com.tovo.erp.recrutement.dto;
 
-import com.tovo.erp.recrutement.domain.*;
+import com.tovo.erp.recrutement.model.*;
 import jakarta.validation.constraints.*;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;

@@ -1,4 +1,4 @@
-package com.tovo.erp.web.dto;
+package com.tovo.erp.besoin.dto;
 
 import java.math.BigDecimal;
 

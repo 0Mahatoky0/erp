@@ -1,9 +1,9 @@
-package com.tovo.erp.web.controller;
+package com.tovo.erp.iam.controller;
 
-import com.tovo.erp.domain.enums.RoleNom;
-import com.tovo.erp.security.UtilisateurCourant;
-import com.tovo.erp.service.UtilisateurService;
-import com.tovo.erp.web.dto.AuthDto;
+import com.tovo.erp.iam.model.RoleNom;
+import com.tovo.erp.shared.UtilisateurCourant;
+import com.tovo.erp.iam.service.UtilisateurService;
+import com.tovo.erp.iam.dto.AuthDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

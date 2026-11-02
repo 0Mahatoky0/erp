@@ -1,4 +1,4 @@
-package com.tovo.erp.demande.domain;
+package com.tovo.erp.besoin.model;
 
 /**
  * Statut d'une ligne de demande (demande_recrutement_poste).

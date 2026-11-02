@@ -1,7 +1,7 @@
-package com.tovo.erp.repository;
+package com.tovo.erp.employe.repository;
 
-import com.tovo.erp.domain.entity.Employe;
-import com.tovo.erp.domain.enums.StatutEmploye;
+import com.tovo.erp.employe.model.Employe;
+import com.tovo.erp.employe.model.StatutEmploye;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

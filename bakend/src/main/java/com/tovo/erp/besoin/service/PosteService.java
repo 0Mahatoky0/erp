@@ -1,12 +1,12 @@
-package com.tovo.erp.service;
+package com.tovo.erp.besoin.service;
 
-import com.tovo.erp.common.BusinessException;
-import com.tovo.erp.common.Recherche;
-import com.tovo.erp.domain.entity.Poste;
-import com.tovo.erp.demande.repository.DemandeRecrutementPosteRepository;
-import com.tovo.erp.repository.PosteRepository;
-import com.tovo.erp.repository.ServiceRepository;
-import com.tovo.erp.web.dto.PosteDto;
+import com.tovo.erp.shared.BusinessException;
+import com.tovo.erp.shared.Recherche;
+import com.tovo.erp.besoin.model.Poste;
+import com.tovo.erp.besoin.repository.DemandeRecrutementPosteRepository;
+import com.tovo.erp.besoin.repository.PosteRepository;
+import com.tovo.erp.besoin.repository.ServiceRepository;
+import com.tovo.erp.besoin.dto.PosteDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,7 +44,7 @@ public class PosteService {
     /** Cree un poste officiel (role RH). */
     @Transactional
     public PosteDto.Liste creer(PosteDto.Creation demande) {
-        com.tovo.erp.domain.entity.Service service = serviceRepository.findById(demande.idService())
+        com.tovo.erp.besoin.model.Service service = serviceRepository.findById(demande.idService())
                 .orElseThrow(() -> BusinessException.notFound(
                         "Le service " + demande.idService() + " n'existe pas."));
         controlerDoublon(service, demande.intitule(), null);
@@ -92,7 +92,7 @@ public class PosteService {
      * RM-010 : refuse la creation d'un poste equivalent dans le meme service.
      * La comparaison ignore la casse et les espaces superflus.
      */
-    private void controlerDoublon(com.tovo.erp.domain.entity.Service service, String intitule, Long idPosteExclu) {
+    private void controlerDoublon(com.tovo.erp.besoin.model.Service service, String intitule, Long idPosteExclu) {
         List<Poste> equivalents = posteRepository.findEquivalents(service.getId(), intitule.trim(), idPosteExclu);
         if (!equivalents.isEmpty()) {
             throw new BusinessException("POSTE_DOUBLON",

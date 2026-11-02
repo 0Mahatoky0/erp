@@ -1,4 +1,4 @@
-package com.tovo.erp.demande.domain;
+package com.tovo.erp.besoin.model;
 
 /** Etape du circuit de validation d'une ligne (RM-034). */
 public enum EtapeValidation {

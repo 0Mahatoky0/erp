@@ -1,4 +1,4 @@
-package com.tovo.erp.domain.enums;
+package com.tovo.erp.employe.model;
 
 /** Situation administrative d'un employe (RM-057). */
 public enum StatutEmploye {

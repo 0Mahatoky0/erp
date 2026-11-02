@@ -1,7 +1,7 @@
-package com.tovo.erp.security;
+package com.tovo.erp.shared;
 
-import com.tovo.erp.domain.entity.Utilisateur;
-import com.tovo.erp.repository.UtilisateurRepository;
+import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.iam.repository.UtilisateurRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

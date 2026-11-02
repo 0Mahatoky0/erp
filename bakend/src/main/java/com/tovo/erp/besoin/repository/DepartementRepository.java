@@ -1,6 +1,6 @@
-package com.tovo.erp.repository;
+package com.tovo.erp.besoin.repository;
 
-import com.tovo.erp.domain.entity.Departement;
+import com.tovo.erp.besoin.model.Departement;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

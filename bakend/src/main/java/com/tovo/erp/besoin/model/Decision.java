@@ -1,4 +1,4 @@
-package com.tovo.erp.demande.domain;
+package com.tovo.erp.besoin.model;
 
 /** Decision prise par un validateur a une etape du circuit (RM-035 a RM-037). */
 public enum Decision {

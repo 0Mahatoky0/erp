@@ -1,4 +1,4 @@
-package com.tovo.erp.recrutement.domain;
+package com.tovo.erp.recrutement.model;
 
 import jakarta.persistence.*; import jakarta.validation.constraints.*;
 import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter;

@@ -1,7 +1,7 @@
-package com.tovo.erp.web.dto;
+package com.tovo.erp.iam.dto;
 
-import com.tovo.erp.domain.entity.Utilisateur;
-import com.tovo.erp.domain.enums.RoleNom;
+import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.iam.model.RoleNom;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 

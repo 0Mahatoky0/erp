@@ -1,12 +1,12 @@
-package com.tovo.erp.web.controller;
+package com.tovo.erp.besoin.controller;
 
-import com.tovo.erp.domain.entity.Departement;
-import com.tovo.erp.domain.entity.Service;
-import com.tovo.erp.domain.enums.StatutEmploye;
-import com.tovo.erp.repository.DepartementRepository;
-import com.tovo.erp.repository.ServiceRepository;
-import com.tovo.erp.service.EmployeService;
-import com.tovo.erp.web.dto.EmployeDto;
+import com.tovo.erp.besoin.model.Departement;
+import com.tovo.erp.besoin.model.Service;
+import com.tovo.erp.employe.model.StatutEmploye;
+import com.tovo.erp.besoin.repository.DepartementRepository;
+import com.tovo.erp.besoin.repository.ServiceRepository;
+import com.tovo.erp.employe.service.EmployeService;
+import com.tovo.erp.iam.dto.EmployeDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

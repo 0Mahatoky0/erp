@@ -1,6 +1,6 @@
-package com.tovo.erp.repository;
+package com.tovo.erp.besoin.repository;
 
-import com.tovo.erp.domain.entity.Poste;
+import com.tovo.erp.besoin.model.Poste;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

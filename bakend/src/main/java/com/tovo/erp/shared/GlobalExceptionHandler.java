@@ -1,4 +1,4 @@
-package com.tovo.erp.common;
+package com.tovo.erp.shared;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;

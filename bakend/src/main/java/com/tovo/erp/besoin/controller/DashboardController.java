@@ -1,8 +1,8 @@
-package com.tovo.erp.web.controller;
+package com.tovo.erp.besoin.controller;
 
-import com.tovo.erp.security.UtilisateurCourant;
-import com.tovo.erp.service.DashboardService;
-import com.tovo.erp.web.dto.DashboardDto;
+import com.tovo.erp.shared.UtilisateurCourant;
+import com.tovo.erp.besoin.service.DashboardService;
+import com.tovo.erp.besoin.dto.DashboardDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
