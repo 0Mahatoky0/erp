@@ -36,6 +36,9 @@ const LIBELLES = {
   INACTIF: 'Inactif',
   PARTI: 'Parti',
   MANAGER: 'Manager',
+  
+  PUBLIEE: 'Publiee',
+  CLOTUREE: 'Cloturee',
 }
 
 const COULEURS = {
@@ -62,11 +65,20 @@ const COULEURS = {
   INACTIF: 'neutre',
   PARTI: 'neutre',
   MANAGER: 'neutre',
+  PUBLIEE: 'succes',
+  CLOTUREE: 'neutre',
 }
 
 const couleur = computed(() => {
   const couleur = COULEURS[props.valeur] || 'neutre'
-  return { neutre: 'secondary', info: 'info', alerte: 'warn', succes: 'success', danger: 'danger', primaire: 'primary' }[couleur]
+  return {
+    neutre: 'secondary',
+    info: 'info',
+    alerte: 'warn',
+    succes: 'success',
+    danger: 'danger',
+    primaire: 'primary',
+  }[couleur]
 })
 const texte = computed(() => props.libelle || LIBELLES[props.valeur] || props.valeur || '—')
 </script>

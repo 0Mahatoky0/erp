@@ -12,7 +12,7 @@ export const recrutementRoutes = [
       {
         path: '',
         name: 'recrutement',
-        component: () => import('./views/RecrutementView.vue'),
+        component: () => import('./views/OffresListeView.vue'),
         meta: { titre: 'Recrutement' },
       },
       {
@@ -24,7 +24,7 @@ export const recrutementRoutes = [
       {
         path: 'offres',
         name: 'recrutement-offres',
-        component: () => import('./views/RecrutementView.vue'),
+        component: () => import('./views/OffresListeView.vue'),
         meta: { titre: 'Offres d’emploi · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
       },
       {
