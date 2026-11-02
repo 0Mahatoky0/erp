@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import { api, ErreurApi } from '@/api/client'
+import { useAuthStore } from '@/shared/store/useAuthStore'
+import { recrutementApi as api, ErreurApi } from '@/modules/recrutement/api/recrutementApi'
 
 const auth = useAuthStore()
 const offres = ref([])

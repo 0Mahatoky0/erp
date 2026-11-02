@@ -1,8 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { api } from '@/api/client'
-import { useNotificationStore } from '@/stores/notification'
+import { besoinApi as api } from '@/modules/besoin/api/besoinApi'
+import { useNotificationStore } from '@/shared/store/useNotificationStore'
 
 const router = useRouter()
 const notifications = useNotificationStore()

@@ -1,13 +1,13 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { api } from '@/api/client'
-import HistoriqueValidations from '@/components/HistoriqueValidations.vue'
-import ModalDialog from '@/components/ModalDialog.vue'
-import StatusBadge from '@/components/StatusBadge.vue'
-import { useAuthStore } from '@/stores/auth'
-import { useNotificationStore } from '@/stores/notification'
-import { formatDate, formatDateHeure, formatMontant, libelle } from '@/utils/format'
+import { besoinApi as api } from '@/modules/besoin/api/besoinApi'
+import HistoriqueValidations from '@/shared/components/HistoriqueValidations.vue'
+import ModalDialog from '@/shared/components/ModalDialog.vue'
+import StatusBadge from '@/shared/components/StatusBadge.vue'
+import { useAuthStore } from '@/shared/store/useAuthStore'
+import { useNotificationStore } from '@/shared/store/useNotificationStore'
+import { formatDate, formatDateHeure, formatMontant, libelle } from '@/shared/utils/format'
 
 const route = useRoute()
 const router = useRouter()

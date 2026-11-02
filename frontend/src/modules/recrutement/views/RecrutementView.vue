@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { api, ErreurApi } from '../api/client'
-import { useAuthStore } from '@/stores/auth'
+import { recrutementApi as api, ErreurApi } from '@/modules/recrutement/api/recrutementApi'
+import { useAuthStore } from '@/shared/store/useAuthStore'
 import { useRoute } from 'vue-router'
 const auth = useAuthStore()
 const route = useRoute()

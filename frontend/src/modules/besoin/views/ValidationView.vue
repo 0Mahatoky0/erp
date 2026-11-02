@@ -1,12 +1,12 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { api } from '@/api/client'
-import EmptyState from '@/components/EmptyState.vue'
-import ModalDialog from '@/components/ModalDialog.vue'
-import StatusBadge from '@/components/StatusBadge.vue'
-import { useAuthStore } from '@/stores/auth'
-import { useNotificationStore } from '@/stores/notification'
-import { formatDateHeure, formatMontant } from '@/utils/format'
+import { besoinApi as api } from '@/modules/besoin/api/besoinApi'
+import EmptyState from '@/shared/components/EmptyState.vue'
+import ModalDialog from '@/shared/components/ModalDialog.vue'
+import StatusBadge from '@/shared/components/StatusBadge.vue'
+import { useAuthStore } from '@/shared/store/useAuthStore'
+import { useNotificationStore } from '@/shared/store/useNotificationStore'
+import { formatDateHeure, formatMontant } from '@/shared/utils/format'
 
 const auth = useAuthStore()
 const notifications = useNotificationStore()

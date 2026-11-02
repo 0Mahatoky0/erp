@@ -1,9 +1,9 @@
 <script setup>
 import { computed } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
-import AppSidebar from '@/components/AppSidebar.vue'
-import AppTopbar from '@/components/AppTopbar.vue'
-import { useAuthStore } from '@/stores/auth'
+import AppSidebar from '@/shared/components/AppSidebar.vue'
+import AppTopbar from '@/shared/components/AppTopbar.vue'
+import { useAuthStore } from '@/shared/store/useAuthStore'
 
 const auth = useAuthStore()
 const route = useRoute()

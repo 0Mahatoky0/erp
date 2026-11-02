@@ -1,10 +1,10 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { api } from '@/api/client'
-import EmptyState from '@/components/EmptyState.vue'
-import ModalDialog from '@/components/ModalDialog.vue'
-import StatusBadge from '@/components/StatusBadge.vue'
-import { useNotificationStore } from '@/stores/notification'
+import { iamApi as api } from '@/modules/iam/api/iamApi'
+import EmptyState from '@/shared/components/EmptyState.vue'
+import ModalDialog from '@/shared/components/ModalDialog.vue'
+import StatusBadge from '@/shared/components/StatusBadge.vue'
+import { useNotificationStore } from '@/shared/store/useNotificationStore'
 
 const notifications = useNotificationStore()
 

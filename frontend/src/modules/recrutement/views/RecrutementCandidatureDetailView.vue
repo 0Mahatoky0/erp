@@ -1,11 +1,9 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { api, ErreurApi } from '@/api/client'
+import { recrutementApi as api, ErreurApi } from '@/modules/recrutement/api/recrutementApi'
 
 const route = useRoute()
-const auth = useAuthStore()
 const id = route.params.id
 const candidature = ref(null)
 const entretiens = ref([])

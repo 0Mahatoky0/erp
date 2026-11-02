@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { api, definirJeton, surJetonExpire } from '@/api/client'
+import { api, definirJeton, surJetonExpire } from '@/shared/api/axios'
 
 const CLE_TOKEN = 'erp.token'
 

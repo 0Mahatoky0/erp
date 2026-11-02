@@ -1,10 +1,10 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { api } from '@/api/client'
-import StatusBadge from '@/components/StatusBadge.vue'
-import { useAuthStore } from '@/stores/auth'
-import { useNotificationStore } from '@/stores/notification'
-import { formatMontant } from '@/utils/format'
+import { besoinApi as api } from '@/modules/besoin/api/besoinApi'
+import StatusBadge from '@/shared/components/StatusBadge.vue'
+import { useAuthStore } from '@/shared/store/useAuthStore'
+import { useNotificationStore } from '@/shared/store/useNotificationStore'
+import { formatMontant } from '@/shared/utils/format'
 
 const auth = useAuthStore()
 const notifications = useNotificationStore()

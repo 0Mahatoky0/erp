@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
-import StatusBadge from '@/components/StatusBadge.vue'
-import { formatDateHeure, libelle } from '@/utils/format'
+import StatusBadge from '@/shared/components/StatusBadge.vue'
+import { formatDateHeure, libelle } from '@/shared/utils/format'
 
 /**
  * Historique des decisions d'une ligne de demande : qui, quand, quelle decision.

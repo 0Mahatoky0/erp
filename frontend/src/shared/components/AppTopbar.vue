@@ -1,5 +1,5 @@
 <script setup>
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/shared/store/useAuthStore'
 
 defineProps({
   titre: { type: String, required: true },

@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { api, ErreurApi } from '@/api/client'
+import { recrutementApi as api, ErreurApi } from '@/modules/recrutement/api/recrutementApi'
 
 const offres = ref([])
 const offreSelectionnee = ref(null)

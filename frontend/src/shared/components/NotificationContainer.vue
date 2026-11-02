@@ -1,24 +1,31 @@
 <script setup>
-import { useNotificationStore } from '@/stores/notification'
+import { watch } from 'vue'
+import Toast from 'primevue/toast'
+import { useToast } from 'primevue/usetoast'
+import { useNotificationStore } from '@/shared/store/useNotificationStore'
 
 const notifications = useNotificationStore()
+const toast = useToast()
+const dejaAffiches = new Set()
+
+watch(
+  () => notifications.messages,
+  (messages) => {
+    messages.forEach((message) => {
+      if (dejaAffiches.has(message.id)) return
+      dejaAffiches.add(message.id)
+      toast.add({
+        severity: message.type === 'succes' ? 'success' : message.type === 'erreur' ? 'error' : message.type,
+        summary: message.titre || undefined,
+        detail: message.texte,
+        life: message.type === 'erreur' ? 8000 : 5000,
+      })
+    })
+  },
+  { deep: true },
+)
 </script>
 
 <template>
-  <div class="notifications">
-    <div
-      v-for="message in notifications.messages"
-      :key="message.id"
-      class="notification"
-      :class="`notification--${message.type}`"
-    >
-      <div class="notification__texte">
-        <div v-if="message.titre" class="notification__titre">{{ message.titre }}</div>
-        <div>{{ message.texte }}</div>
-      </div>
-      <button class="notification__fermer" type="button" aria-label="Fermer" @click="notifications.fermer(message.id)">
-        ×
-      </button>
-    </div>
-  </div>
+  <Toast position="top-right" />
 </template>

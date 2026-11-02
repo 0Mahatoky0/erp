@@ -1,10 +1,10 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { api } from '@/api/client'
-import EmptyState from '@/components/EmptyState.vue'
-import StatusBadge from '@/components/StatusBadge.vue'
-import { useNotificationStore } from '@/stores/notification'
-import { formatDate } from '@/utils/format'
+import { employeApi as api } from '@/modules/employe/api/employeApi'
+import EmptyState from '@/shared/components/EmptyState.vue'
+import StatusBadge from '@/shared/components/StatusBadge.vue'
+import { useNotificationStore } from '@/shared/store/useNotificationStore'
+import { formatDate } from '@/shared/utils/format'
 
 const notifications = useNotificationStore()
 

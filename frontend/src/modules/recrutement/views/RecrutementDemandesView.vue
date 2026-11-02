@@ -1,8 +1,8 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { api, ErreurApi } from '@/api/client'
-import { useAuthStore } from '@/stores/auth'
+import { recrutementApi as api, ErreurApi } from '@/modules/recrutement/api/recrutementApi'
+import { useAuthStore } from '@/shared/store/useAuthStore'
 
 const auth = useAuthStore()
 const lignes = ref([])
