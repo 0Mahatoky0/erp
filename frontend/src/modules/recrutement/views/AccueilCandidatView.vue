@@ -1,4 +1,7 @@
 <script setup>
+import PrimeButton from 'primevue/button'
+import PrimeInputText from 'primevue/inputtext'
+import PrimeTextarea from 'primevue/textarea'
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { recrutementApi as api, ErreurApi } from '@/modules/recrutement/api/recrutementApi'
@@ -90,19 +93,19 @@ onMounted(chargerOffres)
           <h2>{{ offreSelectionnee.titre }}</h2>
           <p>{{ offreSelectionnee.reference }} · {{ offreSelectionnee.lieuTravail || 'Lieu a definir' }}</p>
         </div>
-        <button class="button button--secondary" type="button" @click="fermerCandidature">Retour aux offres</button>
+        <PrimeButton class="button button--secondary" @click="fermerCandidature">Retour aux offres</PrimeButton>
       </div>
       <p v-if="message" class="success" role="status">{{ message }}</p>
       <p v-if="erreur" class="error" role="alert">{{ erreur }}</p>
       <form class="form-grid" @submit.prevent="envoyerCandidature">
-        <label>Nom<input v-model="formulaire.nom" required maxlength="100" autocomplete="family-name"></label>
-        <label>Prénom<input v-model="formulaire.prenom" required maxlength="100" autocomplete="given-name"></label>
-        <label>E-mail<input v-model="formulaire.email" required type="email" maxlength="255" autocomplete="email"></label>
-        <label>Téléphone<input v-model="formulaire.telephone" maxlength="30" autocomplete="tel"></label>
-        <label class="full">Adresse<input v-model="formulaire.adresse" autocomplete="street-address"></label>
-        <label class="full">Message de motivation<textarea v-model="formulaire.messageCandidat" rows="5"></textarea></label>
+        <label>Nom<PrimeInputText v-model="formulaire.nom" required maxlength="100" autocomplete="family-name" /></label>
+        <label>Prénom<PrimeInputText v-model="formulaire.prenom" required maxlength="100" autocomplete="given-name" /></label>
+        <label>E-mail<PrimeInputText v-model="formulaire.email" required type="email" maxlength="255" autocomplete="email" /></label>
+        <label>Téléphone<PrimeInputText v-model="formulaire.telephone" maxlength="30" autocomplete="tel" /></label>
+        <label class="full">Adresse<PrimeInputText v-model="formulaire.adresse" autocomplete="street-address" /></label>
+        <label class="full">Message de motivation<PrimeTextarea v-model="formulaire.messageCandidat" rows="5" /></label>
         <div class="full form-actions">
-          <button class="button" type="submit" :disabled="envoi">{{ envoi ? 'Envoi...' : 'Envoyer ma candidature' }}</button>
+          <PrimeButton type="submit" class="button" :disabled="envoi">{{ envoi ? 'Envoi...' : 'Envoyer ma candidature' }}</PrimeButton>
         </div>
       </form>
     </section>
@@ -113,7 +116,7 @@ onMounted(chargerOffres)
           <p class="sur-titre">Opportunites ouvertes</p>
           <h2>Nos offres d’emploi</h2>
         </div>
-        <button class="button button--secondary" type="button" @click="chargerOffres">Actualiser</button>
+        <PrimeButton class="button button--secondary" @click="chargerOffres">Actualiser</PrimeButton>
       </div>
       <p v-if="erreur" class="error" role="alert">{{ erreur }}</p>
       <p v-if="chargement">Chargement des offres...</p>
@@ -125,7 +128,7 @@ onMounted(chargerOffres)
           <p>{{ offre.description }}</p>
           <div class="offre-card__footer">
             <span>Profil : {{ offre.profilRecherche }}</span>
-            <button class="button" type="button" @click="ouvrirCandidature(offre)">Postuler</button>
+            <PrimeButton class="button" @click="ouvrirCandidature(offre)">Postuler</PrimeButton>
           </div>
         </article>
         <div v-if="!offres.length" class="empty">

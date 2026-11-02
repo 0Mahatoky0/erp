@@ -1,76 +1,80 @@
 <script setup>
-import { computed } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+
+// Composants PrimeVue
+import Drawer from 'primevue/drawer'      // Le panneau coulissant (Sidebar)
+import Button from 'primevue/button'      // Le bouton Burger
+import PanelMenu from 'primevue/panelmenu' // La liste des liens RH
+
 import { useAuthStore } from '@/shared/store/useAuthStore'
 
 const auth = useAuthStore()
-const route = useRoute()
+const router = useRouter()
 
-/** Liens de navigation, filtres selon le role de l'utilisateur (RM-067). */
+// 1. État d'ouverture du menu (ouvert ou fermé)
+const visible = ref(false)
+
 const liens = computed(() => {
   const liste = [
-    { nom: 'tableau-bord', libelle: 'Tableau de bord', icone: '◧' },
-    { nom: 'demandes', libelle: 'Demandes', icone: '▤' },
-    { nom: 'demande-nouvelle', libelle: 'Nouvelle demande', icone: '＋' },
-    { nom: 'validation', libelle: 'File de validation', icone: '✓' },
+    { nom: 'tableau-bord', label: 'Tableau de bord', icon: 'pi pi-chart-bar' },
+    { nom: 'demandes', label: 'Demandes', icon: 'pi pi-file' },
+    { nom: 'demande-nouvelle', label: 'Nouvelle demande', icon: 'pi pi-plus' },
+    { nom: 'validation', label: 'File de validation', icon: 'pi pi-check-square' },
   ]
 
-  if (auth.estRh) {
-    liste.push({ nom: 'postes', libelle: 'Catalogue des postes', icone: '▣' })
-  }
-  if (auth.estFinance) {
-    liste.push({ nom: 'budgets', libelle: 'Budgets', icone: '¤' })
-  }
-  liste.push({ nom: 'employes', libelle: 'Employes', icone: '☺' })
-  if (auth.estRh) {
-    liste.push({ nom: 'utilisateurs', libelle: 'Utilisateurs', icone: '⚙' })
-  }
+  if (auth.estRh) liste.push({ nom: 'postes', label: 'Catalogue des postes', icon: 'pi pi-briefcase' })
+  if (auth.estFinance) liste.push({ nom: 'budgets', label: 'Budgets', icon: 'pi pi-wallet' })
+  liste.push({ nom: 'employes', label: 'Employés', icon: 'pi pi-users' })
+  if (auth.estRh) liste.push({ nom: 'utilisateurs', label: 'Utilisateurs', icon: 'pi pi-user-cog' })
+
   if (auth.estRh || auth.estDirection || auth.estManager) {
-    liste.push({ nom: 'recrutement-demandes', libelle: 'Demandes acceptees', icone: '▥' })
-    liste.push({ nom: 'recrutement-offres', libelle: 'Offres d’emploi', icone: '▣' })
-    liste.push({ nom: 'recrutement-candidatures', libelle: 'Candidatures', icone: '☷' })
-    liste.push({ nom: 'recrutement-selection', libelle: 'Présélection', icone: '✓' })
-    liste.push({ nom: 'recrutement-suivi', libelle: 'Suivi candidats', icone: '◉' })
+    liste.push(
+      { nom: 'recrutement-demandes', label: 'Demandes acceptées', icon: 'pi pi-list-check' },
+      { nom: 'recrutement-offres', label: 'Offres d’emploi', icon: 'pi pi-megaphone' },
+      { nom: 'recrutement-candidatures', label: 'Candidatures', icon: 'pi pi-users' },
+      { nom: 'recrutement-selection', label: 'Présélection', icon: 'pi pi-check' },
+      { nom: 'recrutement-suivi', label: 'Suivi candidats', icon: 'pi pi-chart-line' },
+    )
   }
+
   return liste
 })
 
-function estActif(nom) {
-  if (nom === 'demandes') {
-    return route.name === 'demandes' || route.name === 'demande-detail'
-  }
-  if (nom.startsWith('recrutement-')) return route.name === nom
-  return route.name === nom
-}
+const items = computed(() =>
+  liens.value.map((lien) => ({
+    label: lien.label,
+    icon: lien.icon,
+    command: () => {
+      router.push({ name: lien.nom })
+      visible.value = false // Ferme le menu après avoir cliqué sur un lien
+    },
+  })),
+)
 </script>
 
 <template>
-  <aside class="sidebar">
-    <div class="sidebar__marque">
-      <div class="sidebar__logo">T</div>
-      <div>
-        <div class="sidebar__titre">ERP TOVO</div>
-        <div class="sidebar__sous-titre">Recrutement</div>
+  <div>
+    <!-- 1. En-tête / Header avec le bouton Burger -->
+    <header class="flex align-items-center gap-3 p-3 border-bottom-1 surface-border bg-white">
+      <!-- Bouton Burger pour ouvrir le Drawer -->
+      <Button
+        icon="pi pi-bars"
+        severity="secondary"
+        text
+        rounded
+        @click="visible = true"
+      />
+
+      <div class="flex align-items-center gap-2">
+        <i class="pi pi-building text-primary text-xl" />
+        <span class="font-semibold text-lg">ERP TOVO</span>
       </div>
-    </div>
+    </header>
 
-    <nav class="sidebar__nav">
-      <div class="sidebar__groupe">Pilotage</div>
-      <RouterLink
-        v-for="lien in liens"
-        :key="lien.nom"
-        :to="{ name: lien.nom }"
-        class="sidebar__lien"
-        :class="{ actif: estActif(lien.nom) }"
-      >
-        <span class="icone">{{ lien.icone }}</span>
-        <span>{{ lien.libelle }}</span>
-      </RouterLink>
-    </nav>
-
-    <div class="sidebar__compte">
-      <div class="sidebar__utilisateur">{{ auth.profil?.nom }}</div>
-      <div class="sidebar__role">{{ auth.role }}</div>
-    </div>
-  </aside>
+    <!-- 2. Composant Drawer de PrimeVue (la Sidebar coulissante à gauche) -->
+    <Drawer v-model:visible="visible" position="left" header="Navigation">
+      <PanelMenu :model="items" class="w-full border-none" />
+    </Drawer>
+  </div>
 </template>

@@ -1,4 +1,7 @@
 <script setup>
+import PrimeButton from 'primevue/button'
+import PrimeInputText from 'primevue/inputtext'
+import PrimeTextarea from 'primevue/textarea'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { besoinApi as api } from '@/modules/besoin/api/besoinApi'
@@ -199,14 +202,14 @@ async function enregistrerCorrection() {
       </div>
       <div style="display: flex; gap: 10px; align-items: center">
         <StatusBadge :valeur="demande.statut" />
-        <button
+        <PrimeButton
           v-if="peutSoumettre"
           class="bouton bouton--principal"
-          type="button"
+
           @click="soumettre"
         >
           Soumettre la demande
-        </button>
+        </PrimeButton>
       </div>
     </div>
 
@@ -270,12 +273,12 @@ async function enregistrerCorrection() {
     </div>
 
     <div class="onglets">
-      <button class="onglet" :class="{ actif: onglet === 'lignes' }" type="button" @click="onglet = 'lignes'">
+      <PrimeButton class="onglet" :class="{ actif: onglet === 'lignes' }" @click="onglet = 'lignes'">
         Lignes ({{ totalLignes }})
-      </button>
-      <button class="onglet" :class="{ actif: onglet === 'historique' }" type="button" @click="onglet = 'historique'">
+      </PrimeButton>
+      <PrimeButton class="onglet" :class="{ actif: onglet === 'historique' }" @click="onglet = 'historique'">
         Journal des statuts
-      </button>
+      </PrimeButton>
     </div>
 
     <template v-if="onglet === 'lignes'">
@@ -353,38 +356,38 @@ async function enregistrerCorrection() {
           </details>
 
           <div style="display: flex; gap: 8px">
-            <button
+            <PrimeButton
               v-if="ligne.statut === 'A_CORRIGER' && estDemandeur"
               class="bouton bouton--secondaire bouton--petit"
-              type="button"
+
               @click="ouvrirCorrection(ligne)"
             >
               Corriger
-            </button>
-            <button
+            </PrimeButton>
+            <PrimeButton
               v-if="ligne.statut === 'A_CORRIGER' && estDemandeur"
               class="bouton bouton--principal bouton--petit"
-              type="button"
+
               @click="resoumettre(ligne)"
             >
               Resoumettre
-            </button>
-            <button
+            </PrimeButton>
+            <PrimeButton
               v-if="['EN_ATTENTE_RH', 'EN_ATTENTE_FINANCE', 'EN_ATTENTE_DIRECTION'].includes(ligne.statut) && peutValider(ligne)"
               class="bouton bouton--secondaire bouton--petit"
-              type="button"
+
               @click="ouvrirDecision(ligne)"
             >
               Valider
-            </button>
-            <button
+            </PrimeButton>
+            <PrimeButton
               v-if="estDemandeur && ['EN_ATTENTE_RH', 'EN_ATTENTE_FINANCE', 'EN_ATTENTE_DIRECTION', 'A_CORRIGER'].includes(ligne.statut)"
               class="bouton bouton--fantome bouton--petit"
-              type="button"
+
               @click="annulerLigne(ligne)"
             >
               Annuler la ligne
-            </button>
+            </PrimeButton>
           </div>
         </div>
       </section>
@@ -436,7 +439,7 @@ async function enregistrerCorrection() {
 
       <div v-if="action.etapeCourante === 'FINANCE'" class="champ">
         <label class="champ__libelle" for="montantVerifie">Montant verifie (Ar)</label>
-        <input
+        <PrimeInputText
           id="montantVerifie"
           v-model.number="montantVerifie"
           class="saisie"
@@ -450,15 +453,15 @@ async function enregistrerCorrection() {
 
       <div class="champ">
         <label class="champ__libelle" for="commentaire">Commentaire</label>
-        <textarea id="commentaire" v-model="commentaire" class="saisie" rows="3" />
+        <PrimeTextarea id="commentaire" v-model="commentaire" class="saisie" rows="3" />
         <span class="champ__aide">Le commentaire est conserve dans l'historique de la ligne.</span>
       </div>
 
       <template #actions>
-        <button class="bouton bouton--secondaire" type="button" @click="action = null">Annuler</button>
-        <button class="bouton bouton--principal" type="button" :disabled="enregistrement" @click="enregistrerDecision">
+        <PrimeButton class="bouton bouton--secondaire" @click="action = null">Annuler</PrimeButton>
+        <PrimeButton class="bouton bouton--principal" :disabled="enregistrement" @click="enregistrerDecision">
           Enregistrer la decision
-        </button>
+        </PrimeButton>
       </template>
     </ModalDialog>
 
@@ -471,12 +474,12 @@ async function enregistrerCorrection() {
     >
       <div class="champ">
         <label class="champ__libelle" for="corrige-intitule">Intitule du poste</label>
-        <input id="corrige-intitule" v-model="correction.intituleDemande" class="saisie" type="text" />
+        <PrimeInputText id="corrige-intitule" v-model="correction.intituleDemande" class="saisie" type="text" />
       </div>
 
       <div class="champ">
         <label class="champ__libelle" for="corrige-effectif">Effectif</label>
-        <input
+        <PrimeInputText
           id="corrige-effectif"
           v-model.number="correction.effectif"
           class="saisie"
@@ -488,7 +491,7 @@ async function enregistrerCorrection() {
 
       <div class="champ">
         <label class="champ__libelle" for="corrige-budget">Budget estime (Ar)</label>
-        <input
+        <PrimeInputText
           id="corrige-budget"
           v-model.number="correction.budgetEstime"
           class="saisie"
@@ -500,7 +503,7 @@ async function enregistrerCorrection() {
 
       <div class="champ">
         <label class="champ__libelle" for="corrige-salaire-min">Salaire minimum estime (Ar)</label>
-        <input
+        <PrimeInputText
           id="corrige-salaire-min"
           v-model.number="correction.salaireMinEstime"
           class="saisie"
@@ -512,7 +515,7 @@ async function enregistrerCorrection() {
 
       <div class="champ">
         <label class="champ__libelle" for="corrige-salaire-max">Salaire maximum estime (Ar)</label>
-        <input
+        <PrimeInputText
           id="corrige-salaire-max"
           v-model.number="correction.salaireMaxEstime"
           class="saisie"
@@ -524,31 +527,31 @@ async function enregistrerCorrection() {
 
       <div class="champ">
         <label class="champ__libelle" for="corrige-profil">Profil recherche</label>
-        <input id="corrige-profil" v-model="correction.profilRecherche" class="saisie" type="text" />
+        <PrimeInputText id="corrige-profil" v-model="correction.profilRecherche" class="saisie" type="text" />
       </div>
 
       <div class="champ">
         <label class="champ__libelle" for="corrige-description">Description du poste</label>
-        <textarea id="corrige-description" v-model="correction.descriptionPoste" class="saisie" rows="3" />
+        <PrimeTextarea id="corrige-description" v-model="correction.descriptionPoste" class="saisie" rows="3" />
       </div>
 
       <template #actions>
-        <button
+        <PrimeButton
           class="bouton bouton--secondaire"
-          type="button"
+
           :disabled="enregistrementCorrection"
           @click="ligneEnCorrection = null"
         >
           Annuler
-        </button>
-        <button
+        </PrimeButton>
+        <PrimeButton
           class="bouton bouton--principal"
-          type="button"
+
           :disabled="enregistrementCorrection"
           @click="enregistrerCorrection"
         >
           Enregistrer la correction
-        </button>
+        </PrimeButton>
       </template>
     </ModalDialog>
   </div>

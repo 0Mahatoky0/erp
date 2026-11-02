@@ -18,15 +18,13 @@ function deconnexion() {
 </script>
 
 <template>
-  <div class="page">
+  <div class="min-h-screen flex flex-column surface-ground">
+    <AppTopbar :titre="titre" @deconnexion="deconnexion" />
     <AppSidebar />
-    <div class="contenu">
-      <AppTopbar :titre="titre" @deconnexion="deconnexion" />
-      <main class="page__corps">
+    <main class="flex-1 p-3 md:p-4">
         <RouterView v-slot="{ Component }">
           <component :is="Component" />
         </RouterView>
-      </main>
-    </div>
+    </main>
   </div>
 </template>

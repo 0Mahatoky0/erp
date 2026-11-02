@@ -1,4 +1,7 @@
 <script setup>
+import PrimeButton from 'primevue/button'
+import PrimeInputText from 'primevue/inputtext'
+import PrimeTextarea from 'primevue/textarea'
 import { computed, onMounted, ref } from 'vue'
 import { besoinApi as api } from '@/modules/besoin/api/besoinApi'
 import EmptyState from '@/shared/components/EmptyState.vue'
@@ -141,14 +144,14 @@ async function enregistrer() {
               <td><StatusBadge :valeur="ligne.etapeCourante" /></td>
               <td class="mono">{{ formatDateHeure(ligne.dateModification) }}</td>
               <td class="tableau__actions">
-                <button
+                <PrimeButton
                   class="bouton bouton--principal bouton--petit"
-                  type="button"
+
                   :disabled="ligne.etapeCourante !== auth.role"
                   @click="ouvrir(ligne)"
                 >
                   Traiter
-                </button>
+                </PrimeButton>
               </td>
             </tr>
           </tbody>
@@ -177,7 +180,7 @@ async function enregistrer() {
 
       <div v-if="action.etapeCourante === 'FINANCE'" class="champ">
         <label class="champ__libelle" for="montant-file">Montant verifie (Ar)</label>
-        <input
+        <PrimeInputText
           id="montant-file"
           v-model.number="montantVerifie"
           class="saisie"
@@ -191,14 +194,14 @@ async function enregistrer() {
 
       <div class="champ">
         <label class="champ__libelle" for="commentaire-file">Commentaire</label>
-        <textarea id="commentaire-file" v-model="commentaire" class="saisie" rows="3" />
+        <PrimeTextarea id="commentaire-file" v-model="commentaire" class="saisie" rows="3" />
       </div>
 
       <template #actions>
-        <button class="bouton bouton--secondaire" type="button" @click="action = null">Annuler</button>
-        <button class="bouton bouton--principal" type="button" :disabled="enregistrement" @click="enregistrer">
+        <PrimeButton class="bouton bouton--secondaire" @click="action = null">Annuler</PrimeButton>
+        <PrimeButton class="bouton bouton--principal" :disabled="enregistrement" @click="enregistrer">
           Enregistrer la decision
-        </button>
+        </PrimeButton>
       </template>
     </ModalDialog>
   </div>

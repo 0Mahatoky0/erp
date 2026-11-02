@@ -1,4 +1,5 @@
 <script setup>
+import PrimeButton from 'primevue/button'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -10,9 +11,9 @@ const router = useRouter()
       <div class="connexion__boite" style="text-align: center">
         <h1 class="connexion__titre-formulaire">Page introuvable</h1>
         <p class="connexion__sous-titre">L'adresse demandee n'existe pas ou n'est plus disponible.</p>
-        <button class="bouton bouton--principal" type="button" @click="router.push({ name: 'tableau-bord' })">
+        <PrimeButton class="bouton bouton--principal" @click="router.push({ name: 'tableau-bord' })">
           Retour au tableau de bord
-        </button>
+        </PrimeButton>
       </div>
     </section>
   </div>

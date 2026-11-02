@@ -1,4 +1,7 @@
 <script setup>
+import PrimeButton from 'primevue/button'
+import PrimeInputText from 'primevue/inputtext'
+import PrimeTextarea from 'primevue/textarea'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { besoinApi as api } from '@/modules/besoin/api/besoinApi'
@@ -163,11 +166,11 @@ async function enregistrer(soumettre) {
         <div class="grille-champs">
           <div class="champ">
             <label class="champ__libelle" for="motif">Motif <span class="champ__obligatoire">*</span></label>
-            <input id="motif" v-model="motif" class="saisie" type="text" placeholder="Accroissement d'activite" />
+            <PrimeInputText id="motif" v-model="motif" class="saisie" type="text" placeholder="Accroissement d'activite" />
           </div>
           <div class="champ">
             <label class="champ__libelle" for="dateSouhaitee">Date souhaitee de recrutement <span class="champ__obligatoire">*</span></label>
-            <input id="dateSouhaitee" v-model="dateSouhaitee" class="saisie" type="date" />
+            <PrimeInputText id="dateSouhaitee" v-model="dateSouhaitee" class="saisie" type="date" />
           </div>
         </div>
       </div>
@@ -181,9 +184,9 @@ async function enregistrer(soumettre) {
     >
       <div class="carte__entete">
         <h2>Ligne {{ index + 1 }}</h2>
-        <button class="bouton bouton--fantome bouton--petit" type="button" @click="supprimerLigne(index)">
+        <PrimeButton class="bouton bouton--fantome bouton--petit" @click="supprimerLigne(index)">
           Supprimer la ligne
-        </button>
+        </PrimeButton>
       </div>
       <div class="carte__corps">
         <div class="grille-champs grille-champs--3">
@@ -233,15 +236,15 @@ async function enregistrer(soumettre) {
             </div>
             <div class="champ">
               <label class="champ__libelle" :for="`motifRemp-${index}`">Motif du remplacement</label>
-              <input :id="`motifRemp-${index}`" v-model="ligne.motifRemplacement" class="saisie" type="text" />
+              <PrimeInputText :id="`motifRemp-${index}`" v-model="ligne.motifRemplacement" class="saisie" type="text" />
             </div>
             <div class="champ">
               <label class="champ__libelle" :for="`debut-${index}`">Debut du remplacement</label>
-              <input :id="`debut-${index}`" v-model="ligne.dateDebutRemplacement" class="saisie" type="date" />
+              <PrimeInputText :id="`debut-${index}`" v-model="ligne.dateDebutRemplacement" class="saisie" type="date" />
             </div>
             <div class="champ">
               <label class="champ__libelle" :for="`fin-${index}`">Fin du remplacement</label>
-              <input :id="`fin-${index}`" v-model="ligne.dateFinRemplacement" class="saisie" type="date" />
+              <PrimeInputText :id="`fin-${index}`" v-model="ligne.dateFinRemplacement" class="saisie" type="date" />
             </div>
           </div>
         </template>
@@ -249,31 +252,31 @@ async function enregistrer(soumettre) {
         <div class="grille-champs">
           <div class="champ">
             <label class="champ__libelle" :for="`intitule-${index}`">Intitule du besoin <span class="champ__obligatoire">*</span></label>
-            <input :id="`intitule-${index}`" v-model="ligne.intituleDemande" class="saisie" type="text" />
+            <PrimeInputText :id="`intitule-${index}`" v-model="ligne.intituleDemande" class="saisie" type="text" />
           </div>
           <div class="champ">
             <label class="champ__libelle" :for="`effectif-${index}`">Effectif <span class="champ__obligatoire">*</span></label>
-            <input :id="`effectif-${index}`" v-model.number="ligne.effectif" class="saisie" type="number" min="1" />
+            <PrimeInputText :id="`effectif-${index}`" v-model.number="ligne.effectif" class="saisie" type="number" min="1" />
           </div>
           <div class="champ">
             <label class="champ__libelle" :for="`description-${index}`">Description du poste</label>
-            <textarea :id="`description-${index}`" v-model="ligne.descriptionPoste" class="saisie" rows="2" />
+            <PrimeTextarea :id="`description-${index}`" v-model="ligne.descriptionPoste" class="saisie" rows="2" />
           </div>
           <div class="champ">
             <label class="champ__libelle" :for="`profil-${index}`">Profil recherche</label>
-            <textarea :id="`profil-${index}`" v-model="ligne.profilRecherche" class="saisie" rows="2" />
+            <PrimeTextarea :id="`profil-${index}`" v-model="ligne.profilRecherche" class="saisie" rows="2" />
           </div>
           <div class="champ">
             <label class="champ__libelle" :for="`salaireMin-${index}`">Salaire minimum estime (Ar)</label>
-            <input :id="`salaireMin-${index}`" v-model.number="ligne.salaireMinEstime" class="saisie" type="number" min="0" step="1000" />
+            <PrimeInputText :id="`salaireMin-${index}`" v-model.number="ligne.salaireMinEstime" class="saisie" type="number" min="0" step="1000" />
           </div>
           <div class="champ">
             <label class="champ__libelle" :for="`salaireMax-${index}`">Salaire maximum estime (Ar)</label>
-            <input :id="`salaireMax-${index}`" v-model.number="ligne.salaireMaxEstime" class="saisie" type="number" min="0" step="1000" />
+            <PrimeInputText :id="`salaireMax-${index}`" v-model.number="ligne.salaireMaxEstime" class="saisie" type="number" min="0" step="1000" />
           </div>
           <div class="champ">
             <label class="champ__libelle" :for="`budget-${index}`">Budget estime (Ar) <span class="champ__obligatoire">*</span></label>
-            <input :id="`budget-${index}`" v-model.number="ligne.budgetEstime" class="saisie" type="number" min="0" step="1000" />
+            <PrimeInputText :id="`budget-${index}`" v-model.number="ligne.budgetEstime" class="saisie" type="number" min="0" step="1000" />
             <span class="champ__aide">Verification de la disponibilite budgetaire a l'etape Finance.</span>
           </div>
         </div>
@@ -283,18 +286,18 @@ async function enregistrer(soumettre) {
     <section class="carte">
       <div class="carte__corps" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
         <div>
-          <button class="bouton bouton--secondaire" type="button" @click="ajouterLigne">Ajouter une ligne</button>
+          <PrimeButton class="bouton bouton--secondaire" @click="ajouterLigne">Ajouter une ligne</PrimeButton>
           <div class="texte-discret" style="font-size: 12.5px; margin-top: 8px">
             {{ lignes.length }} ligne(s) · budget total {{ budgetTotal.toLocaleString('fr-FR') }} Ar
           </div>
         </div>
         <div style="display: flex; gap: 10px">
-          <button class="bouton bouton--secondaire" type="button" :disabled="envoi" @click="enregistrer(false)">
+          <PrimeButton class="bouton bouton--secondaire" :disabled="envoi" @click="enregistrer(false)">
             Enregistrer en brouillon
-          </button>
-          <button class="bouton bouton--principal" type="button" :disabled="envoi" @click="enregistrer(true)">
+          </PrimeButton>
+          <PrimeButton class="bouton bouton--principal" :disabled="envoi" @click="enregistrer(true)">
             Enregistrer et soumettre
-          </button>
+          </PrimeButton>
         </div>
       </div>
     </section>

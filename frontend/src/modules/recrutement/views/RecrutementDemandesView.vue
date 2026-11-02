@@ -1,4 +1,5 @@
 <script setup>
+import PrimeButton from 'primevue/button'
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { recrutementApi as api, ErreurApi } from '@/modules/recrutement/api/recrutementApi'
@@ -32,7 +33,7 @@ onMounted(charger)
         <h1>Demandes acceptees</h1>
         <p>Une ligne apparait ici des la premiere approbation et reste suivie pendant les validations suivantes.</p>
       </div>
-      <button type="button" @click="charger">Actualiser</button>
+      <PrimeButton @click="charger">Actualiser</PrimeButton>
     </header>
     <p v-if="erreur" class="error">{{ erreur }}</p>
     <p v-if="chargement">Chargement...</p>

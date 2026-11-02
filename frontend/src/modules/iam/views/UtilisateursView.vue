@@ -1,4 +1,6 @@
 <script setup>
+import PrimeButton from 'primevue/button'
+import PrimeInputText from 'primevue/inputtext'
 import { onMounted, ref } from 'vue'
 import { iamApi as api } from '@/modules/iam/api/iamApi'
 import EmptyState from '@/shared/components/EmptyState.vue'
@@ -101,13 +103,13 @@ async function changerActivation(utilisateur) {
           Comptes de l'application et roles. Un compte desactive ne peut plus se connecter.
         </p>
       </div>
-      <button class="bouton bouton--principal" type="button" @click="nouvelleEdition">Nouvel utilisateur</button>
+      <PrimeButton class="bouton bouton--principal" @click="nouvelleEdition">Nouvel utilisateur</PrimeButton>
     </div>
 
     <div class="barre-filtres">
       <div class="champ champ--large">
         <label class="champ__libelle" for="recherche-utilisateur">Recherche</label>
-        <input
+        <PrimeInputText
           id="recherche-utilisateur"
           v-model="recherche"
           class="saisie"
@@ -123,7 +125,7 @@ async function changerActivation(utilisateur) {
           <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
         </select>
       </div>
-      <button class="bouton bouton--secondaire" type="button" @click="charger">Filtrer</button>
+      <PrimeButton class="bouton bouton--secondaire" @click="charger">Filtrer</PrimeButton>
     </div>
 
     <section class="carte">
@@ -161,9 +163,9 @@ async function changerActivation(utilisateur) {
                 </span>
               </td>
               <td class="tableau__actions">
-                <button class="bouton bouton--secondaire bouton--petit" type="button" @click="changerActivation(utilisateur)">
+                <PrimeButton class="bouton bouton--secondaire bouton--petit" @click="changerActivation(utilisateur)">
                   {{ utilisateur.actif ? 'Desactiver' : 'Reactiver' }}
-                </button>
+                </PrimeButton>
               </td>
             </tr>
           </tbody>
@@ -179,17 +181,17 @@ async function changerActivation(utilisateur) {
     >
       <div class="champ">
         <label class="champ__libelle" for="nom-form">Nom complet <span class="champ__obligatoire">*</span></label>
-        <input id="nom-form" v-model="formulaire.nom" class="saisie" type="text" />
+        <PrimeInputText id="nom-form" v-model="formulaire.nom" class="saisie" type="text" />
       </div>
 
       <div class="champ">
         <label class="champ__libelle" for="email-form">Adresse e-mail <span class="champ__obligatoire">*</span></label>
-        <input id="email-form" v-model="formulaire.email" class="saisie" type="email" />
+        <PrimeInputText id="email-form" v-model="formulaire.email" class="saisie" type="email" />
       </div>
 
       <div class="champ">
         <label class="champ__libelle" for="mdp-form">Mot de passe <span class="champ__obligatoire">*</span></label>
-        <input id="mdp-form" v-model="formulaire.motDePasse" class="saisie" type="password" />
+        <PrimeInputText id="mdp-form" v-model="formulaire.motDePasse" class="saisie" type="password" />
         <span class="champ__aide">Le mot de passe est conserve chiffre.</span>
       </div>
 
@@ -212,10 +214,10 @@ async function changerActivation(utilisateur) {
       </div>
 
       <template #actions>
-        <button class="bouton bouton--secondaire" type="button" @click="edition = null">Annuler</button>
-        <button class="bouton bouton--principal" type="button" :disabled="enregistrement" @click="enregistrer">
+        <PrimeButton class="bouton bouton--secondaire" @click="edition = null">Annuler</PrimeButton>
+        <PrimeButton class="bouton bouton--principal" :disabled="enregistrement" @click="enregistrer">
           Creer le compte
-        </button>
+        </PrimeButton>
       </template>
     </ModalDialog>
   </div>

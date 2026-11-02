@@ -1,4 +1,6 @@
 <script setup>
+import PrimeButton from 'primevue/button'
+import PrimeInputText from 'primevue/inputtext'
 import { onMounted, ref } from 'vue'
 import { employeApi as api } from '@/modules/employe/api/employeApi'
 import EmptyState from '@/shared/components/EmptyState.vue'
@@ -67,7 +69,7 @@ onMounted(charger)
     <div class="barre-filtres">
       <div class="champ champ--large">
         <label class="champ__libelle" for="recherche-employe">Recherche</label>
-        <input
+        <PrimeInputText
           id="recherche-employe"
           v-model="recherche"
           class="saisie"
@@ -89,7 +91,7 @@ onMounted(charger)
           <option v-for="statut in STATUTS" :key="statut.valeur" :value="statut.valeur">{{ statut.libelle }}</option>
         </select>
       </div>
-      <button class="bouton bouton--secondaire" type="button" @click="charger">Filtrer</button>
+      <PrimeButton class="bouton bouton--secondaire" @click="charger">Filtrer</PrimeButton>
     </div>
 
     <section class="carte">
