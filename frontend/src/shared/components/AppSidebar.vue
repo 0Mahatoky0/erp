@@ -4,13 +4,14 @@ import { useRoute } from 'vue-router'
 
 import Menu from 'primevue/menu'
 import Avatar from 'primevue/avatar'
+import Tag from 'primevue/tag'
 
 import { useAuthStore } from '@/shared/store/useAuthStore'
 
 const auth = useAuthStore()
 const route = useRoute()
 
-// Sections du menu : une section vide (selon les droits) est masquée
+// Sections du menu : une section sans lien (selon les droits) est masquée
 const sections = computed(() => {
   const principal = [
     { nom: 'tableau-bord', label: 'Tableau de bord', icon: 'pi pi-chart-bar' },
@@ -44,40 +45,40 @@ const sections = computed(() => {
     .filter((s) => s.items.length)
     .map((s) => ({
       label: s.label,
-      items: s.items.map((l) => ({
-        label: l.label,
-        icon: l.icon,
-        route: { name: l.nom },
-        nom: l.nom,
-      })),
+      items: s.items.map((l) => ({ label: l.label, icon: l.icon, route: { name: l.nom }, nom: l.nom })),
     }))
 })
 
-const estActif = (item) => route.name === item.nom
+// Actif sur la page elle-même et sur ses pages enfants (ex. fiche d'une offre)
+const estActif = (item) => route.name === item.nom || route.meta.menu === item.nom
 
-// Infos utilisateur (adapte les noms de champs à ton store)
-const nomUtilisateur = computed(() => auth.utilisateur?.nom || auth.user?.nom || 'Utilisateur')
-const initiale = computed(() => nomUtilisateur.value.charAt(0).toUpperCase())
+const nomUtilisateur = computed(() => auth.profil?.nom || auth.profil?.email || 'Utilisateur')
 </script>
 
 <template>
-  <aside class="sidebar">
+  <aside class="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-surface bg-surface-0 dark:bg-surface-900">
     <!-- Logo -->
-    <div class="sidebar-logo">
-      <div class="logo-badge">
-        <i class="pi pi-building" />
+    <div class="flex items-center gap-3 px-5 py-5">
+      <div class="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-contrast shadow-md">
+        <i class="pi pi-building text-lg" />
       </div>
-      <div class="flex flex-column">
-        <span class="logo-titre">ERP TOVO</span>
-        <span class="logo-sous-titre">Gestion RH</span>
+      <div class="flex flex-col leading-tight">
+        <span class="text-base font-bold">ERP TOVO</span>
+        <span class="text-xs text-muted-color">Gestion RH</span>
       </div>
     </div>
 
     <!-- Navigation -->
-    <nav class="sidebar-nav">
-      <Menu :model="sections" class="menu-erp">
+    <nav class="flex-1 overflow-y-auto px-3 pb-3">
+      <Menu
+        :model="sections"
+        class="!w-full !border-0 !bg-transparent !p-0"
+        :pt="{ list: { class: 'flex flex-col gap-0.5' } }"
+      >
         <template #submenulabel="{ item }">
-          <span class="menu-section">{{ item.label }}</span>
+          <span class="block px-3 pb-1 pt-4 text-[0.7rem] font-semibold uppercase tracking-widest text-muted-color">
+            {{ item.label }}
+          </span>
         </template>
 
         <template #item="{ item, props }">
@@ -85,10 +86,16 @@ const initiale = computed(() => nomUtilisateur.value.charAt(0).toUpperCase())
             <a
               :href="href"
               v-bind="props.action"
-              :class="['menu-lien', { 'menu-lien-actif': estActif(item) }]"
+              :aria-current="estActif(item) ? 'page' : undefined"
+              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm no-underline transition-colors"
+              :class="
+                estActif(item)
+                  ? 'bg-primary/10 font-semibold text-primary'
+                  : 'font-medium text-color hover:bg-surface-100 dark:hover:bg-surface-800'
+              "
               @click="navigate"
             >
-              <i :class="item.icon" />
+              <i :class="[item.icon, estActif(item) ? 'text-primary' : 'text-muted-color']" />
               <span>{{ item.label }}</span>
             </a>
           </router-link>
@@ -97,155 +104,12 @@ const initiale = computed(() => nomUtilisateur.value.charAt(0).toUpperCase())
     </nav>
 
     <!-- Carte utilisateur -->
-    <div class="sidebar-user">
-      <Avatar :label="initiale" shape="circle" class="user-avatar" />
-      <div class="flex flex-column overflow-hidden">
-        <span class="user-nom">{{ nomUtilisateur }}</span>
-        <span class="user-role">Connecté</span>
+    <div class="m-3 flex items-center gap-3 rounded-xl bg-surface-100 p-3 dark:bg-surface-800">
+      <Avatar :label="auth.initiales" shape="circle" class="!bg-primary !text-primary-contrast" />
+      <div class="flex min-w-0 flex-col gap-1">
+        <span class="truncate text-sm font-semibold">{{ nomUtilisateur }}</span>
+        <Tag v-if="auth.role" :value="auth.role" severity="secondary" class="w-fit !text-[0.65rem]" />
       </div>
     </div>
   </aside>
 </template>
-
-<style scoped>
-.sidebar {
-  position: sticky;
-  top: 0;
-  flex-shrink: 0;
-  width: 16rem;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--p-content-background);
-  border-right: 1px solid var(--p-content-border-color);
-}
-/* ---------- Logo ---------- */
-.sidebar-logo {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1.25rem 1.25rem 1rem;
-}
-
-.logo-badge {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--p-primary-contrast-color);
-  background: var(--p-primary-color);
-  font-size: 1.2rem;
-  box-shadow: 0 4px 10px color-mix(in srgb, var(--p-primary-color) 35%, transparent);
-}
-
-.logo-titre {
-  font-weight: 700;
-  font-size: 1.05rem;
-  color: var(--p-text-color);
-  line-height: 1.2;
-}
-
-.logo-sous-titre {
-  font-size: 0.75rem;
-  color: var(--p-text-muted-color);
-}
-
-/* ---------- Navigation ---------- */
-.sidebar-nav {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 0.75rem;
-}
-
-:deep(.menu-erp) {
-  width: 100%;
-  border: none;
-  background: transparent;
-  padding: 0;
-}
-
-:deep(.menu-erp .p-menu-list) {
-  gap: 0.15rem;
-}
-
-:deep(.menu-erp .p-menu-submenu-label) {
-  background: transparent;
-  padding: 1rem 0.75rem 0.4rem;
-}
-
-.menu-section {
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--p-text-muted-color);
-}
-
-.menu-lien {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.65rem 0.75rem;
-  border-radius: 0.6rem;
-  font-size: 0.92rem;
-  font-weight: 500;
-  color: var(--p-text-color);
-  text-decoration: none;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.menu-lien i {
-  font-size: 1.05rem;
-  color: var(--p-text-muted-color);
-  transition: color 0.15s ease;
-}
-
-.menu-lien:hover {
-  background: var(--p-content-hover-background);
-}
-
-/* Lien actif */
-.menu-lien-actif {
-  background: var(--p-highlight-background);
-  color: var(--p-highlight-color);
-  font-weight: 600;
-}
-
-.menu-lien-actif i {
-  color: var(--p-primary-color);
-}
-
-/* ---------- Carte utilisateur ---------- */
-.sidebar-user {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin: 0.75rem;
-  padding: 0.75rem;
-  border-radius: 0.75rem;
-  background: var(--p-content-hover-background);
-}
-
-.user-avatar {
-  background: var(--p-primary-color);
-  color: var(--p-primary-contrast-color);
-  font-weight: 600;
-}
-
-.user-nom {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--p-text-color);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.user-role {
-  font-size: 0.75rem;
-  color: var(--p-text-muted-color);
-}
-</style>
