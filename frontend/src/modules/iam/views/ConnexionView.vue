@@ -1,4 +1,6 @@
 <script setup>
+import PrimeButton from 'primevue/button'
+import PrimeInputText from 'primevue/inputtext'
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/store/useAuthStore'
@@ -82,7 +84,7 @@ async function seConnecter() {
         <form @submit.prevent="seConnecter">
           <div class="champ">
             <label class="champ__libelle" for="email">Adresse e-mail</label>
-            <input
+            <PrimeInputText
               id="email"
               v-model="email"
               class="saisie"
@@ -95,7 +97,7 @@ async function seConnecter() {
 
           <div class="champ">
             <label class="champ__libelle" for="motDePasse">Mot de passe</label>
-            <input
+            <PrimeInputText
               id="motDePasse"
               v-model="motDePasse"
               class="saisie"
@@ -105,18 +107,18 @@ async function seConnecter() {
             />
           </div>
 
-          <button class="bouton bouton--principal bouton--bloc" type="submit" :disabled="envoi">
+          <PrimeButton type="submit" class="bouton bouton--principal bouton--bloc" :disabled="envoi">
             {{ envoi ? 'Connexion...' : 'Se connecter' }}
-          </button>
+          </PrimeButton>
         </form>
 
         <div class="comptes-demo">
           <div style="margin-bottom: 6px">Comptes de demonstration :</div>
           <div v-for="compte in COMPTES" :key="compte.email" class="comptes-demo__ligne">
             <span>{{ compte.role }}</span>
-            <button class="comptes-demo__bouton" type="button" @click="remplir(compte)">
+            <PrimeButton class="comptes-demo__bouton" @click="remplir(compte)">
               {{ compte.email }}
-            </button>
+            </PrimeButton>
           </div>
         </div>
       </div>

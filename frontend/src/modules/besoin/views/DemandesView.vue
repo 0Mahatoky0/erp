@@ -1,4 +1,6 @@
 <script setup>
+import PrimeButton from 'primevue/button'
+import PrimeInputText from 'primevue/inputtext'
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { besoinApi as api } from '@/modules/besoin/api/besoinApi'
@@ -69,7 +71,7 @@ const totalBudget = computed(() =>
     <div class="barre-filtres">
       <div class="champ champ--large">
         <label class="champ__libelle" for="recherche">Recherche</label>
-        <input
+        <PrimeInputText
           id="recherche"
           v-model="recherche"
           class="saisie"
@@ -86,7 +88,7 @@ const totalBudget = computed(() =>
           </option>
         </select>
       </div>
-      <button class="bouton bouton--secondaire" type="button" @click="charger">Filtrer</button>
+      <PrimeButton class="bouton bouton--secondaire" @click="charger">Filtrer</PrimeButton>
     </div>
 
     <section class="carte">

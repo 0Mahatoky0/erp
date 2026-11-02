@@ -1,4 +1,6 @@
 <script setup>
+import PrimeButton from 'primevue/button'
+import PrimeInputText from 'primevue/inputtext'
 import { computed, onMounted, ref } from 'vue'
 import { besoinApi as api } from '@/modules/besoin/api/besoinApi'
 import EmptyState from '@/shared/components/EmptyState.vue'
@@ -111,17 +113,17 @@ async function enregistrer() {
           alloue − engage − depense.
         </p>
       </div>
-      <button v-if="auth.estFinance" class="bouton bouton--principal" type="button" @click="nouvelleEdition">
+      <PrimeButton v-if="auth.estFinance" class="bouton bouton--principal" @click="nouvelleEdition">
           Definir un budget
-      </button>
+      </PrimeButton>
     </div>
 
     <div class="barre-filtres">
       <div class="champ">
         <label class="champ__libelle" for="exercice-budget">Exercice</label>
-        <input id="exercice-budget" v-model.number="exercice" class="saisie" type="number" min="2020" max="2100" @change="charger" />
+        <PrimeInputText id="exercice-budget" v-model.number="exercice" class="saisie" type="number" min="2020" max="2100" @change="charger" />
       </div>
-      <button class="bouton bouton--secondaire" type="button" @click="charger">Afficher</button>
+      <PrimeButton class="bouton bouton--secondaire" @click="charger">Afficher</PrimeButton>
     </div>
 
     <div class="grille grille--3" style="margin-bottom: 16px">
@@ -179,9 +181,9 @@ async function enregistrer() {
                 <div class="texte-discret" style="font-size: 11.5px; margin-top: 4px">{{ taux(budget) }} % engage</div>
               </td>
               <td v-if="auth.estFinance" class="tableau__actions">
-                <button class="bouton bouton--secondaire bouton--petit" type="button" @click="modifier(budget)">
+                <PrimeButton class="bouton bouton--secondaire bouton--petit" @click="modifier(budget)">
                   Modifier
-                </button>
+                </PrimeButton>
               </td>
             </tr>
           </tbody>
@@ -206,19 +208,19 @@ async function enregistrer() {
       <div class="grille-champs">
         <div class="champ">
           <label class="champ__libelle" for="exercice-form">Exercice <span class="champ__obligatoire">*</span></label>
-          <input id="exercice-form" v-model.number="formulaire.exercice" class="saisie" type="number" min="2020" max="2100" />
+          <PrimeInputText id="exercice-form" v-model.number="formulaire.exercice" class="saisie" type="number" min="2020" max="2100" />
         </div>
         <div class="champ">
           <label class="champ__libelle" for="montant-form">Montant alloue (Ar) <span class="champ__obligatoire">*</span></label>
-          <input id="montant-form" v-model.number="formulaire.montantAlloue" class="saisie" type="number" min="0" step="100000" />
+          <PrimeInputText id="montant-form" v-model.number="formulaire.montantAlloue" class="saisie" type="number" min="0" step="100000" />
         </div>
       </div>
 
       <template #actions>
-        <button class="bouton bouton--secondaire" type="button" @click="edition = null">Annuler</button>
-        <button class="bouton bouton--principal" type="button" :disabled="enregistrement" @click="enregistrer">
+        <PrimeButton class="bouton bouton--secondaire" @click="edition = null">Annuler</PrimeButton>
+        <PrimeButton class="bouton bouton--principal" :disabled="enregistrement" @click="enregistrer">
           Enregistrer
-        </button>
+        </PrimeButton>
       </template>
     </ModalDialog>
   </div>

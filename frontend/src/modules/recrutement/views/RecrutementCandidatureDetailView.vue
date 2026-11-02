@@ -1,4 +1,7 @@
 <script setup>
+import PrimeButton from 'primevue/button'
+import PrimeInputText from 'primevue/inputtext'
+import PrimeTextarea from 'primevue/textarea'
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { recrutementApi as api, ErreurApi } from '@/modules/recrutement/api/recrutementApi'
@@ -155,24 +158,24 @@ onMounted(charger)
             <small>{{ item.lieu || item.lienVisio || 'Lieu à définir' }} · {{ item.statut }}</small>
           </div>
           <p v-if="!entretiens.length">Aucun entretien planifié.</p>
-          <button
+          <PrimeButton
             class="action"
-            type="button"
+
             :aria-expanded="formulaireOuvert === 'entretien'"
             @click="ouvrirFormulaire('entretien')"
           >
             {{ formulaireOuvert === 'entretien' ? 'Fermer' : 'Planifier un entretien' }}
-          </button>
+          </PrimeButton>
           <form v-if="formulaireOuvert === 'entretien'" class="form" @submit.prevent="planifierEntretien">
             <h3>Planifier un entretien</h3>
             <label>Type<select v-model="entretien.typeEntretien"><option>RH</option><option>TECHNIQUE</option><option>MANAGER</option><option>AUTRE</option></select></label>
             <div class="form-grid">
-              <label>Début<input v-model="entretien.dateDebut" required type="datetime-local"></label>
-              <label>Fin<input v-model="entretien.dateFin" required type="datetime-local"></label>
-              <label>Lieu<input v-model="entretien.lieu"></label>
-              <label>Lien visio<input v-model="entretien.lienVisio"></label>
+              <label>Début<PrimeInputText v-model="entretien.dateDebut" required type="datetime-local" /></label>
+              <label>Fin<PrimeInputText v-model="entretien.dateFin" required type="datetime-local" /></label>
+              <label>Lieu<PrimeInputText v-model="entretien.lieu" /></label>
+              <label>Lien visio<PrimeInputText v-model="entretien.lienVisio" /></label>
             </div>
-            <button :disabled="envoi" type="submit">Planifier</button>
+            <PrimeButton type="submit" :disabled="envoi">Planifier</PrimeButton>
           </form>
         </article>
 
@@ -184,35 +187,35 @@ onMounted(charger)
           </div>
           <p v-if="!passages.length">Aucun passage planifié.</p>
           <div class="actions">
-            <button
+            <PrimeButton
               class="action"
-              type="button"
+
               :aria-expanded="formulaireOuvert === 'passage'"
               @click="ouvrirFormulaire('passage')"
             >
               {{ formulaireOuvert === 'passage' ? 'Fermer' : 'Planifier un passage' }}
-            </button>
-            <button
+            </PrimeButton>
+            <PrimeButton
               class="action action--secondary"
-              type="button"
+
               :aria-expanded="formulaireOuvert === 'test'"
               @click="ouvrirFormulaire('test')"
             >
               {{ formulaireOuvert === 'test' ? 'Fermer' : 'Créer un test' }}
-            </button>
+            </PrimeButton>
           </div>
           <form v-if="formulaireOuvert === 'passage'" class="form" @submit.prevent="planifierPassage">
             <h3>Planifier un passage</h3>
             <label>Test<select v-model="passage.idTest" required><option value="">Sélectionnez un test</option><option v-for="test in tests" :key="test.idTest" :value="test.idTest">{{ test.titre }}</option></select></label>
-            <label>Date prévue<input v-model="passage.datePrevue" type="datetime-local"></label>
-            <button :disabled="envoi || !tests.length" type="submit">Planifier le test</button>
+            <label>Date prévue<PrimeInputText v-model="passage.datePrevue" type="datetime-local" /></label>
+            <PrimeButton type="submit" :disabled="envoi || !tests.length">Planifier le test</PrimeButton>
           </form>
           <form v-if="formulaireOuvert === 'test'" class="form" @submit.prevent="creerTest">
             <h3>Créer un test pour l’offre</h3>
-            <label>Titre<input v-model="nouveauTest.titre" required></label>
-            <label>Description<textarea v-model="nouveauTest.description"></textarea></label>
-            <div class="form-grid"><label>Durée (min)<input v-model="nouveauTest.dureeMinutes" type="number" min="1"></label><label>Note max<input v-model="nouveauTest.noteMax" type="number" min="1"></label></div>
-            <button :disabled="envoi" type="submit">Créer le test</button>
+            <label>Titre<PrimeInputText v-model="nouveauTest.titre" required /></label>
+            <label>Description<PrimeTextarea v-model="nouveauTest.description" /></label>
+            <div class="form-grid"><label>Durée (min)<PrimeInputText v-model="nouveauTest.dureeMinutes" type="number" min="1" /></label><label>Note max<PrimeInputText v-model="nouveauTest.noteMax" type="number" min="1" /></label></div>
+            <PrimeButton type="submit" :disabled="envoi">Créer le test</PrimeButton>
           </form>
         </article>
 
@@ -224,41 +227,41 @@ onMounted(charger)
             <small>{{ item.commentaire }}</small>
           </div>
           <p v-if="!evaluations.length">Aucune évaluation.</p>
-          <button
+          <PrimeButton
             class="action"
-            type="button"
+
             :aria-expanded="formulaireOuvert === 'evaluation'"
             @click="ouvrirFormulaire('evaluation')"
           >
             {{ formulaireOuvert === 'evaluation' ? 'Fermer' : 'Ajouter une évaluation' }}
-          </button>
+          </PrimeButton>
           <form v-if="formulaireOuvert === 'evaluation'" class="form" @submit.prevent="enregistrerEvaluation">
             <h3>Ajouter une évaluation</h3>
             <div class="form-grid">
               <label>Type<select v-model="evaluation.typeEvaluation"><option>DOSSIER</option><option>ENTRETIEN</option><option>TEST</option></select></label>
-              <label>Note<input v-model="evaluation.note" type="number" min="0" :max="evaluation.noteMax" step="0.01"></label>
-              <label>Note max<input v-model="evaluation.noteMax" type="number" min="1"></label>
+              <label>Note<PrimeInputText v-model="evaluation.note" type="number" min="0" :max="evaluation.noteMax" step="0.01" /></label>
+              <label>Note max<PrimeInputText v-model="evaluation.noteMax" type="number" min="1" /></label>
             </div>
-            <label>Appréciation<input v-model="evaluation.appreciation" required></label>
-            <label>Commentaire<textarea v-model="evaluation.commentaire" required></textarea></label>
-            <button :disabled="envoi" type="submit">Enregistrer</button>
+            <label>Appréciation<PrimeInputText v-model="evaluation.appreciation" required /></label>
+            <label>Commentaire<PrimeTextarea v-model="evaluation.commentaire" required /></label>
+            <PrimeButton type="submit" :disabled="envoi">Enregistrer</PrimeButton>
           </form>
         </article>
 
         <article class="panel">
           <h2>Décision finale</h2>
-          <button
+          <PrimeButton
             class="action"
-            type="button"
+
             :aria-expanded="formulaireOuvert === 'decision'"
             @click="ouvrirFormulaire('decision')"
           >
             {{ formulaireOuvert === 'decision' ? 'Fermer' : 'Enregistrer la décision' }}
-          </button>
+          </PrimeButton>
           <form v-if="formulaireOuvert === 'decision'" class="form" @submit.prevent="prendreDecision">
             <label>Décision<select v-model="decision.decision"><option>RETENUE</option><option>REFUSEE</option><option>LISTE_ATTENTE</option></select></label>
-            <label>Motif<textarea v-model="decision.motif" required></textarea></label>
-            <button :disabled="envoi" type="submit">Enregistrer la décision</button>
+            <label>Motif<PrimeTextarea v-model="decision.motif" required /></label>
+            <PrimeButton type="submit" :disabled="envoi">Enregistrer la décision</PrimeButton>
           </form>
           <h2>Historique</h2>
           <div v-for="item in historique" :key="item.idHistorique" class="item">

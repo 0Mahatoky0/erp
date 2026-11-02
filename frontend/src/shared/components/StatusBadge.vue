@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import Tag from 'primevue/tag'
 
 /**
  * Badge de statut colore selon la valeur (statut de demande, de ligne,
@@ -63,13 +64,13 @@ const COULEURS = {
   MANAGER: 'neutre',
 }
 
-const couleur = computed(() => COULEURS[props.valeur] || 'neutre')
+const couleur = computed(() => {
+  const couleur = COULEURS[props.valeur] || 'neutre'
+  return { neutre: 'secondary', info: 'info', alerte: 'warn', succes: 'success', danger: 'danger', primaire: 'primary' }[couleur]
+})
 const texte = computed(() => props.libelle || LIBELLES[props.valeur] || props.valeur || '—')
 </script>
 
 <template>
-  <span class="badge" :class="`badge--${couleur}`">
-    <span class="badge__point" />
-    {{ texte }}
-  </span>
+  <Tag :value="texte" :severity="couleur" rounded />
 </template>

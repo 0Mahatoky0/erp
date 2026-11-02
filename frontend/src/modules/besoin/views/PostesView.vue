@@ -1,4 +1,7 @@
 <script setup>
+import PrimeButton from 'primevue/button'
+import PrimeInputText from 'primevue/inputtext'
+import PrimeTextarea from 'primevue/textarea'
 import { computed, onMounted, ref } from 'vue'
 import { besoinApi as api } from '@/modules/besoin/api/besoinApi'
 import EmptyState from '@/shared/components/EmptyState.vue'
@@ -139,15 +142,15 @@ async function desactiver(poste) {
           Postes officiels de l'entreprise. Un poste utilise par l'historique est desactive, jamais supprime.
         </p>
       </div>
-      <button v-if="auth.estRh" class="bouton bouton--principal" type="button" @click="nouvelleEdition">
+      <PrimeButton v-if="auth.estRh" class="bouton bouton--principal" @click="nouvelleEdition">
         Nouveau poste
-      </button>
+      </PrimeButton>
     </div>
 
     <div class="barre-filtres">
       <div class="champ champ--large">
         <label class="champ__libelle" for="recherche-poste">Recherche</label>
-        <input
+        <PrimeInputText
           id="recherche-poste"
           v-model="recherche"
           class="saisie"
@@ -171,7 +174,7 @@ async function desactiver(poste) {
           <option value="false">Inactifs</option>
         </select>
       </div>
-      <button class="bouton bouton--secondaire" type="button" @click="charger">Filtrer</button>
+      <PrimeButton class="bouton bouton--secondaire" @click="charger">Filtrer</PrimeButton>
     </div>
 
     <section class="carte">
@@ -218,17 +221,17 @@ async function desactiver(poste) {
                 </span>
               </td>
               <td v-if="auth.estRh" class="tableau__actions">
-                <button class="bouton bouton--secondaire bouton--petit" type="button" @click="modifier(poste)">
+                <PrimeButton class="bouton bouton--secondaire bouton--petit" @click="modifier(poste)">
                   Modifier
-                </button>
-                <button
+                </PrimeButton>
+                <PrimeButton
                   v-if="poste.actif"
                   class="bouton bouton--fantome bouton--petit"
-                  type="button"
+
                   @click="desactiver(poste)"
                 >
                   Desactiver
-                </button>
+                </PrimeButton>
               </td>
             </tr>
           </tbody>
@@ -252,22 +255,22 @@ async function desactiver(poste) {
 
       <div class="champ">
         <label class="champ__libelle" for="intitule-form">Intitule <span class="champ__obligatoire">*</span></label>
-        <input id="intitule-form" v-model="formulaire.intitule" class="saisie" type="text" />
+        <PrimeInputText id="intitule-form" v-model="formulaire.intitule" class="saisie" type="text" />
       </div>
 
       <div class="champ">
         <label class="champ__libelle" for="description-form">Description</label>
-        <textarea id="description-form" v-model="formulaire.description" class="saisie" rows="3" />
+        <PrimeTextarea id="description-form" v-model="formulaire.description" class="saisie" rows="3" />
       </div>
 
       <div class="grille-champs">
         <div class="champ">
           <label class="champ__libelle" for="salaire-min-form">Salaire minimum (Ar)</label>
-          <input id="salaire-min-form" v-model.number="formulaire.salaireMin" class="saisie" type="number" min="0" step="1000" />
+          <PrimeInputText id="salaire-min-form" v-model.number="formulaire.salaireMin" class="saisie" type="number" min="0" step="1000" />
         </div>
         <div class="champ">
           <label class="champ__libelle" for="salaire-max-form">Salaire maximum (Ar)</label>
-          <input id="salaire-max-form" v-model.number="formulaire.salaireMax" class="saisie" type="number" min="0" step="1000" />
+          <PrimeInputText id="salaire-max-form" v-model.number="formulaire.salaireMax" class="saisie" type="number" min="0" step="1000" />
         </div>
       </div>
 
@@ -280,10 +283,10 @@ async function desactiver(poste) {
       </div>
 
       <template #actions>
-        <button class="bouton bouton--secondaire" type="button" @click="edition = null">Annuler</button>
-        <button class="bouton bouton--principal" type="button" :disabled="enregistrement" @click="enregistrer">
+        <PrimeButton class="bouton bouton--secondaire" @click="edition = null">Annuler</PrimeButton>
+        <PrimeButton class="bouton bouton--principal" :disabled="enregistrement" @click="enregistrer">
           Enregistrer
-        </button>
+        </PrimeButton>
       </template>
     </ModalDialog>
   </div>

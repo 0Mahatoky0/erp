@@ -1,4 +1,5 @@
 <script setup>
+import PrimeButton from 'primevue/button'
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '@/shared/store/useAuthStore'
 import { recrutementApi as api, ErreurApi } from '@/modules/recrutement/api/recrutementApi'
@@ -54,8 +55,8 @@ onMounted(chargerOffres)
         <b>{{ candidature.statut }}</b>
         <RouterLink :to="{ name: 'recrutement-candidature-detail', params: { id: candidature.idCandidature } }">Voir le parcours</RouterLink>
         <div v-if="gestionnaire" class="actions">
-          <button type="button" @click="changerStatut(candidature, 'PRESELECTIONNEE')">Présélectionner</button>
-          <button type="button" @click="changerStatut(candidature, 'REFUSEE')">Refuser</button>
+          <PrimeButton @click="changerStatut(candidature, 'PRESELECTIONNEE')">Présélectionner</PrimeButton>
+          <PrimeButton @click="changerStatut(candidature, 'REFUSEE')">Refuser</PrimeButton>
         </div>
       </article>
       <p v-if="offreId && !candidatures.length">Aucune candidature pour cette offre.</p>

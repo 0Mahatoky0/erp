@@ -1,4 +1,7 @@
 <script setup>
+import PrimeButton from 'primevue/button'
+import PrimeInputText from 'primevue/inputtext'
+import PrimeTextarea from 'primevue/textarea'
 import { computed, onMounted, ref } from 'vue'
 import { recrutementApi as api, ErreurApi } from '@/modules/recrutement/api/recrutementApi'
 import { useAuthStore } from '@/shared/store/useAuthStore'
@@ -128,8 +131,8 @@ onMounted(loadOffers)
         <p>Suivez la publication des offres et la présélection des candidats.</p>
       </div>
       <div class="actions">
-        <button v-if="peutGerer" type="button" @click="startCreate">Nouvelle offre</button>
-        <button type="button" @click="loadOffers">Actualiser</button>
+        <PrimeButton v-if="peutGerer" @click="startCreate">Nouvelle offre</PrimeButton>
+        <PrimeButton @click="loadOffers">Actualiser</PrimeButton>
       </div>
     </header>
 
@@ -137,45 +140,45 @@ onMounted(loadOffers)
     <form v-if="editing && peutGerer" class="panel offer-form" @submit.prevent="saveOffer">
       <h2>{{ form.idOffre ? 'Modifier l’offre brouillon' : 'Créer une offre' }}</h2>
       <div class="form-grid">
-        <label>Demande validée (ID)<input v-model="form.idDemandePoste" required type="number" min="1"></label>
-        <label>Référence<input v-model="form.reference" required maxlength="50"></label>
-        <label>Titre<input v-model="form.titre" required maxlength="150"></label>
-        <label>Type de contrat<input v-model="form.typeContrat" maxlength="50"></label>
-        <label>Effectif recherché<input v-model="form.effectifRecherche" required type="number" min="1"></label>
-        <label>Salaire min<input v-model="form.salaireMin" type="number" min="0" step="0.01"></label>
-        <label>Salaire max<input v-model="form.salaireMax" type="number" min="0" step="0.01"></label>
-        <label>Mode de sélection<input v-model="form.modeSelection" required placeholder="CV, entretien, test"></label>
-        <label>Date limite<input v-model="form.dateLimiteCandidature" type="datetime-local"></label>
-        <label>Lieu<input v-model="form.lieuTravail" maxlength="255"></label>
+        <label>Demande validée (ID)<PrimeInputText v-model="form.idDemandePoste" required type="number" min="1" /></label>
+        <label>Référence<PrimeInputText v-model="form.reference" required maxlength="50" /></label>
+        <label>Titre<PrimeInputText v-model="form.titre" required maxlength="150" /></label>
+        <label>Type de contrat<PrimeInputText v-model="form.typeContrat" maxlength="50" /></label>
+        <label>Effectif recherché<PrimeInputText v-model="form.effectifRecherche" required type="number" min="1" /></label>
+        <label>Salaire min<PrimeInputText v-model="form.salaireMin" type="number" min="0" step="0.01" /></label>
+        <label>Salaire max<PrimeInputText v-model="form.salaireMax" type="number" min="0" step="0.01" /></label>
+        <label>Mode de sélection<PrimeInputText v-model="form.modeSelection" required placeholder="CV, entretien, test" /></label>
+        <label>Date limite<PrimeInputText v-model="form.dateLimiteCandidature" type="datetime-local" /></label>
+        <label>Lieu<PrimeInputText v-model="form.lieuTravail" maxlength="255" /></label>
       </div>
-      <label>Description<textarea v-model="form.description" required></textarea></label>
-      <label>Profil recherché<textarea v-model="form.profilRecherche" required></textarea></label>
-      <div class="actions"><button type="submit" :disabled="saving">{{ saving ? 'Enregistrement...' : 'Enregistrer' }}</button><button type="button" @click="cancelEdit">Annuler</button></div>
+      <label>Description<PrimeTextarea v-model="form.description" required /></label>
+      <label>Profil recherché<PrimeTextarea v-model="form.profilRecherche" required /></label>
+      <div class="actions"><PrimeButton type="submit" :disabled="saving">{{ saving ? 'Enregistrement...' : 'Enregistrer' }}</PrimeButton><PrimeButton type="button" @click="cancelEdit">Annuler</PrimeButton></div>
     </form>
     <p v-if="loading">Chargement des offres...</p>
     <section v-else class="content-grid">
       <article class="panel">
         <h2>Offres publiées ({{ publishedOffers.length }})</h2>
-        <button
+        <PrimeButton
           v-for="offer in publishedOffers"
           :key="offer.idOffre"
           class="offer"
           :class="{ selected: selectedOffer?.idOffre === offer.idOffre }"
-          type="button"
+
           @click="selectOffer(offer)"
         >
           <strong>{{ offer.titre }}</strong>
           <span>{{ offer.reference }} · {{ offer.lieuTravail || 'Lieu à définir' }}</span>
-        </button>
+        </PrimeButton>
         <p v-if="!publishedOffers.length">Aucune offre publiée.</p>
         <h3>Toutes les offres</h3>
         <div v-for="offer in offres" :key="`manage-${offer.idOffre}`" class="manage-offer">
           <span><strong>{{ offer.reference }}</strong> · {{ offer.statut }}</span>
-          <button v-if="peutGerer && offer.statut === 'BROUILLON'" type="button" @click="startEdit(offer)">Modifier</button>
-          <button v-if="peutGerer && offer.statut === 'BROUILLON'" type="button" @click="changeOfferStatus(offer, 'publier')">Publier</button>
-          <button v-if="peutGerer && offer.statut === 'PUBLIEE'" type="button" @click="changeOfferStatus(offer, 'cloturer')">Clôturer</button>
-          <button v-if="peutGerer && !['CLOTUREE', 'ANNULEE'].includes(offer.statut)" type="button" @click="changeOfferStatus(offer, 'annuler')">Annuler</button>
-          <button v-if="peutGerer && offer.statut === 'BROUILLON'" type="button" @click="deleteOffer(offer)">Supprimer</button>
+          <PrimeButton v-if="peutGerer && offer.statut === 'BROUILLON'" @click="startEdit(offer)">Modifier</PrimeButton>
+          <PrimeButton v-if="peutGerer && offer.statut === 'BROUILLON'" @click="changeOfferStatus(offer, 'publier')">Publier</PrimeButton>
+          <PrimeButton v-if="peutGerer && offer.statut === 'PUBLIEE'" @click="changeOfferStatus(offer, 'cloturer')">Clôturer</PrimeButton>
+          <PrimeButton v-if="peutGerer && !['CLOTUREE', 'ANNULEE'].includes(offer.statut)" @click="changeOfferStatus(offer, 'annuler')">Annuler</PrimeButton>
+          <PrimeButton v-if="peutGerer && offer.statut === 'BROUILLON'" @click="deleteOffer(offer)">Supprimer</PrimeButton>
         </div>
       </article>
 
