@@ -26,7 +26,7 @@ const champs = [
 ]
 
 const textes = [
-  { key: 'description', label: 'Description' },
+  { key: 'mt-1 text-sm text-muted-color', label: 'Description' },
   { key: 'profilRecherche', label: 'Profil recherché' },
 ]
 

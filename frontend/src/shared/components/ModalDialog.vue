@@ -21,7 +21,7 @@ const emit = defineEmits(['fermer'])
     :style="{ width: props.large ? 'min(900px, 95vw)' : 'min(560px, 95vw)' }"
     @update:visible="(visible) => !visible && emit('fermer')"
   >
-    <p v-if="props.sousTitre" class="texte-discret">{{ props.sousTitre }}</p>
+    <p v-if="props.sousTitre" class="text-muted-color">{{ props.sousTitre }}</p>
     <slot />
     <template v-if="$slots.actions" #footer>
       <slot name="actions" />

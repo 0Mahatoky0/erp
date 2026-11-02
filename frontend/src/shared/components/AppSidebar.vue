@@ -88,11 +88,7 @@ const nomUtilisateur = computed(() => auth.profil?.nom || auth.profil?.email || 
               v-bind="props.action"
               :aria-current="estActif(item) ? 'page' : undefined"
               class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm no-underline transition-colors"
-              :class="
-                estActif(item)
-                  ? 'bg-primary/10 font-semibold text-primary'
-                  : 'font-medium text-color hover:bg-surface-100 dark:hover:bg-surface-800'
-              "
+              :class="estActif(item) ? 'bg-primary/10 font-semibold text-primary' : 'font-medium text-color hover:bg-surface-100 dark:hover:bg-surface-800'"
               @click="navigate"
             >
               <i :class="[item.icon, estActif(item) ? 'text-primary' : 'text-muted-color']" />

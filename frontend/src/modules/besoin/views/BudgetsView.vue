@@ -1,4 +1,7 @@
 <script setup>
+import PrimeSelect from 'primevue/select'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
 import PrimeButton from 'primevue/button'
 import PrimeInputText from 'primevue/inputtext'
 import { computed, onMounted, ref } from 'vue'
@@ -58,8 +61,8 @@ function taux(budget) {
 
 function classeTaux(budget) {
   const valeur = taux(budget)
-  if (valeur >= 90) return 'jauge__valeur--danger'
-  if (valeur >= 70) return 'jauge__valeur--alerte'
+  if (valeur >= 90) return 'bg-red-500'
+  if (valeur >= 70) return 'bg-yellow-500'
   return ''
 }
 
@@ -105,46 +108,46 @@ async function enregistrer() {
 
 <template>
   <div>
-    <div class="page__entete">
+    <div class="flex flex-col gap-4 mb-5 md:flex-row md:items-start md:justify-between">
       <div>
         <h1>Budgets</h1>
-        <p class="page__description">
+        <p class="mt-1 text-sm text-muted-color">
           Allocation annuelle par service. Le disponible se recalcule automatiquement : disponible =
           alloue − engage − depense.
         </p>
       </div>
-      <PrimeButton v-if="auth.estFinance" class="bouton bouton--principal" @click="nouvelleEdition">
+      <PrimeButton v-if="auth.estFinance" class="inline-flex items-center justify-center gap-2 bg-primary text-primary-contrast" @click="nouvelleEdition">
           Definir un budget
       </PrimeButton>
     </div>
 
-    <div class="barre-filtres">
-      <div class="champ">
-        <label class="champ__libelle" for="exercice-budget">Exercice</label>
-        <PrimeInputText id="exercice-budget" v-model.number="exercice" class="saisie" type="number" min="2020" max="2100" @change="charger" />
+    <div class="flex flex-wrap items-end gap-3 mb-4">
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="exercice-budget">Exercice</label>
+        <PrimeInputText id="exercice-budget" v-model.number="exercice" class="w-full" type="number" min="2020" max="2100" @change="charger" />
       </div>
-      <PrimeButton class="bouton bouton--secondaire" @click="charger">Afficher</PrimeButton>
+      <PrimeButton class="inline-flex items-center justify-center gap-2 border border-surface" @click="charger">Afficher</PrimeButton>
     </div>
 
-    <div class="grille grille--3" style="margin-bottom: 16px">
-      <div class="carte stat">
-        <div class="stat__libelle">Budget alloue</div>
-        <div class="stat__valeur" style="font-size: 20px">{{ formatMontant(totalAlloue) }}</div>
+    <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style="margin-bottom: 16px">
+      <div class="rounded-lg border border-surface bg-surface-0 shadow-sm dark:bg-surface-900 p-4">
+        <div class="text-xs font-semibold uppercase tracking-wide text-muted-color">Budget alloue</div>
+        <div class="mt-1 text-2xl font-semibold" style="font-size: 20px">{{ formatMontant(totalAlloue) }}</div>
       </div>
-      <div class="carte stat">
-        <div class="stat__libelle">Budget engage</div>
-        <div class="stat__valeur" style="font-size: 20px">{{ formatMontant(totalEngage) }}</div>
+      <div class="rounded-lg border border-surface bg-surface-0 shadow-sm dark:bg-surface-900 p-4">
+        <div class="text-xs font-semibold uppercase tracking-wide text-muted-color">Budget engage</div>
+        <div class="mt-1 text-2xl font-semibold" style="font-size: 20px">{{ formatMontant(totalEngage) }}</div>
       </div>
-      <div class="carte stat">
-        <div class="stat__libelle">Budget disponible</div>
-        <div class="stat__valeur" style="font-size: 20px">{{ formatMontant(totalDisponible) }}</div>
+      <div class="rounded-lg border border-surface bg-surface-0 shadow-sm dark:bg-surface-900 p-4">
+        <div class="text-xs font-semibold uppercase tracking-wide text-muted-color">Budget disponible</div>
+        <div class="mt-1 text-2xl font-semibold" style="font-size: 20px">{{ formatMontant(totalDisponible) }}</div>
       </div>
     </div>
 
-    <section class="carte">
-      <div class="carte__entete"><h2>Budgets par service — exercice {{ exercice }}</h2></div>
+    <section class="rounded-lg border border-surface bg-surface-0 shadow-sm dark:bg-surface-900">
+      <div class="flex items-center justify-between gap-3 border-b border-surface p-4"><h2>Budgets par service — exercice {{ exercice }}</h2></div>
 
-      <div v-if="chargement" class="chargement">Chargement des budgets...</div>
+      <div v-if="chargement" class="p-4 text-sm text-muted-color">Chargement des budgets...</div>
 
       <EmptyState
         v-else-if="budgets.length === 0"
@@ -152,43 +155,25 @@ async function enregistrer() {
         message="Aucun budget n'est defini pour cet exercice."
       />
 
-      <div v-else class="tableau-conteneur">
-        <table class="tableau">
-          <thead>
-            <tr>
-              <th>Service</th>
-              <th>Departement</th>
-              <th>Alloue</th>
-              <th>Depense</th>
-              <th>Engage</th>
-              <th>Disponible</th>
-              <th>Consommation</th>
-              <th v-if="auth.estFinance"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="budget in budgets" :key="budget.id">
-              <td style="font-weight: 500">{{ budget.service }}</td>
-              <td>{{ budget.departement }}</td>
-              <td class="mono">{{ formatMontant(budget.montantAlloue) }}</td>
-              <td class="mono">{{ formatMontant(budget.montantDepense) }}</td>
-              <td class="mono">{{ formatMontant(budget.montantEngage) }}</td>
-              <td class="mono" style="font-weight: 600">{{ formatMontant(budget.montantDisponible) }}</td>
-              <td style="min-width: 140px">
-                <div class="jauge">
-                  <div class="jauge__valeur" :class="classeTaux(budget)" :style="{ width: `${taux(budget)}%` }" />
-                </div>
-                <div class="texte-discret" style="font-size: 11.5px; margin-top: 4px">{{ taux(budget) }} % engage</div>
-              </td>
-              <td v-if="auth.estFinance" class="tableau__actions">
-                <PrimeButton class="bouton bouton--secondaire bouton--petit" @click="modifier(budget)">
-                  Modifier
-                </PrimeButton>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <DataTable v-else :value="budgets" striped-rows responsive-layout="scroll">
+        <Column field="service" header="Service" />
+        <Column field="departement" header="Departement" />
+        <Column header="Alloue"><template #body="{ data }">{{ formatMontant(data.montantAlloue) }}</template></Column>
+        <Column header="Depense"><template #body="{ data }">{{ formatMontant(data.montantDepense) }}</template></Column>
+        <Column header="Engage"><template #body="{ data }">{{ formatMontant(data.montantEngage) }}</template></Column>
+        <Column header="Disponible"><template #body="{ data }"><span class="font-semibold">{{ formatMontant(data.montantDisponible) }}</span></template></Column>
+        <Column header="Consommation">
+          <template #body="{ data }">
+            <div class="min-w-36">
+              <div class="h-2 overflow-hidden rounded-full bg-surface-200 dark:bg-surface-700"><div class="h-full bg-primary" :class="classeTaux(data)" :style="{ width: `${taux(data)}%` }" /></div>
+              <div class="mt-1 text-xs text-muted-color">{{ taux(data) }} % engage</div>
+            </div>
+          </template>
+        </Column>
+        <Column v-if="auth.estFinance" header="">
+          <template #body="{ data }"><PrimeButton label="Modifier" severity="secondary" size="small" outlined @click="modifier(data)" /></template>
+        </Column>
+      </DataTable>
     </section>
 
     <ModalDialog
@@ -197,28 +182,25 @@ async function enregistrer() {
       :fermable="!enregistrement"
       @fermer="edition = null"
     >
-      <div class="champ">
-        <label class="champ__libelle" for="service-budget">Service <span class="champ__obligatoire">*</span></label>
-        <select id="service-budget" v-model="formulaire.idService" class="saisie" :disabled="!!edition.id">
-          <option :value="null" disabled>Choisir un service</option>
-          <option v-for="service in services" :key="service.id" :value="service.id">{{ service.nom }}</option>
-        </select>
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="service-budget">Service <span class="text-red-500">*</span></label>
+        <PrimeSelect id="service-budget" v-model="formulaire.idService" class="w-full" :options="services" option-label="nom" option-value="id" placeholder="Choisir un service" :disabled="!!edition.id" />
       </div>
 
-      <div class="grille-champs">
-        <div class="champ">
-          <label class="champ__libelle" for="exercice-form">Exercice <span class="champ__obligatoire">*</span></label>
-          <PrimeInputText id="exercice-form" v-model.number="formulaire.exercice" class="saisie" type="number" min="2020" max="2100" />
+      <div class="grid grid-cols-1 gap-x-4 gap-y-1 md:grid-cols-2">
+        <div class="flex flex-col gap-2 mb-4">
+          <label class="text-sm font-semibold text-muted-color" for="exercice-form">Exercice <span class="text-red-500">*</span></label>
+          <PrimeInputText id="exercice-form" v-model.number="formulaire.exercice" class="w-full" type="number" min="2020" max="2100" />
         </div>
-        <div class="champ">
-          <label class="champ__libelle" for="montant-form">Montant alloue (Ar) <span class="champ__obligatoire">*</span></label>
-          <PrimeInputText id="montant-form" v-model.number="formulaire.montantAlloue" class="saisie" type="number" min="0" step="100000" />
+        <div class="flex flex-col gap-2 mb-4">
+          <label class="text-sm font-semibold text-muted-color" for="montant-form">Montant alloue (Ar) <span class="text-red-500">*</span></label>
+          <PrimeInputText id="montant-form" v-model.number="formulaire.montantAlloue" class="w-full" type="number" min="0" step="100000" />
         </div>
       </div>
 
       <template #actions>
-        <PrimeButton class="bouton bouton--secondaire" @click="edition = null">Annuler</PrimeButton>
-        <PrimeButton class="bouton bouton--principal" :disabled="enregistrement" @click="enregistrer">
+        <PrimeButton class="inline-flex items-center justify-center gap-2 border border-surface" @click="edition = null">Annuler</PrimeButton>
+        <PrimeButton class="inline-flex items-center justify-center gap-2 bg-primary text-primary-contrast" :disabled="enregistrement" @click="enregistrer">
           Enregistrer
         </PrimeButton>
       </template>

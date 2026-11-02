@@ -2,6 +2,8 @@
 import PrimeButton from 'primevue/button'
 import PrimeInputText from 'primevue/inputtext'
 import PrimeTextarea from 'primevue/textarea'
+import Message from 'primevue/message'
+import PrimeSelect from 'primevue/select'
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { recrutementApi as api, ErreurApi } from '@/modules/recrutement/api/recrutementApi'
@@ -133,11 +135,11 @@ onMounted(charger)
 </script>
 
 <template>
-  <section class="recrutement-page">
+  <section class="mx-auto w-full max-w-5xl p-4 md:p-6">
     <RouterLink class="back" :to="{ name: 'recrutement-suivi' }">← Retour au suivi</RouterLink>
-    <p class="eyebrow">Recrutement · Parcours candidat</p>
+    <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-primary">Recrutement · Parcours candidat</p>
     <p v-if="chargement">Chargement du parcours...</p>
-    <p v-else-if="erreur" class="error" role="alert">{{ erreur }}</p>
+    <p v-else-if="erreur" class="text-sm text-red-600" role="alert">{{ erreur }}</p>
 
     <template v-else-if="candidature">
       <header class="header">
@@ -145,30 +147,30 @@ onMounted(charger)
           <h1>{{ candidature.candidat.prenom }} {{ candidature.candidat.nom }}</h1>
           <p>{{ candidature.candidat.email }} · {{ candidature.offre.reference }} · {{ candidature.offre.titre }}</p>
         </div>
-        <b class="status">{{ candidature.statut }}</b>
+        <b class="rounded-full bg-primary-100 px-2 py-1 text-xs font-semibold text-primary">{{ candidature.statut }}</b>
       </header>
-      <p v-if="message" class="success">{{ message }}</p>
+      <Message v-if="message" severity="success" :closable="false">{{ message }}</Message>
 
       <div class="grid">
-        <article class="panel">
+        <article class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
           <h2>Entretiens</h2>
-          <div v-for="item in entretiens" :key="item.idEntretien" class="item">
+          <div v-for="item in entretiens" :key="item.idEntretien" class="border-b border-surface py-3 last:border-b-0">
             <strong>{{ item.typeEntretien }}</strong>
             <span>{{ item.dateDebut }} → {{ item.dateFin }}</span>
             <small>{{ item.lieu || item.lienVisio || 'Lieu à définir' }} · {{ item.statut }}</small>
           </div>
           <p v-if="!entretiens.length">Aucun entretien planifié.</p>
           <PrimeButton
-            class="action"
+            class="inline-flex items-center gap-2"
 
             :aria-expanded="formulaireOuvert === 'entretien'"
             @click="ouvrirFormulaire('entretien')"
           >
             {{ formulaireOuvert === 'entretien' ? 'Fermer' : 'Planifier un entretien' }}
           </PrimeButton>
-          <form v-if="formulaireOuvert === 'entretien'" class="form" @submit.prevent="planifierEntretien">
+          <form v-if="formulaireOuvert === 'entretien'" class="flex flex-col gap-3" @submit.prevent="planifierEntretien">
             <h3>Planifier un entretien</h3>
-            <label>Type<select v-model="entretien.typeEntretien"><option>RH</option><option>TECHNIQUE</option><option>MANAGER</option><option>AUTRE</option></select></label>
+            <label>Type<PrimeSelect v-model="entretien.typeEntretien" :options="['RH', 'TECHNIQUE', 'MANAGER', 'AUTRE']" /></label>
             <div class="form-grid">
               <label>Début<PrimeInputText v-model="entretien.dateDebut" required type="datetime-local" /></label>
               <label>Fin<PrimeInputText v-model="entretien.dateFin" required type="datetime-local" /></label>
@@ -179,16 +181,16 @@ onMounted(charger)
           </form>
         </article>
 
-        <article class="panel">
+        <article class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
           <h2>Tests et passages</h2>
-          <div v-for="item in passages" :key="item.idPassage" class="item">
+          <div v-for="item in passages" :key="item.idPassage" class="border-b border-surface py-3 last:border-b-0">
             <strong>Test #{{ item.idTest }}</strong>
             <span>{{ item.datePrevue || 'Date à définir' }} · {{ item.statut }}</span>
           </div>
           <p v-if="!passages.length">Aucun passage planifié.</p>
-          <div class="actions">
+          <div class="flex flex-wrap gap-2">
             <PrimeButton
-              class="action"
+              class="inline-flex items-center gap-2"
 
               :aria-expanded="formulaireOuvert === 'passage'"
               @click="ouvrirFormulaire('passage')"
@@ -196,7 +198,7 @@ onMounted(charger)
               {{ formulaireOuvert === 'passage' ? 'Fermer' : 'Planifier un passage' }}
             </PrimeButton>
             <PrimeButton
-              class="action action--secondary"
+              class="inline-flex items-center gap-2 border border-surface text-secondary-color"
 
               :aria-expanded="formulaireOuvert === 'test'"
               @click="ouvrirFormulaire('test')"
@@ -204,13 +206,13 @@ onMounted(charger)
               {{ formulaireOuvert === 'test' ? 'Fermer' : 'Créer un test' }}
             </PrimeButton>
           </div>
-          <form v-if="formulaireOuvert === 'passage'" class="form" @submit.prevent="planifierPassage">
+          <form v-if="formulaireOuvert === 'passage'" class="flex flex-col gap-3" @submit.prevent="planifierPassage">
             <h3>Planifier un passage</h3>
-            <label>Test<select v-model="passage.idTest" required><option value="">Sélectionnez un test</option><option v-for="test in tests" :key="test.idTest" :value="test.idTest">{{ test.titre }}</option></select></label>
+            <label>Test<PrimeSelect v-model="passage.idTest" :options="[{ idTest: '', titre: 'Sélectionnez un test' }, ...tests]" option-label="titre" option-value="idTest" required /></label>
             <label>Date prévue<PrimeInputText v-model="passage.datePrevue" type="datetime-local" /></label>
             <PrimeButton type="submit" :disabled="envoi || !tests.length">Planifier le test</PrimeButton>
           </form>
-          <form v-if="formulaireOuvert === 'test'" class="form" @submit.prevent="creerTest">
+          <form v-if="formulaireOuvert === 'test'" class="flex flex-col gap-3" @submit.prevent="creerTest">
             <h3>Créer un test pour l’offre</h3>
             <label>Titre<PrimeInputText v-model="nouveauTest.titre" required /></label>
             <label>Description<PrimeTextarea v-model="nouveauTest.description" /></label>
@@ -219,26 +221,26 @@ onMounted(charger)
           </form>
         </article>
 
-        <article class="panel">
+        <article class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
           <h2>Évaluations</h2>
-          <div v-for="item in evaluations" :key="item.idEvaluation" class="item">
+          <div v-for="item in evaluations" :key="item.idEvaluation" class="border-b border-surface py-3 last:border-b-0">
             <strong>{{ item.typeEvaluation }} · {{ item.note ?? 'Sans note' }}/{{ item.noteMax }}</strong>
             <span>{{ item.appreciation }}</span>
             <small>{{ item.commentaire }}</small>
           </div>
           <p v-if="!evaluations.length">Aucune évaluation.</p>
           <PrimeButton
-            class="action"
+            class="inline-flex items-center gap-2"
 
             :aria-expanded="formulaireOuvert === 'evaluation'"
             @click="ouvrirFormulaire('evaluation')"
           >
             {{ formulaireOuvert === 'evaluation' ? 'Fermer' : 'Ajouter une évaluation' }}
           </PrimeButton>
-          <form v-if="formulaireOuvert === 'evaluation'" class="form" @submit.prevent="enregistrerEvaluation">
+          <form v-if="formulaireOuvert === 'evaluation'" class="flex flex-col gap-3" @submit.prevent="enregistrerEvaluation">
             <h3>Ajouter une évaluation</h3>
             <div class="form-grid">
-              <label>Type<select v-model="evaluation.typeEvaluation"><option>DOSSIER</option><option>ENTRETIEN</option><option>TEST</option></select></label>
+              <label>Type<PrimeSelect v-model="evaluation.typeEvaluation" :options="['DOSSIER', 'ENTRETIEN', 'TEST']" /></label>
               <label>Note<PrimeInputText v-model="evaluation.note" type="number" min="0" :max="evaluation.noteMax" step="0.01" /></label>
               <label>Note max<PrimeInputText v-model="evaluation.noteMax" type="number" min="1" /></label>
             </div>
@@ -248,23 +250,23 @@ onMounted(charger)
           </form>
         </article>
 
-        <article class="panel">
+        <article class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
           <h2>Décision finale</h2>
           <PrimeButton
-            class="action"
+            class="inline-flex items-center gap-2"
 
             :aria-expanded="formulaireOuvert === 'decision'"
             @click="ouvrirFormulaire('decision')"
           >
             {{ formulaireOuvert === 'decision' ? 'Fermer' : 'Enregistrer la décision' }}
           </PrimeButton>
-          <form v-if="formulaireOuvert === 'decision'" class="form" @submit.prevent="prendreDecision">
-            <label>Décision<select v-model="decision.decision"><option>RETENUE</option><option>REFUSEE</option><option>LISTE_ATTENTE</option></select></label>
+          <form v-if="formulaireOuvert === 'decision'" class="flex flex-col gap-3" @submit.prevent="prendreDecision">
+            <label>Décision<PrimeSelect v-model="decision.decision" :options="['RETENUE', 'REFUSEE', 'LISTE_ATTENTE']" /></label>
             <label>Motif<PrimeTextarea v-model="decision.motif" required /></label>
             <PrimeButton type="submit" :disabled="envoi">Enregistrer la décision</PrimeButton>
           </form>
           <h2>Historique</h2>
-          <div v-for="item in historique" :key="item.idHistorique" class="item">
+          <div v-for="item in historique" :key="item.idHistorique" class="border-b border-surface py-3 last:border-b-0">
             <strong>{{ item.nouveauStatut }}</strong><span>{{ item.dateAction }}</span><small>{{ item.commentaire || 'Aucun commentaire' }}</small>
           </div>
         </article>
@@ -272,7 +274,3 @@ onMounted(charger)
     </template>
   </section>
 </template>
-
-<style scoped>
-.recrutement-page { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; } .back { color: #4f46e5; } .eyebrow { color: #4f46e5; font-weight: 700; text-transform: uppercase; } h1 { margin-bottom: .5rem; } .header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin: 1.5rem 0; } .status { color: #4f46e5; } .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; } .panel { padding: 1rem; border: 1px solid #e5e7eb; border-radius: .8rem; background: white; } .item { display: grid; gap: .25rem; padding: .7rem 0; border-bottom: 1px solid #e5e7eb; } .item small, .item span { color: #64748b; } .actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; } .action { background: #4f46e5; } .action--secondary { background: #334155; } .form { display: grid; gap: .6rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; } label { display: grid; gap: .3rem; font-weight: 600; } input, select, textarea { width: 100%; box-sizing: border-box; padding: .55rem; border: 1px solid #cbd5e1; border-radius: .4rem; font: inherit; } textarea { min-height: 70px; } .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; } button { border: 0; border-radius: .5rem; padding: .6rem .8rem; background: #4f46e5; color: white; cursor: pointer; } button:disabled { opacity: .6; cursor: wait; } .error { color: #b91c1c; } .success { color: #166534; } @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } .header { align-items: flex-start; flex-direction: column; } }
-</style>

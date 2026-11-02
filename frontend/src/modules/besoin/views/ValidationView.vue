@@ -1,4 +1,7 @@
 <script setup>
+import PrimeSelect from 'primevue/select'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
 import PrimeButton from 'primevue/button'
 import PrimeInputText from 'primevue/inputtext'
 import PrimeTextarea from 'primevue/textarea'
@@ -87,29 +90,26 @@ async function enregistrer() {
 
 <template>
   <div>
-    <div class="page__entete">
+    <div class="flex flex-col gap-4 mb-5 md:flex-row md:items-start md:justify-between">
       <div>
         <h1>File de validation</h1>
-        <p class="page__description">
+        <p class="mt-1 text-sm text-muted-color">
           Lignes en attente a votre etape. Chaque decision est tracee et conditionne la suite du circuit.
         </p>
       </div>
-      <div class="champ" style="margin: 0; min-width: 200px">
-        <label class="champ__libelle" for="etape">Etape</label>
-        <select id="etape" v-model="filtreEtape" class="saisie">
-          <option value="">Toutes les etapes</option>
-          <option v-for="etape in ETAPES" :key="etape.valeur" :value="etape.valeur">{{ etape.libelle }}</option>
-        </select>
+      <div class="flex flex-col gap-2 mb-4" style="margin: 0; min-width: 200px">
+        <label class="text-sm font-semibold text-muted-color" for="etape">Etape</label>
+        <PrimeSelect id="etape" v-model="filtreEtape" class="w-full" :options="[{ libelle: 'Toutes les etapes', valeur: '' }, ...ETAPES]" option-label="libelle" option-value="valeur" />
       </div>
     </div>
 
-    <section class="carte">
-      <div class="carte__entete">
+    <section class="rounded-lg border border-surface bg-surface-0 shadow-sm dark:bg-surface-900">
+      <div class="flex items-center justify-between gap-3 border-b border-surface p-4">
         <h2>{{ lignesFiltrees.length }} ligne(s) a traiter</h2>
-        <span class="texte-secondaire">Votre role : {{ auth.role }}</span>
+        <span class="text-secondary-color">Votre role : {{ auth.role }}</span>
       </div>
 
-      <div v-if="chargement" class="chargement">Chargement de la file...</div>
+      <div v-if="chargement" class="p-4 text-sm text-muted-color">Chargement de la file...</div>
 
       <EmptyState
         v-else-if="lignesFiltrees.length === 0"
@@ -117,45 +117,17 @@ async function enregistrer() {
         message="Aucune ligne n'attend de validation a cette etape."
       />
 
-      <div v-else class="tableau-conteneur">
-        <table class="tableau">
-          <thead>
-            <tr>
-              <th>Ligne</th>
-              <th>Service</th>
-              <th>Type de besoin</th>
-              <th>Effectif</th>
-              <th>Budget</th>
-              <th>Etape</th>
-              <th>Derniere mise a jour</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="ligne in lignesFiltrees" :key="ligne.id">
-              <td>
-                <div style="font-weight: 500">{{ ligne.intituleDemande }}</div>
-                <div class="texte-discret" style="font-size: 12px">Demande #{{ ligne.idDemande }} · episode {{ ligne.episode }}</div>
-              </td>
-              <td>{{ ligne.service }}</td>
-              <td><StatusBadge :valeur="ligne.typeBesoin" /></td>
-              <td>{{ ligne.effectif }}</td>
-              <td class="mono">{{ formatMontant(ligne.budgetEstime) }}</td>
-              <td><StatusBadge :valeur="ligne.etapeCourante" /></td>
-              <td class="mono">{{ formatDateHeure(ligne.dateModification) }}</td>
-              <td class="tableau__actions">
-                <PrimeButton
-                  class="bouton bouton--principal bouton--petit"
-
-                  :disabled="ligne.etapeCourante !== auth.role"
-                  @click="ouvrir(ligne)"
-                >
-                  Traiter
-                </PrimeButton>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-else class="overflow-x-auto">
+        <DataTable :value="lignesFiltrees" striped-rows paginator :rows="10" responsive-layout="scroll">
+          <Column header="Ligne"><template #body="{ data }"><div class="font-medium">{{ data.intituleDemande }}</div><div class="text-xs text-muted-color">Demande #{{ data.idDemande }} · episode {{ data.episode }}</div></template></Column>
+          <Column field="service" header="Service" />
+          <Column header="Type de besoin"><template #body="{ data }"><StatusBadge :valeur="data.typeBesoin" /></template></Column>
+          <Column field="effectif" header="Effectif" />
+          <Column header="Budget"><template #body="{ data }">{{ formatMontant(data.budgetEstime) }}</template></Column>
+          <Column header="Etape"><template #body="{ data }"><StatusBadge :valeur="data.etapeCourante" /></template></Column>
+          <Column header="Derniere mise a jour"><template #body="{ data }">{{ formatDateHeure(data.dateModification) }}</template></Column>
+          <Column header=""><template #body="{ data }"><PrimeButton label="Traiter" severity="primary" size="small" :disabled="data.etapeCourante !== auth.role" @click="ouvrir(data)" /></template></Column>
+        </DataTable>
       </div>
     </section>
 
@@ -166,40 +138,38 @@ async function enregistrer() {
       :fermable="!enregistrement"
       @fermer="action = null"
     >
-      <div class="alerte alerte--info">
+      <div class="rounded-lg border p-3 text-sm border-blue-200 bg-blue-50 text-blue-700">
         Etape en cours : <strong>{{ action.etapeCourante }}</strong> · budget demande :
         <strong>{{ formatMontant(action.budgetEstime) }}</strong>
       </div>
 
-      <div class="champ">
-        <label class="champ__libelle" for="decision-file">Decision</label>
-        <select id="decision-file" v-model="decision" class="saisie">
-          <option v-for="item in DECISIONS" :key="item.valeur" :value="item.valeur">{{ item.libelle }}</option>
-        </select>
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="decision-file">Decision</label>
+        <PrimeSelect id="decision-file" v-model="decision" class="w-full" :options="DECISIONS" option-label="libelle" option-value="valeur" />
       </div>
 
-      <div v-if="action.etapeCourante === 'FINANCE'" class="champ">
-        <label class="champ__libelle" for="montant-file">Montant verifie (Ar)</label>
+      <div v-if="action.etapeCourante === 'FINANCE'" class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="montant-file">Montant verifie (Ar)</label>
         <PrimeInputText
           id="montant-file"
           v-model.number="montantVerifie"
-          class="saisie"
+          class="w-full"
           type="number"
           min="0"
           step="1000"
           :placeholder="String(action.budgetEstime)"
         />
-        <span class="champ__aide">La disponibilite budgetaire est verifiee automatiquement.</span>
+        <span class="text-xs text-muted-color">La disponibilite budgetaire est verifiee automatiquement.</span>
       </div>
 
-      <div class="champ">
-        <label class="champ__libelle" for="commentaire-file">Commentaire</label>
-        <PrimeTextarea id="commentaire-file" v-model="commentaire" class="saisie" rows="3" />
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="commentaire-file">Commentaire</label>
+        <PrimeTextarea id="commentaire-file" v-model="commentaire" class="w-full" rows="3" />
       </div>
 
       <template #actions>
-        <PrimeButton class="bouton bouton--secondaire" @click="action = null">Annuler</PrimeButton>
-        <PrimeButton class="bouton bouton--principal" :disabled="enregistrement" @click="enregistrer">
+        <PrimeButton class="inline-flex items-center justify-center gap-2 border border-surface" @click="action = null">Annuler</PrimeButton>
+        <PrimeButton class="inline-flex items-center justify-center gap-2 bg-primary text-primary-contrast" :disabled="enregistrement" @click="enregistrer">
           Enregistrer la decision
         </PrimeButton>
       </template>

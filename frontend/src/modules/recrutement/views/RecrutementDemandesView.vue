@@ -39,12 +39,12 @@ onMounted(charger)
 </script>
 
 <template>
-  <section class="recrutement-page">
-    <header class="page-header">
+  <section class="mx-auto w-full max-w-5xl p-4 md:p-6">
+    <header class="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
       <div>
-        <p class="eyebrow">Recrutement · Étape 1</p>
+        <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-primary">Recrutement · Étape 1</p>
         <h1>Demandes acceptées</h1>
-        <p class="description">
+        <p class="mt-1 text-sm text-muted-color">
           Une ligne apparaît ici dès la première approbation et reste suivie pendant les
           validations suivantes.
         </p>
@@ -54,7 +54,7 @@ onMounted(charger)
 
     <Message v-if="erreur" severity="error" :closable="false" class="mb-3">{{ erreur }}</Message>
 
-    <div class="liste-wrapper">
+    <div class="flex flex-col gap-3">
       <DataTable
         :value="lignes"
         :loading="chargement"
@@ -66,7 +66,7 @@ onMounted(charger)
         :rowsPerPageOptions="[10, 25, 50]"
       >
         <template #empty>
-          <div class="vide">
+          <div class="rounded-lg border border-dashed border-surface p-8 text-center text-muted-color">
             <i class="pi pi-inbox" />
             <span>Aucune demande acceptée disponible.</span>
           </div>
@@ -74,9 +74,9 @@ onMounted(charger)
 
         <Column field="intituleDemande" header="Demande" sortable>
           <template #body="{ data }">
-            <div class="flex flex-column">
+            <div class="flex flex-col">
               <strong>{{ data.intituleDemande }}</strong>
-              <small class="muted">Demande #{{ data.idDemande }}</small>
+              <small class="text-muted-color">Demande #{{ data.idDemande }}</small>
             </div>
           </template>
         </Column>
@@ -124,64 +124,3 @@ onMounted(charger)
     </div>
   </section>
 </template>
-
-<style scoped>
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.eyebrow {
-  margin: 0 0 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--p-primary-color);
-}
-
-h1 {
-  margin: 0 0 0.35rem;
-  font-size: 1.6rem;
-  color: var(--p-text-color);
-}
-
-.description {
-  margin: 0;
-  max-width: 42rem;
-  color: var(--p-text-muted-color);
-}
-
-.liste-wrapper {
-  background: var(--p-content-background);
-  border: 1px solid var(--p-content-border-color);
-  border-radius: 0.75rem;
-  overflow: hidden;
-}
-
-.muted {
-  color: var(--p-text-muted-color);
-}
-
-.vide {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 2rem 0;
-  color: var(--p-text-muted-color);
-}
-
-.vide i {
-  font-size: 2rem;
-}
-
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-  }
-}
-</style>

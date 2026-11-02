@@ -44,7 +44,7 @@ const LIBELLES = {
 const COULEURS = {
   BROUILLON: 'neutre',
   EN_VALIDATION: 'info',
-  A_CORRIGER: 'alerte',
+  A_CORRIGER: 'rounded-lg border p-3 text-sm',
   ACCEPTEE: 'succes',
   REFUSEE: 'danger',
   ANNULEE: 'neutre',
@@ -57,7 +57,7 @@ const COULEURS = {
   RH: 'primaire',
   FINANCE: 'primaire',
   DIRECTION: 'primaire',
-  TEMPORAIRE: 'alerte',
+  TEMPORAIRE: 'rounded-lg border p-3 text-sm',
   DEFINITIF: 'primaire',
   CREATION: 'primaire',
   REMPLACEMENT: 'info',

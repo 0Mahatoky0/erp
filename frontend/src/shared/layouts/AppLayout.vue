@@ -14,7 +14,7 @@ const titre = computed(() => route.meta.titre || 'ERP TOVO')
 
 function deconnexion() {
   auth.deconnexion()
-  router.push({ name: 'connexion' })
+  router.push({ name: 'grid min-h-screen grid-cols-1 bg-surface-50 lg:grid-cols-2 dark:bg-surface-950' })
 }
 </script>
 

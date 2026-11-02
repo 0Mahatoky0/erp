@@ -1,4 +1,5 @@
 <script setup>
+import PrimeSelect from 'primevue/select'
 import PrimeButton from 'primevue/button'
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '@/shared/store/useAuthStore'
@@ -37,24 +38,27 @@ onMounted(chargerOffres)
 </script>
 
 <template>
-  <section class="recrutement-page">
-    <p class="eyebrow">Recrutement · Etape 3</p>
+  <section class="mx-auto w-full max-w-5xl p-4 md:p-6">
+    <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-primary">Recrutement · Etape 3</p>
     <h1>Candidatures</h1>
     <p>Consultez les candidatures recues pour chaque offre publiee.</p>
     <label>Offre
-      <select v-model="offreId" @change="chargerCandidatures">
-        <option value="">Selectionnez une offre</option>
-        <option v-for="offre in offres" :key="offre.idOffre" :value="offre.idOffre">{{ offre.reference }} · {{ offre.titre }}</option>
-      </select>
+      <PrimeSelect
+        v-model="offreId"
+        :options="[{ idOffre: '', reference: 'Selectionnez une offre', titre: '' }, ...offres]"
+        option-label="reference"
+        option-value="idOffre"
+        @change="chargerCandidatures"
+      />
     </label>
-    <p v-if="erreur" class="error">{{ erreur }}</p>
-    <div class="list">
-      <article v-for="candidature in candidatures" :key="candidature.idCandidature" class="card">
+    <p v-if="erreur" class="text-sm text-red-600">{{ erreur }}</p>
+    <div class="flex flex-col gap-3">
+      <article v-for="candidature in candidatures" :key="candidature.idCandidature" class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
         <strong>{{ candidature.candidat.prenom }} {{ candidature.candidat.nom }}</strong>
         <span>{{ candidature.candidat.email }}</span>
         <b>{{ candidature.statut }}</b>
         <RouterLink :to="{ name: 'recrutement-candidature-detail', params: { id: candidature.idCandidature } }">Voir le parcours</RouterLink>
-        <div v-if="gestionnaire" class="actions">
+        <div v-if="gestionnaire" class="flex flex-wrap gap-2">
           <PrimeButton @click="changerStatut(candidature, 'PRESELECTIONNEE')">Présélectionner</PrimeButton>
           <PrimeButton @click="changerStatut(candidature, 'REFUSEE')">Refuser</PrimeButton>
         </div>
@@ -63,9 +67,3 @@ onMounted(chargerOffres)
     </div>
   </section>
 </template>
-
-<style scoped>
-.recrutement-page { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem; } .eyebrow { color: #4f46e5; font-weight: 700; text-transform: uppercase; } h1 { margin: 0 0 .5rem; }
-label { display: flex; flex-direction: column; gap: .4rem; max-width: 600px; margin: 1.5rem 0; font-weight: 700; } select { padding: .7rem; border: 1px solid #cbd5e1; border-radius: .5rem; }
-.list { display: grid; gap: .8rem; } .card { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 1rem; border: 1px solid #e5e7eb; border-radius: .8rem; background: white; } .card span { color: #64748b; } .card b { color: #4f46e5; } .actions { display: flex; gap: .4rem; margin-left: auto; } button { border: 0; border-radius: .5rem; padding: .55rem .75rem; background: #4f46e5; color: white; cursor: pointer; } .error { color: #b91c1c; }
-</style>
