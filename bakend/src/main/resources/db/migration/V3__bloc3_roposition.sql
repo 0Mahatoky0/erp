@@ -8,7 +8,7 @@ CREATE TABLE proposition_embauche(
     date_proposition TIMESTAMP,
     id_statut INT REFERENCES statut(id_statut),
     id_candidat INT REFERENCES candidat(id_candidat), -- bloc 2
-    id_offre_emploi INT REFERENCES offre_emploi(id_offre_emploi) -- bloc 2
+    id_offre INT REFERENCES offre_emploi(id_offre) -- bloc 2
 );
 
 CREATE TABLE validation_contrat(
@@ -16,7 +16,7 @@ CREATE TABLE validation_contrat(
     id_candidat INT REFERENCES candidat(id_candidat), -- bloc 2
     date_validation TIMESTAMP,
     id_statut INT REFERENCES statut(id_statut),
-    id_offre_emploi INT REFERENCES offre_emploi(id_offre_emploi) -- bloc 2
+    id_offre INT REFERENCES offre_emploi(id_offre) -- bloc 2
 );
 
 CREATE TABLE type_contrat(
@@ -30,18 +30,13 @@ CREATE TABLE duree_essai(
     unite VARCHAR(50)
 );
 
-CREATE TABLE employe(
-    id_employe INT PRIMARY KEY,
-    id_candidat INT UNIQUE REFERENCES candidat(id_candidat) -- bloc 2
-);
-
 CREATE TABLE periodicite_paie(
     id_periodicite_paie INT PRIMARY KEY,
     libelle VARCHAR(50)
 );
 
 CREATE TABLE mode_paiement(
-    id_mode_paiement INT PRIMARY KEY,
+    id_mode_paiement INT 1PRIMARY KEY,
     libelle VARCHAR(50)
 );
 
@@ -53,7 +48,6 @@ CREATE TABLE contrat(
     lieu_travail VARCHAR(100),
     date_debut TIMESTAMP,
     date_fin TIMESTAMP,
-    id_duree_essai INT REFERENCES dure_essai(id_duree_essai),
     salaire DECIMAL(12,2),
     id_periodicite_paie INT REFERENCES periodicite_paie(id_periodicite_paie),
     id_mode_paiement INT REFERENCES mode_paiement(id_mode_paiement),

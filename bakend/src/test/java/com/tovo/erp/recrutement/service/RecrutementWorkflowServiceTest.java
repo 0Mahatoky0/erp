@@ -1,6 +1,6 @@
 package com.tovo.erp.recrutement.service;
 
-import com.tovo.erp.recrutement.domain.*;
+import com.tovo.erp.recrutement.model.*;
 import com.tovo.erp.recrutement.repository.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

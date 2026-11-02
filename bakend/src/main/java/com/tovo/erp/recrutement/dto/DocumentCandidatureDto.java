@@ -1,7 +1,7 @@
 package com.tovo.erp.recrutement.dto;
 
-import com.tovo.erp.recrutement.domain.DocumentCandidature;
-import com.tovo.erp.recrutement.domain.TypeDocument;
+import com.tovo.erp.recrutement.model.DocumentCandidature;
+import com.tovo.erp.recrutement.model.TypeDocument;
 import java.time.LocalDateTime;
 
 public record DocumentCandidatureDto(Long idDocument, Long idCandidature, TypeDocument typeDocument,

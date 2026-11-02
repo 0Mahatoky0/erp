@@ -1,6 +1,6 @@
 package com.tovo.erp.recrutement.dto;
 
-import com.tovo.erp.recrutement.domain.*;
+import com.tovo.erp.recrutement.model.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 

@@ -1,6 +1,6 @@
 package com.tovo.erp.recrutement.dto;
 
-import com.tovo.erp.recrutement.domain.*;
+import com.tovo.erp.recrutement.model.*;
 import java.time.LocalDateTime;
 
 public record DecisionCandidatureDto(Long idDecision, Long idCandidature, Long idUtilisateur,
