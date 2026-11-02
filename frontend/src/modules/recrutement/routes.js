@@ -28,6 +28,12 @@ export const recrutementRoutes = [
         meta: { titre: 'Offres d’emploi · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
       },
       {
+        path: 'recrutement/offres/:idOffre', // ← pas :id
+        name: 'recrutement-offre-detail',
+        component: () => import('./views/OffreDetailView.vue'),
+        meta: { titre: 'Détail de l’offre', menu: 'recrutement-offres' },
+      },
+      {
         path: 'candidatures',
         name: 'recrutement-candidatures',
         component: () => import('./views/RecrutementCandidaturesView.vue'),
