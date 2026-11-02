@@ -1,0 +1,5 @@
+@import "tailwindcss";
+@plugin "tailwindcss-primeui";
+
+/* Mode sombre piloté par la classe .app-dark (même sélecteur que dans main.js) */
+@custom-variant dark (&:where(.app-dark, .app-dark *));

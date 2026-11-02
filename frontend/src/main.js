@@ -1,5 +1,6 @@
 import './assets/base.css'
 import './assets/main.css'
+import './assets/tailwind.css'          // ← AJOUT (après tes CSS existants)
 import 'primeicons/primeicons.css'
 
 import { createApp } from 'vue'
@@ -20,6 +21,10 @@ app.use(PrimeVue, {
     options: {
       prefix: 'p',
       darkModeSelector: '.app-dark',
+      cssLayer: {                        // ← AJOUT
+        name: 'primevue',
+        order: 'theme, base, primevue',
+      },
     },
   },
 })
