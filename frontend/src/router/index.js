@@ -1,125 +1,19 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/shared/store/useAuthStore'
+import { iamRoutes } from '@/modules/iam/routes'
+import { employeRoutes } from '@/modules/employe/routes'
+import { besoinRoutes } from '@/modules/besoin/routes'
+import { recrutementRoutes } from '@/modules/recrutement/routes'
 
 const routes = [
-  {
-    path: '/connexion',
-    name: 'connexion',
-    component: () => import('@/views/ConnexionView.vue'),
-    meta: { titre: 'Connexion', public: true },
-  },
-  {
-    path: '/',
-    name: 'accueil-candidat',
-    component: () => import('@/views/AccueilCandidatView.vue'),
-    meta: { titre: 'Offres d’emploi', public: true },
-  },
-  {
-    path: '/admin',
-    component: () => import('@/layouts/AppLayout.vue'),
-    children: [
-      {
-        path: '',
-        name: 'tableau-bord',
-        component: () => import('@/views/TableauBordView.vue'),
-        meta: { titre: 'Tableau de bord' },
-      },
-      {
-        path: 'demandes',
-        name: 'demandes',
-        component: () => import('@/views/DemandesView.vue'),
-        meta: { titre: 'Demandes de recrutement' },
-      },
-      {
-        path: 'demandes/nouvelle',
-        name: 'demande-nouvelle',
-        component: () => import('@/views/DemandeNouvelleView.vue'),
-        meta: { titre: 'Nouvelle demande' },
-      },
-      {
-        path: 'demandes/:id',
-        name: 'demande-detail',
-        component: () => import('@/views/DemandeDetailView.vue'),
-        meta: { titre: 'Detail de la demande' },
-      },
-      {
-        path: 'validation',
-        name: 'validation',
-        component: () => import('@/views/ValidationView.vue'),
-        meta: { titre: 'File de validation' },
-      },
-      {
-        path: 'postes',
-        name: 'postes',
-        component: () => import('@/views/PostesView.vue'),
-        meta: { titre: 'Catalogue des postes' },
-      },
-      {
-        path: 'budgets',
-        name: 'budgets',
-        component: () => import('@/views/BudgetsView.vue'),
-        meta: { titre: 'Budgets' },
-      },
-      {
-        path: 'employes',
-        name: 'employes',
-        component: () => import('@/views/EmployesView.vue'),
-        meta: { titre: 'Employes' },
-      },
-      {
-        path: 'utilisateurs',
-        name: 'utilisateurs',
-        component: () => import('@/views/UtilisateursView.vue'),
-        meta: { titre: 'Utilisateurs' },
-      },
-      {
-        path: 'recrutement',
-        name: 'recrutement',
-        component: () => import('@/views/RecrutementView.vue'),
-        meta: { titre: 'Recrutement' },
-      },
-      {
-        path: 'recrutement/demandes-acceptees',
-        name: 'recrutement-demandes',
-        component: () => import('@/views/RecrutementDemandesView.vue'),
-        meta: { titre: 'Demandes acceptees · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
-      },
-      {
-        path: 'recrutement/offres',
-        name: 'recrutement-offres',
-        component: () => import('@/views/RecrutementView.vue'),
-        meta: { titre: 'Offres d’emploi · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
-      },
-      {
-        path: 'recrutement/candidatures',
-        name: 'recrutement-candidatures',
-        component: () => import('@/views/RecrutementCandidaturesView.vue'),
-        meta: { titre: 'Candidatures · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
-      },
-      {
-        path: 'recrutement/selection',
-        name: 'recrutement-selection',
-        component: () => import('@/views/RecrutementSelectionView.vue'),
-        meta: { titre: 'Présélection · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
-      },
-      {
-        path: 'recrutement/suivi',
-        name: 'recrutement-suivi',
-        component: () => import('@/views/RecrutementSuiviView.vue'),
-        meta: { titre: 'Suivi des candidats · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
-      },
-      {
-        path: 'recrutement/candidatures/:id',
-        name: 'recrutement-candidature-detail',
-        component: () => import('@/views/RecrutementCandidatureDetailView.vue'),
-        meta: { titre: 'Parcours candidat · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
-      },
-    ],
-  },
+  ...iamRoutes,
+  ...employeRoutes,
+  ...besoinRoutes,
+  ...recrutementRoutes,
   {
     path: '/:pathMatch(.*)*',
     name: 'introuvable',
-    component: () => import('@/views/IntrouvableView.vue'),
+    component: () => import('@/shared/components/IntrouvableView.vue'),
     meta: { titre: 'Page introuvable', public: true },
   },
 ]
