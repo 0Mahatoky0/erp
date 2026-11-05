@@ -38,7 +38,7 @@ const sections = computed(() => {
   }
 
   return [
-    { label: 'Principal', items: principal },
+    { label: 'Demande', items: principal },
     { label: 'Gestion', items: gestion },
     { label: 'Recrutement', items: recrutement },
   ]

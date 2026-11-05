@@ -13,7 +13,6 @@ Un **front modulaire simple** sous **Vue.js 3 (Composition API avec `<script set
 Chaque module regroupe ses vues, ses composants métier, son store Pinia, ses routes et ses appels API. Les composants UI d'infrastructure et les configurations globales résident dans `shared/`.
 
 ---
-
 ## 2. Structure du Projet (`src/`)
 
 ```

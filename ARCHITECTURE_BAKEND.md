@@ -1,4 +1,4 @@
-# ARCHITECTURE.md — ERP RH (Spring Boot / Vue.js)
+# ARCHITECTURE_BAKEND.md — ERP RH (Spring Boot / Vue.js)
 
 > Document normatif pour les développeurs **et les agents IA**.
 > **DOIT / NE DOIT PAS** = règle obligatoire. En cas de doute, appliquer ce document sans improviser.
