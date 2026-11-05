@@ -105,6 +105,15 @@ public class Contrat {
     @Column(name = "gabarit_version", length = 50)
     private String gabaritVersion;
 
+    @Column(name = "motif_annulation", columnDefinition = "TEXT")
+    private String motifAnnulation;
+
+    @Column(name = "date_annulation")
+    private LocalDateTime dateAnnulation;
+
+    @Column(name = "date_cloture")
+    private LocalDateTime dateCloture;
+
     @Column(name = "date_creation", nullable = false)
     private LocalDateTime dateCreation = LocalDateTime.now();
 

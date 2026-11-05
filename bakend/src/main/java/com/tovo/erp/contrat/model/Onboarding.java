@@ -49,6 +49,9 @@ public class Onboarding {
     @Column(name = "progression", nullable = false)
     private Integer progression = 0;
 
+    @Column(name = "date_cloture")
+    private LocalDateTime dateCloture;
+
     @Column(name = "date_creation", nullable = false)
     private LocalDateTime dateCreation = LocalDateTime.now();
 
