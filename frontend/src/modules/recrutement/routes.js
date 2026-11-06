@@ -16,19 +16,31 @@ export const recrutementRoutes = [
         meta: { titre: 'Recrutement' },
       },
       {
-        path: 'demandes-acceptees',
-        name: 'recrutement-demandes',
-        component: () => import('./views/RecrutementDemandesView.vue'),
-        meta: { titre: 'Demandes acceptees · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
-      },
-      {
         path: 'offres',
         name: 'recrutement-offres',
         component: () => import('./views/OffresListeView.vue'),
         meta: { titre: 'Offres d’emploi · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
       },
       {
-        path: 'recrutement/offres/:idOffre', // ← pas :id
+        path: 'offres/nouvelle',
+        name: 'recrutement-offre-saisie',
+        component: () => import('./views/OffreSaisieView.vue'),
+        meta: { titre: 'Créer une offre · Recrutement', roles: ['RH', 'DIRECTION'] },
+      },
+      {
+        path: 'offres/:idOffre/modifier',
+        name: 'recrutement-offre-modification',
+        component: () => import('./views/OffreSaisieView.vue'),
+        meta: { titre: 'Modifier l’offre · Recrutement', roles: ['RH', 'DIRECTION'] },
+      },
+      {
+        path: 'demandes-acceptees',
+        name: 'recrutement-demandes',
+        component: () => import('./views/RecrutementDemandesView.vue'),
+        meta: { titre: 'Demandes acceptees · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
+      },
+      {
+        path: 'offres/:idOffre',
         name: 'recrutement-offre-detail',
         component: () => import('./views/OffreDetailView.vue'),
         meta: { titre: 'Détail de l’offre', menu: 'recrutement-offres' },

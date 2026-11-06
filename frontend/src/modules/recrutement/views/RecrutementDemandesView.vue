@@ -32,7 +32,11 @@ async function charger() {
 }
 
 function creerOffre(ligne) {
-  router.push({ name: 'recrutement-offres', query: { idDemandePoste: ligne.id } })
+  // Redirection vers la vue de saisie de l'offre en passant l'ID du besoin validé en query param
+  router.push({ 
+    name: 'recrutement-offre-saisie', 
+    query: { idDemandePoste: ligne.id } 
+  })
 }
 
 onMounted(charger)
@@ -43,7 +47,7 @@ onMounted(charger)
     <header class="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
       <div>
         <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-primary">Recrutement · Étape 1</p>
-        <h1>Demandes acceptées</h1>
+        <h1 class="m-0 text-2xl font-bold">Demandes acceptées</h1>
         <p class="mt-1 text-sm text-muted-color">
           Une ligne apparaît ici dès la première approbation et reste suivie pendant les
           validations suivantes.
@@ -67,8 +71,8 @@ onMounted(charger)
       >
         <template #empty>
           <div class="rounded-lg border border-dashed border-surface p-8 text-center text-muted-color">
-            <i class="pi pi-inbox" />
-            <span>Aucune demande acceptée disponible.</span>
+            <i class="pi pi-inbox text-2xl mb-2" />
+            <p class="m-0">Aucune demande acceptée disponible.</p>
           </div>
         </template>
 
@@ -83,13 +87,13 @@ onMounted(charger)
 
         <Column header="Service / Département">
           <template #body="{ data }">
-            {{ data.service }} · {{ data.departement }}
+            {{ data.service }} · {{ data.departement || '-' }}
           </template>
         </Column>
 
         <Column field="profilRecherche" header="Profil recherché">
           <template #body="{ data }">
-            <span :class="{ muted: !data.profilRecherche }">
+            <span :class="{ 'text-muted-color italic': !data.profilRecherche }">
               {{ data.profilRecherche || 'Profil non précisé' }}
             </span>
           </template>

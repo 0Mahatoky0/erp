@@ -1,3 +1,4 @@
+<!-- src/modules/recrutement/views/OffresListeView.vue -->
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -12,7 +13,6 @@ import StatusBadge from '@/shared/components/StatusBadge.vue'
 import { useNotificationStore } from '@/shared/store/useNotificationStore'
 import { useAuthStore } from '@/shared/store/useAuthStore'
 import { formatDateHeure } from '@/shared/utils/format'
-import OffreForm from '../components/OffreForm.vue'
 import { recrutementApi as api, ErreurApi } from '../api/recrutementApi.js'
 
 const auth = useAuthStore()
@@ -22,9 +22,7 @@ const router = useRouter()
 
 const offres = ref([])
 const loading = ref(false)
-const saving = ref(false)
 const recherche = ref('')
-const formOuvert = ref(false)
 
 const peutGerer = computed(() => auth.estRh || auth.estDirection)
 
@@ -41,6 +39,7 @@ const offresFiltrees = computed(() => {
 async function chargerOffres() {
   loading.value = true
   try {
+    // Appel mis à jour avec le préfixe /recrutement
     offres.value = await api.get('/recrutement/offres')
   } catch (cause) {
     notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible de charger les offres.')
@@ -53,24 +52,19 @@ function voirDetail(offre) {
   router.push({ name: 'recrutement-offre-detail', params: { idOffre: offre.idOffre ?? offre.id } })
 }
 
-async function enregistrer(payload) {
-  saving.value = true
-  try {
-    await api.post('/recrutement/offres', payload)
-    formOuvert.value = false
-    notifications.succes('Offre créée.')
-    await chargerOffres()
-  } catch (cause) {
-    notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible d’enregistrer l’offre.')
-  } finally {
-    saving.value = false
-  }
+// Redirection vers la vue dédiée de saisie de l'offre
+function ouvrirFormulaireCreation() {
+  const query = route.query.idDemandePoste ? { idDemandePoste: route.query.idDemandePoste } : {}
+  router.push({ name: 'recrutement-offre-saisie', query })
 }
 
 onMounted(async () => {
   await chargerOffres()
-  // Arrivée depuis « Créer une offre » : ouvre directement le formulaire
-  if (route.query.idDemandePoste && peutGerer.value) formOuvert.value = true
+  // Si l'utilisateur arrive depuis « Créer une offre » (demandes acceptées), 
+  // on le redirige directement vers la page de saisie avec le paramètre en query
+  if (route.query.idDemandePoste && peutGerer.value) {
+    ouvrirFormulaireCreation()
+  }
 })
 </script>
 
@@ -83,7 +77,7 @@ onMounted(async () => {
       </div>
       <div class="flex flex-wrap gap-2">
         <PrimeButton label="Actualiser" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="chargerOffres" />
-        <PrimeButton v-if="peutGerer" label="Nouvelle offre" icon="pi pi-plus" @click="formOuvert = true" />
+        <PrimeButton v-if="peutGerer" label="Nouvelle offre" icon="pi pi-plus" @click="ouvrirFormulaireCreation" />
       </div>
     </header>
 
@@ -126,13 +120,5 @@ onMounted(async () => {
         </DataTable>
       </template>
     </Card>
-
-    <OffreForm
-      v-if="formOuvert"
-      :id-demande-poste="route.query.idDemandePoste ?? ''"
-      :saving="saving"
-      @save="enregistrer"
-      @fermer="formOuvert = false"
-    />
   </section>
 </template>
