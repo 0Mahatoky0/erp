@@ -14,16 +14,16 @@ const auth = useAuthStore()
 </script>
 
 <template>
-  <Toolbar class="app-toolbar border-noround border-x-0 border-top-0">
+  <Toolbar class="rounded-none border-x-0 border-t-0">
     <template #start>
-      <div class="flex align-items-center gap-3">
+      <div class="flex items-center gap-3">
         <h1 class="text-xl m-0">{{ titre }}</h1>
         <Tag :value="auth.role || 'Utilisateur'" severity="info" />
       </div>
     </template>
     <template #end>
-      <div class="flex align-items-center gap-3">
-        <span class="text-color-secondary hidden md:inline">
+      <div class="flex items-center gap-3">
+        <span class="text-muted-color hidden md:inline">
           {{ auth.profil?.departementNom || 'Tous departements' }}
         </span>
         <PrimeButton

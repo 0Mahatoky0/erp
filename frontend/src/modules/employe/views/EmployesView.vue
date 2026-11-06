@@ -1,4 +1,7 @@
 <script setup>
+import PrimeSelect from 'primevue/select'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
 import PrimeButton from 'primevue/button'
 import PrimeInputText from 'primevue/inputtext'
 import { onMounted, ref } from 'vue'
@@ -56,48 +59,62 @@ onMounted(charger)
 
 <template>
   <div>
-    <div class="page__entete">
+    <div class="flex flex-col gap-4 mb-5 md:flex-row md:items-start md:justify-between">
       <div>
         <h1>Employes</h1>
-        <p class="page__description">
+        <p class="mt-1 text-sm text-muted-color">
           Fiches des collaborateurs. Ces employes peuvent etre designes comme personnes remplacees
           dans une demande.
         </p>
       </div>
     </div>
 
-    <div class="barre-filtres">
-      <div class="champ champ--large">
-        <label class="champ__libelle" for="recherche-employe">Recherche</label>
-        <PrimeInputText
-          id="recherche-employe"
-          v-model="recherche"
-          class="saisie"
-          type="search"
-          placeholder="Nom, prenom ou matricule"
-          @keyup.enter="charger"
-        />
-      </div>
-      <div class="champ">
-        <label class="champ__libelle" for="service-employe">Service</label>
-        <select id="service-employe" v-model="filtreService" class="saisie" @change="charger">
-          <option value="">Tous les services</option>
-          <option v-for="service in services" :key="service.id" :value="service.id">{{ service.nom }}</option>
-        </select>
-      </div>
-      <div class="champ">
-        <label class="champ__libelle" for="statut-employe">Statut</label>
-        <select id="statut-employe" v-model="filtreStatut" class="saisie" @change="charger">
-          <option v-for="statut in STATUTS" :key="statut.valeur" :value="statut.valeur">{{ statut.libelle }}</option>
-        </select>
-      </div>
-      <PrimeButton class="bouton bouton--secondaire" @click="charger">Filtrer</PrimeButton>
-    </div>
+   <div class="flex flex-wrap items-end gap-3 mb-4">
+  <div class="flex flex-col gap-2 flex-1 min-w-60">
+    <label class="text-sm font-semibold text-muted-color" for="recherche-employe">Recherche</label>
+    <PrimeInputText
+      id="recherche-employe"
+      v-model="recherche"
+      class="w-full"
+      type="search"
+      placeholder="Nom, prenom ou matricule"
+      @keyup.enter="charger"
+    />
+  </div>
 
-    <section class="carte">
-      <div class="carte__entete"><h2>{{ employes.length }} employe(s)</h2></div>
+  <div class="flex flex-col gap-2 w-full sm:w-56">
+    <label class="text-sm font-semibold text-muted-color" for="service-employe">Service</label>
+    <PrimeSelect
+      id="service-employe"
+      v-model="filtreService"
+      class="w-full"
+      :options="[{ id: '', nom: 'Tous les services' }, ...services]"
+      option-label="nom"
+      option-value="id"
+      @change="charger"
+    />
+  </div>
 
-      <div v-if="chargement" class="chargement">Chargement des employes...</div>
+  <div class="flex flex-col gap-2 w-full sm:w-48">
+    <label class="text-sm font-semibold text-muted-color" for="statut-employe">Statut</label>
+    <PrimeSelect
+      id="statut-employe"
+      v-model="filtreStatut"
+      class="w-full"
+      :options="STATUTS"
+      option-label="libelle"
+      option-value="valeur"
+      @change="charger"
+    />
+  </div>
+
+  <PrimeButton label="Filtrer" icon="pi pi-filter" severity="secondary" variant="outlined" @click="charger" />
+</div>
+
+    <section class="rounded-lg border border-surface bg-surface-0 shadow-sm dark:bg-surface-900">
+      <div class="flex items-center justify-between gap-3 border-b border-surface p-4"><h2>{{ employes.length }} employe(s)</h2></div>
+
+      <div v-if="chargement" class="p-4 text-sm text-muted-color">Chargement des employes...</div>
 
       <EmptyState
         v-else-if="employes.length === 0"
@@ -105,35 +122,22 @@ onMounted(charger)
         message="Aucun employe ne correspond aux criteres selectionnes."
       />
 
-      <div v-else class="tableau-conteneur">
-        <table class="tableau">
-          <thead>
-            <tr>
-              <th>Matricule</th>
-              <th>Nom</th>
-              <th>Poste</th>
-              <th>Service</th>
-              <th>Contact</th>
-              <th>Date d'embauche</th>
-              <th>Statut</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="employe in employes" :key="employe.id">
-              <td class="mono">{{ employe.matricule }}</td>
-              <td style="font-weight: 500">{{ employe.nom }} {{ employe.prenom }}</td>
-              <td>{{ employe.poste || '—' }}</td>
-              <td>{{ employe.service || '—' }}</td>
-              <td>
-                <div>{{ employe.email || '—' }}</div>
-                <div class="texte-discret" style="font-size: 12px">{{ employe.telephone || '' }}</div>
-              </td>
-              <td class="mono">{{ formatDate(employe.dateEmbauche) }}</td>
-              <td><StatusBadge :valeur="employe.statut" /></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <DataTable v-else :value="employes" striped-rows paginator :rows="10" responsive-layout="scroll">
+        <Column field="matricule" header="Matricule" />
+        <Column header="Nom">
+          <template #body="{ data }"><span class="font-medium">{{ data.nom }} {{ data.prenom }}</span></template>
+        </Column>
+        <Column header="Poste"><template #body="{ data }">{{ data.poste || '—' }}</template></Column>
+        <Column header="Service"><template #body="{ data }">{{ data.service || '—' }}</template></Column>
+        <Column header="Contact">
+          <template #body="{ data }">
+            <div>{{ data.email || '—' }}</div>
+            <div class="text-xs text-muted-color">{{ data.telephone || '' }}</div>
+          </template>
+        </Column>
+        <Column header="Date d'embauche"><template #body="{ data }">{{ formatDate(data.dateEmbauche) }}</template></Column>
+        <Column header="Statut"><template #body="{ data }"><StatusBadge :valeur="data.statut" /></template></Column>
+      </DataTable>
     </section>
   </div>
 </template>

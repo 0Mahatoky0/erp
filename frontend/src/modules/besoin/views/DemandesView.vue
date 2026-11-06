@@ -1,4 +1,7 @@
 <script setup>
+import PrimeSelect from 'primevue/select'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
 import PrimeButton from 'primevue/button'
 import PrimeInputText from 'primevue/inputtext'
 import { computed, onMounted, ref } from 'vue'
@@ -57,47 +60,62 @@ const totalBudget = computed(() =>
 
 <template>
   <div>
-    <div class="page__entete">
+    <div class="flex flex-col gap-4 mb-5 md:flex-row md:items-start md:justify-between">
       <div>
         <h1>Demandes de recrutement</h1>
-        <p class="page__description">
-          <template v-if="auth.estManager">Vous visualisez uniquement vos propres demandes.</template>
+        <p class="mt-1 text-sm text-muted-color">
+          <template v-if="auth.estManager"
+            >Vous visualisez uniquement vos propres demandes.</template
+          >
           <template v-else>Vous visualisez l'ensemble des demandes de l'entreprise.</template>
         </p>
       </div>
-      <RouterLink class="bouton bouton--principal" :to="{ name: 'demande-nouvelle' }">Nouvelle demande</RouterLink>
+      <PrimeButton
+        as="router-link"
+        :to="{ name: 'demande-nouvelle' }"
+        label="Nouvelle demande"
+        icon="pi pi-plus"
+      />
     </div>
 
-    <div class="barre-filtres">
-      <div class="champ champ--large">
-        <label class="champ__libelle" for="recherche">Recherche</label>
+    <div class="flex flex-wrap items-end gap-3 mb-4">
+      <div class="flex flex-col gap-2 mb-4 flex-1 min-w-60">
+        <label class="text-sm font-semibold text-muted-color" for="recherche">Recherche</label>
         <PrimeInputText
           id="recherche"
           v-model="recherche"
-          class="saisie"
+          class="w-full"
           type="search"
           placeholder="Motif ou demandeur"
           @keyup.enter="charger"
         />
       </div>
-      <div class="champ">
-        <label class="champ__libelle" for="statut">Statut</label>
-        <select id="statut" v-model="statutFiltre" class="saisie" @change="charger">
-          <option v-for="statut in STATUTS" :key="statut.valeur" :value="statut.valeur">
-            {{ statut.libelle }}
-          </option>
-        </select>
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="statut">Statut</label>
+        <PrimeSelect
+          id="statut"
+          v-model="statutFiltre"
+          class="w-full"
+          :options="STATUTS"
+          option-label="libelle"
+          option-value="valeur"
+          @change="charger"
+        />
       </div>
-      <PrimeButton class="bouton bouton--secondaire" @click="charger">Filtrer</PrimeButton>
+      <PrimeButton
+        class="inline-flex items-center justify-center gap-2 border border-surface"
+        @click="charger"
+        >Filtrer</PrimeButton
+      >
     </div>
 
-    <section class="carte">
-      <div class="carte__entete">
+    <section class="rounded-lg border border-surface bg-surface-0 shadow-sm dark:bg-surface-900">
+      <div class="flex items-center justify-between gap-3 border-b border-surface p-4">
         <h2>{{ demandes.length }} demande(s)</h2>
-        <span class="texte-secondaire">Budget total : {{ formatMontant(totalBudget) }}</span>
+        <span class="text-secondary-color">Budget total : {{ formatMontant(totalBudget) }}</span>
       </div>
 
-      <div v-if="chargement" class="chargement">Chargement des demandes...</div>
+      <div v-if="chargement" class="p-4 text-sm text-muted-color">Chargement des demandes...</div>
 
       <EmptyState
         v-else-if="demandes.length === 0"
@@ -105,46 +123,45 @@ const totalBudget = computed(() =>
         message="Aucune demande ne correspond aux criteres selectionnes."
       />
 
-      <div v-else class="tableau-conteneur">
-        <table class="tableau">
-          <thead>
-            <tr>
-              <th>Reference</th>
-              <th>Motif</th>
-              <th>Demandeur</th>
-              <th>Date souhaitee</th>
-              <th>Lignes</th>
-              <th>Budget</th>
-              <th>Statut</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="demande in demandes" :key="demande.id">
-              <td class="mono">DEM-{{ String(demande.id).padStart(4, '0') }}</td>
-              <td>{{ demande.motif }}</td>
-              <td>{{ demande.demandeur }}</td>
-              <td class="mono">{{ formatDate(demande.dateSouhaitee) }}</td>
-              <td>
-                {{ demande.nombreLignes }}
-                <span class="texte-discret" style="font-size: 12px">
-                  ({{ demande.lignesAcceptees }} acceptee(s), {{ demande.lignesEnValidation }} en cours)
-                </span>
-              </td>
-              <td class="mono">{{ formatMontant(demande.budgetTotal) }}</td>
-              <td><StatusBadge :valeur="demande.statut" /></td>
-              <td class="tableau__actions">
-                <RouterLink
-                  class="bouton bouton--secondaire bouton--petit"
-                  :to="{ name: 'demande-detail', params: { id: demande.id } }"
-                >
-                  Ouvrir
-                </RouterLink>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        v-else
+        :value="demandes"
+        striped-rows
+        paginator
+        :rows="10"
+        responsive-layout="scroll"
+      >
+        <Column header="Reference">
+          <template #body="{ data }">DEM-{{ String(data.id).padStart(4, '0') }}</template>
+        </Column>
+        <Column field="motif" header="Motif" />
+        <Column field="demandeur" header="Demandeur" />
+        <Column header="Date souhaitee">
+          <template #body="{ data }">{{ formatDate(data.dateSouhaitee) }}</template>
+        </Column>
+        <Column header="Lignes">
+          <template #body="{ data }">
+            {{ data.nombreLignes }}
+            <span class="text-xs text-muted-color"
+              >({{ data.lignesAcceptees }} acceptee(s), {{ data.lignesEnValidation }} en
+              cours)</span
+            >
+          </template>
+        </Column>
+        <Column header="Budget">
+          <template #body="{ data }">{{ formatMontant(data.budgetTotal) }}</template>
+        </Column>
+        <Column header="Statut">
+          <template #body="{ data }"><StatusBadge :valeur="data.statut" /></template>
+        </Column>
+        <Column header="">
+          <template #body="{ data }">
+            <RouterLink :to="{ name: 'demande-detail', params: { id: data.id } }">
+              <PrimeButton label="Ouvrir" severity="secondary" size="small" outlined />
+            </RouterLink>
+          </template>
+        </Column>
+      </DataTable>
     </section>
   </div>
 </template>

@@ -2,6 +2,7 @@
 import PrimeButton from 'primevue/button'
 import PrimeInputText from 'primevue/inputtext'
 import PrimeTextarea from 'primevue/textarea'
+import Message from 'primevue/message'
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { recrutementApi as api, ErreurApi } from '@/modules/recrutement/api/recrutementApi'
@@ -76,87 +77,71 @@ onMounted(chargerOffres)
 </script>
 
 <template>
-  <main class="accueil">
-    <header class="hero">
+  <main class="min-h-screen bg-surface-50 p-4 text-color md:p-8 dark:bg-surface-950">
+    <header class="mx-auto mb-10 flex w-full max-w-6xl flex-col items-start justify-between gap-8 border-b border-surface py-8 md:flex-row md:items-end">
       <div>
-        <p class="sur-titre">ERP TOVO · ESPACE CANDIDAT</p>
-        <h1>Trouvez le poste qui vous correspond.</h1>
-        <p class="hero__texte">Consultez nos opportunites et envoyez votre candidature sans creer de compte.</p>
+        <p class="text-xs font-semibold uppercase tracking-wider text-primary">ERP TOVO · ESPACE CANDIDAT</p>
+        <h1 class="my-2 max-w-2xl text-4xl font-bold tracking-tight md:text-5xl">Trouvez le poste qui vous correspond.</h1>
+        <p class="max-w-2xl text-base text-muted-color">Consultez nos opportunites et envoyez votre candidature sans creer de compte.</p>
       </div>
-      <RouterLink class="admin-link" :to="{ name: 'connexion' }">Connexion administrateur</RouterLink>
+      <RouterLink class="shrink-0 rounded-md border border-surface bg-surface-0 px-4 py-2 font-semibold text-primary transition-colors hover:bg-surface-100" :to="{ name: 'connexion' }">Connexion administrateur</RouterLink>
     </header>
 
-    <section v-if="offreSelectionnee" class="candidature-panel">
-      <div class="section-heading">
+    <section v-if="offreSelectionnee" class="mx-auto w-full max-w-6xl rounded-xl border border-surface bg-surface-0 p-6 shadow-sm dark:bg-surface-900">
+      <div class="mb-5 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <p class="sur-titre">Candidature</p>
-          <h2>{{ offreSelectionnee.titre }}</h2>
-          <p>{{ offreSelectionnee.reference }} · {{ offreSelectionnee.lieuTravail || 'Lieu a definir' }}</p>
+          <p class="text-xs font-semibold uppercase tracking-wider text-primary">Candidature</p>
+          <h2 class="mt-1 text-2xl font-bold">{{ offreSelectionnee.titre }}</h2>
+          <p class="text-muted-color">{{ offreSelectionnee.reference }} · {{ offreSelectionnee.lieuTravail || 'Lieu a definir' }}</p>
         </div>
-        <PrimeButton class="button button--secondary" @click="fermerCandidature">Retour aux offres</PrimeButton>
+        <PrimeButton label="Retour aux offres" outlined severity="secondary" @click="fermerCandidature" />
       </div>
-      <p v-if="message" class="success" role="status">{{ message }}</p>
-      <p v-if="erreur" class="error" role="alert">{{ erreur }}</p>
-      <form class="form-grid" @submit.prevent="envoyerCandidature">
-        <label>Nom<PrimeInputText v-model="formulaire.nom" required maxlength="100" autocomplete="family-name" /></label>
-        <label>Prénom<PrimeInputText v-model="formulaire.prenom" required maxlength="100" autocomplete="given-name" /></label>
-        <label>E-mail<PrimeInputText v-model="formulaire.email" required type="email" maxlength="255" autocomplete="email" /></label>
-        <label>Téléphone<PrimeInputText v-model="formulaire.telephone" maxlength="30" autocomplete="tel" /></label>
-        <label class="full">Adresse<PrimeInputText v-model="formulaire.adresse" autocomplete="street-address" /></label>
-        <label class="full">Message de motivation<PrimeTextarea v-model="formulaire.messageCandidat" rows="5" /></label>
-        <div class="full form-actions">
-          <PrimeButton type="submit" class="button" :disabled="envoi">{{ envoi ? 'Envoi...' : 'Envoyer ma candidature' }}</PrimeButton>
+      <Message v-if="message" severity="success" :closable="false" role="status">{{ message }}</Message>
+      <p v-if="erreur" class="text-sm text-red-600" role="alert">{{ erreur }}</p>
+      <form class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" @submit.prevent="envoyerCandidature">
+        <label class="flex flex-col gap-2 font-semibold">Nom<PrimeInputText v-model="formulaire.nom" required maxlength="100" autocomplete="family-name" /></label>
+        <label class="flex flex-col gap-2 font-semibold">Prénom<PrimeInputText v-model="formulaire.prenom" required maxlength="100" autocomplete="given-name" /></label>
+        <label class="flex flex-col gap-2 font-semibold">E-mail<PrimeInputText v-model="formulaire.email" required type="email" maxlength="255" autocomplete="email" /></label>
+        <label class="flex flex-col gap-2 font-semibold">Téléphone<PrimeInputText v-model="formulaire.telephone" maxlength="30" autocomplete="tel" /></label>
+        <label class="flex flex-col gap-2 font-semibold md:col-span-2">Adresse<PrimeInputText v-model="formulaire.adresse" autocomplete="street-address" /></label>
+        <label class="flex flex-col gap-2 font-semibold md:col-span-2">Message de motivation<PrimeTextarea v-model="formulaire.messageCandidat" rows="5" /></label>
+        <div class="flex w-full flex-wrap gap-2">
+          <PrimeButton type="submit" :label="envoi ? 'Envoi...' : 'Envoyer ma candidature'" :disabled="envoi" />
         </div>
       </form>
     </section>
 
-    <section v-else class="offres">
-      <div class="section-heading">
+    <section v-else class="mx-auto w-full max-w-6xl">
+      <div class="mb-5 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p class="sur-titre">Opportunites ouvertes</p>
-          <h2>Nos offres d’emploi</h2>
+          <p class="text-xs font-semibold uppercase tracking-wider text-primary">Opportunites ouvertes</p>
+          <h2 class="mt-1 text-2xl font-bold">Nos offres d’emploi</h2>
         </div>
-        <PrimeButton class="button button--secondary" @click="chargerOffres">Actualiser</PrimeButton>
+        <PrimeButton label="Actualiser" icon="pi pi-refresh" outlined severity="secondary" @click="chargerOffres" />
       </div>
-      <p v-if="erreur" class="error" role="alert">{{ erreur }}</p>
+      <p v-if="erreur" class="text-sm text-red-600" role="alert">{{ erreur }}</p>
       <p v-if="chargement">Chargement des offres...</p>
-      <div v-else class="offres-grid">
-        <article v-for="offre in offres" :key="offre.idOffre" class="offre-card">
-          <div class="offre-card__reference">{{ offre.reference }}</div>
-          <h3>{{ offre.titre }}</h3>
-          <p class="offre-card__meta">{{ offre.lieuTravail || 'Lieu a definir' }} · {{ offre.typeContrat || 'Contrat a definir' }}</p>
-          <p>{{ offre.description }}</p>
-          <div class="offre-card__footer">
-            <span>Profil : {{ offre.profilRecherche }}</span>
-            <PrimeButton class="button" @click="ouvrirCandidature(offre)">Postuler</PrimeButton>
+      <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <article v-for="offre in offres" :key="offre.idOffre" class="flex min-h-full flex-col rounded-xl border border-surface bg-surface-0 p-5 shadow-sm transition-shadow hover:shadow-md dark:bg-surface-900">
+          <div class="text-xs font-semibold uppercase tracking-wide text-muted-color">{{ offre.reference }}</div>
+          <h3 class="my-2 text-lg font-bold">{{ offre.titre }}</h3>
+          <p class="flex flex-wrap gap-3 text-sm text-muted-color">{{ offre.lieuTravail || 'Lieu a definir' }} · {{ offre.typeContrat || 'Contrat a definir' }}</p>
+          <p class="flex-1 text-muted-color">{{ offre.description }}</p>
+          <div class="mt-4 flex items-center justify-between gap-3 border-t border-surface pt-4">
+            <span class="text-sm text-muted-color">Profil : {{ offre.profilRecherche }}</span>
+            <PrimeButton label="Postuler" @click="ouvrirCandidature(offre)" />
           </div>
         </article>
-        <div v-if="!offres.length" class="empty">
+        <div v-if="!offres.length" class="col-span-full py-12 text-center text-muted-color">
           <h3>Aucune offre ouverte pour le moment</h3>
           <p>Revenez bientôt pour découvrir nos nouvelles opportunités.</p>
         </div>
       </div>
     </section>
 
-    <footer class="footer">
+    <footer class="mx-auto flex w-full max-w-6xl justify-center gap-1 px-4 py-8 text-sm text-muted-color">
       <span>Vous êtes membre de l’équipe ?</span>
       <RouterLink :to="{ name: 'connexion' }">Accéder à l’espace administrateur</RouterLink>
     </footer>
   </main>
 </template>
-
-<style scoped>
-.accueil { min-height: 100vh; background: #f8fafc; color: #172033; padding: 2rem clamp(1rem, 5vw, 5rem); }
-.hero { display: flex; justify-content: space-between; align-items: end; gap: 2rem; max-width: 1200px; margin: 0 auto 3rem; padding: 2rem 0; }
-.sur-titre { color: #4f46e5; font-size: .78rem; font-weight: 800; letter-spacing: .12em; margin: 0 0 .7rem; }
-h1 { max-width: 700px; margin: 0; font-size: clamp(2.3rem, 6vw, 4.8rem); line-height: 1.05; } h2 { margin: 0; font-size: 2rem; } h3 { margin: .5rem 0; font-size: 1.3rem; }
-.hero__texte { color: #64748b; font-size: 1.1rem; } .admin-link, .footer a { color: #4f46e5; font-weight: 700; text-decoration: none; }
-.offres, .candidature-panel { max-width: 1200px; margin: 0 auto; } .candidature-panel { padding: 2rem; border-radius: 1.2rem; background: white; box-shadow: 0 15px 45px rgba(15, 23, 42, .08); }
-.section-heading { display: flex; justify-content: space-between; align-items: end; gap: 1rem; margin-bottom: 1.5rem; } .offres-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.2rem; }
-.offre-card { display: flex; flex-direction: column; min-height: 290px; padding: 1.4rem; border: 1px solid #e2e8f0; border-radius: 1rem; background: white; box-shadow: 0 8px 25px rgba(15, 23, 42, .04); }
-.offre-card__reference { color: #4f46e5; font-size: .8rem; font-weight: 800; letter-spacing: .08em; } .offre-card__meta { color: #64748b; font-size: .9rem; } .offre-card__footer { display: flex; align-items: end; gap: 1rem; justify-content: space-between; margin-top: auto; } .offre-card__footer span { color: #475569; font-size: .85rem; }
-.button { border: 0; border-radius: .6rem; padding: .75rem 1rem; background: #4f46e5; color: white; cursor: pointer; font: inherit; font-weight: 700; } .button:disabled { cursor: wait; opacity: .6; } .button--secondary { background: #eef2ff; color: #4338ca; }
-.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; } label { display: flex; flex-direction: column; gap: .4rem; font-weight: 700; } input, textarea { width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: .5rem; padding: .7rem; font: inherit; } .full { grid-column: 1 / -1; } .form-actions { display: flex; justify-content: end; }
-.error { color: #b91c1c; } .success { padding: .8rem 1rem; border-radius: .5rem; background: #dcfce7; color: #166534; } .empty { grid-column: 1 / -1; padding: 3rem; border: 1px dashed #cbd5e1; border-radius: 1rem; text-align: center; color: #64748b; } .footer { display: flex; justify-content: center; gap: .5rem; margin: 5rem auto 1rem; color: #64748b; }
-@media (max-width: 700px) { .hero, .section-heading, .footer { display: block; } .admin-link { display: inline-block; margin-top: 1rem; } .section-heading .button { margin-top: 1rem; } .form-grid { display: block; } label { margin-bottom: 1rem; } .offre-card__footer { align-items: start; flex-direction: column; } }
-</style>

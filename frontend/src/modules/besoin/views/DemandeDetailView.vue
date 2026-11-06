@@ -1,4 +1,7 @@
 <script setup>
+import PrimeSelect from 'primevue/select'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
 import PrimeButton from 'primevue/button'
 import PrimeInputText from 'primevue/inputtext'
 import PrimeTextarea from 'primevue/textarea'
@@ -184,19 +187,19 @@ async function enregistrerCorrection() {
 </script>
 
 <template>
-  <div v-if="chargement" class="chargement">Chargement de la demande...</div>
+  <div v-if="chargement" class="p-4 text-sm text-muted-color">Chargement de la demande...</div>
 
   <div v-else-if="demande">
-    <div class="fil-ariane">
+    <div class="mb-4 text-sm text-muted-color">
       <RouterLink :to="{ name: 'demandes' }">Demandes</RouterLink>
       <span>/</span>
-      <span class="mono">DEM-{{ String(demande.id).padStart(4, '0') }}</span>
+      <span class="tabular-nums">DEM-{{ String(demande.id).padStart(4, '0') }}</span>
     </div>
 
-    <div class="page__entete">
+    <div class="flex flex-col gap-4 mb-5 md:flex-row md:items-start md:justify-between">
       <div>
         <h1>{{ demande.motif }}</h1>
-        <p class="page__description">
+        <p class="mt-1 text-sm text-muted-color">
           Demandee par {{ demande.demandeur }} · creation le {{ formatDateHeure(demande.dateCreation) }}
         </p>
       </div>
@@ -204,7 +207,7 @@ async function enregistrerCorrection() {
         <StatusBadge :valeur="demande.statut" />
         <PrimeButton
           v-if="peutSoumettre"
-          class="bouton bouton--principal"
+          class="inline-flex items-center justify-center gap-2 bg-primary text-primary-contrast"
 
           @click="soumettre"
         >
@@ -213,25 +216,25 @@ async function enregistrerCorrection() {
       </div>
     </div>
 
-    <div class="grille grille--3" style="margin-bottom: 16px">
-      <section class="carte">
-        <div class="carte__corps">
-          <div class="liste-definitions" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
+    <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style="margin-bottom: 16px">
+      <section class="rounded-lg border border-surface bg-surface-0 shadow-sm dark:bg-surface-900">
+        <div class="p-4">
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-2" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
             <div>
-              <div class="liste-definitions__libelle">Date souhaitee</div>
-              <div class="liste-definitions__valeur">{{ formatDate(demande.dateSouhaitee) }}</div>
+              <div class="text-sm text-muted-color">Date souhaitee</div>
+              <div class="font-medium">{{ formatDate(demande.dateSouhaitee) }}</div>
             </div>
             <div>
-              <div class="liste-definitions__libelle">Date de soumission</div>
-              <div class="liste-definitions__valeur">{{ formatDateHeure(demande.dateSoumission) }}</div>
+              <div class="text-sm text-muted-color">Date de soumission</div>
+              <div class="font-medium">{{ formatDateHeure(demande.dateSoumission) }}</div>
             </div>
             <div>
-              <div class="liste-definitions__libelle">Lignes</div>
-              <div class="liste-definitions__valeur">{{ totalLignes }}</div>
+              <div class="text-sm text-muted-color">Lignes</div>
+              <div class="font-medium">{{ totalLignes }}</div>
             </div>
             <div>
-              <div class="liste-definitions__libelle">Budget total</div>
-              <div class="liste-definitions__valeur">
+              <div class="text-sm text-muted-color">Budget total</div>
+              <div class="font-medium">
                 {{ formatMontant(demande.lignes.reduce((s, l) => s + Number(l.budgetEstime || 0), 0)) }}
               </div>
             </div>
@@ -239,24 +242,24 @@ async function enregistrerCorrection() {
         </div>
       </section>
 
-      <section class="carte" style="grid-column: span 2">
-        <div class="carte__corps">
-          <div class="liste-definitions">
+      <section class="rounded-lg border border-surface bg-surface-0 shadow-sm dark:bg-surface-900" style="grid-column: span 2">
+        <div class="p-4">
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
-              <div class="liste-definitions__libelle">Lignes acceptees</div>
-              <div class="liste-definitions__valeur">
+              <div class="text-sm text-muted-color">Lignes acceptees</div>
+              <div class="font-medium">
                 {{ demande.lignes.filter((l) => l.statut === 'ACCEPTEE').length }}
               </div>
             </div>
             <div>
-              <div class="liste-definitions__libelle">En cours de validation</div>
-              <div class="liste-definitions__valeur">
+              <div class="text-sm text-muted-color">En cours de validation</div>
+              <div class="font-medium">
                 {{ demande.lignes.filter((l) => ['EN_ATTENTE_RH', 'EN_ATTENTE_FINANCE', 'EN_ATTENTE_DIRECTION'].includes(l.statut)).length }}
               </div>
             </div>
             <div>
-              <div class="liste-definitions__libelle">A corriger</div>
-              <div class="liste-definitions__valeur">
+              <div class="text-sm text-muted-color">A corriger</div>
+              <div class="font-medium">
                 {{ demande.lignes.filter((l) => l.statut === 'A_CORRIGER').length }}
               </div>
             </div>
@@ -265,28 +268,28 @@ async function enregistrerCorrection() {
       </section>
     </div>
 
-    <div v-if="peutCorriger" class="carte carte--accent" style="margin-bottom: 14px">
-      <div class="carte__corps">
+    <div v-if="peutCorriger" class="rounded-lg border border-surface bg-surface-0 shadow-sm dark:bg-surface-900 border-primary-200 bg-primary-50 dark:border-primary-800 dark:bg-primary-950" style="margin-bottom: 14px">
+      <div class="p-4">
         <strong>Des lignes vous ont ete renvoyees a corriger.</strong>
         Corrigez-les puis resoumettez-les : elles reprendront le circuit a l'etape concernee.
       </div>
     </div>
 
-    <div class="onglets">
-      <PrimeButton class="onglet" :class="{ actif: onglet === 'lignes' }" @click="onglet = 'lignes'">
+    <div class="flex flex-wrap gap-2 border-b border-surface">
+      <PrimeButton class="rounded-t-lg px-3 py-2 text-sm" :class="{ 'bg-highlight text-primary': onglet === 'lignes' }" @click="onglet = 'lignes'">
         Lignes ({{ totalLignes }})
       </PrimeButton>
-      <PrimeButton class="onglet" :class="{ actif: onglet === 'historique' }" @click="onglet = 'historique'">
+      <PrimeButton class="rounded-t-lg px-3 py-2 text-sm" :class="{ 'bg-highlight text-primary': onglet === 'historique' }" @click="onglet = 'historique'">
         Journal des statuts
       </PrimeButton>
     </div>
 
     <template v-if="onglet === 'lignes'">
-      <section v-for="ligne in demande.lignes" :key="ligne.id" class="carte" style="margin-bottom: 14px">
-        <div class="carte__entete">
+      <section v-for="ligne in demande.lignes" :key="ligne.id" class="rounded-lg border border-surface bg-surface-0 shadow-sm dark:bg-surface-900" style="margin-bottom: 14px">
+        <div class="flex items-center justify-between gap-3 border-b border-surface p-4">
           <div>
             <h2>{{ ligne.intituleDemande }}</h2>
-            <p class="texte-discret" style="margin: 2px 0 0; font-size: 12.5px">
+            <p class="text-muted-color" style="margin: 2px 0 0; font-size: 12.5px">
               {{ ligne.service }} · {{ libelle(ligne.typeBesoin) }}
               <template v-if="ligne.typeRemplacement"> · {{ libelle(ligne.typeRemplacement) }}</template>
               · episode {{ ligne.episode }}
@@ -298,56 +301,56 @@ async function enregistrerCorrection() {
           </div>
         </div>
 
-        <div class="carte__corps">
-          <div class="liste-definitions">
+        <div class="p-4">
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
-              <div class="liste-definitions__libelle">Effectif</div>
-              <div class="liste-definitions__valeur">{{ ligne.effectif }}</div>
+              <div class="text-sm text-muted-color">Effectif</div>
+              <div class="font-medium">{{ ligne.effectif }}</div>
             </div>
             <div>
-              <div class="liste-definitions__libelle">Budget estime</div>
-              <div class="liste-definitions__valeur">{{ formatMontant(ligne.budgetEstime) }}</div>
+              <div class="text-sm text-muted-color">Budget estime</div>
+              <div class="font-medium">{{ formatMontant(ligne.budgetEstime) }}</div>
             </div>
             <div>
-              <div class="liste-definitions__libelle">Salaire estime</div>
-              <div class="liste-definitions__valeur">
+              <div class="text-sm text-muted-color">Salaire estime</div>
+              <div class="font-medium">
                 {{ formatMontant(ligne.salaireMinEstime) }} — {{ formatMontant(ligne.salaireMaxEstime) }}
               </div>
             </div>
             <div>
-              <div class="liste-definitions__libelle">Poste rattache</div>
-              <div class="liste-definitions__valeur">{{ ligne.poste || 'A creer a l\'acceptation' }}</div>
+              <div class="text-sm text-muted-color">Poste rattache</div>
+              <div class="font-medium">{{ ligne.poste || 'A creer a l\'acceptation' }}</div>
             </div>
             <div>
-              <div class="liste-definitions__libelle">Employe remplace</div>
-              <div class="liste-definitions__valeur">
+              <div class="text-sm text-muted-color">Employe remplace</div>
+              <div class="font-medium">
                 {{ ligne.employeRemplace ? `${ligne.employeRemplace} (${ligne.matriculeRemplace || '—'})` : '—' }}
               </div>
             </div>
             <div>
-              <div class="liste-definitions__libelle">Periode de remplacement</div>
-              <div class="liste-definitions__valeur">
+              <div class="text-sm text-muted-color">Periode de remplacement</div>
+              <div class="font-medium">
                 {{ ligne.dateDebutRemplacement ? `${formatDate(ligne.dateDebutRemplacement)} → ${formatDate(ligne.dateFinRemplacement)}` : '—' }}
               </div>
             </div>
             <div>
-              <div class="liste-definitions__libelle">Profil recherche</div>
-              <div class="liste-definitions__valeur">{{ ligne.profilRecherche || '—' }}</div>
+              <div class="text-sm text-muted-color">Profil recherche</div>
+              <div class="font-medium">{{ ligne.profilRecherche || '—' }}</div>
             </div>
             <div>
-              <div class="liste-definitions__libelle">Description</div>
-              <div class="liste-definitions__valeur">{{ ligne.descriptionPoste || '—' }}</div>
+              <div class="text-sm text-muted-color">Description</div>
+              <div class="font-medium">{{ ligne.descriptionPoste || '—' }}</div>
             </div>
             <div>
-              <div class="liste-definitions__libelle">Motif du remplacement</div>
-              <div class="liste-definitions__valeur">{{ ligne.motifRemplacement || '—' }}</div>
+              <div class="text-sm text-muted-color">Motif du remplacement</div>
+              <div class="font-medium">{{ ligne.motifRemplacement || '—' }}</div>
             </div>
           </div>
         </div>
 
-        <div class="carte__pied" style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap">
+        <div class="border-t border-surface bg-surface-50 p-4 dark:bg-surface-800" style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap">
           <details style="flex: 1">
-            <summary class="texte-secondaire" style="cursor: pointer; font-size: 13px">
+            <summary class="text-secondary-color" style="cursor: pointer; font-size: 13px">
               Historique des decisions ({{ ligne.validations.length }})
             </summary>
             <div style="margin-top: 10px">
@@ -358,7 +361,7 @@ async function enregistrerCorrection() {
           <div style="display: flex; gap: 8px">
             <PrimeButton
               v-if="ligne.statut === 'A_CORRIGER' && estDemandeur"
-              class="bouton bouton--secondaire bouton--petit"
+              class="inline-flex items-center justify-center gap-2 border border-surface !text-sm"
 
               @click="ouvrirCorrection(ligne)"
             >
@@ -366,7 +369,7 @@ async function enregistrerCorrection() {
             </PrimeButton>
             <PrimeButton
               v-if="ligne.statut === 'A_CORRIGER' && estDemandeur"
-              class="bouton bouton--principal bouton--petit"
+              class="inline-flex items-center justify-center gap-2 bg-primary text-primary-contrast !text-sm"
 
               @click="resoumettre(ligne)"
             >
@@ -374,7 +377,7 @@ async function enregistrerCorrection() {
             </PrimeButton>
             <PrimeButton
               v-if="['EN_ATTENTE_RH', 'EN_ATTENTE_FINANCE', 'EN_ATTENTE_DIRECTION'].includes(ligne.statut) && peutValider(ligne)"
-              class="bouton bouton--secondaire bouton--petit"
+              class="inline-flex items-center justify-center gap-2 border border-surface !text-sm"
 
               @click="ouvrirDecision(ligne)"
             >
@@ -382,7 +385,7 @@ async function enregistrerCorrection() {
             </PrimeButton>
             <PrimeButton
               v-if="estDemandeur && ['EN_ATTENTE_RH', 'EN_ATTENTE_FINANCE', 'EN_ATTENTE_DIRECTION', 'A_CORRIGER'].includes(ligne.statut)"
-              class="bouton bouton--fantome bouton--petit"
+              class="inline-flex items-center justify-center gap-2 text-primary !text-sm"
 
               @click="annulerLigne(ligne)"
             >
@@ -393,32 +396,18 @@ async function enregistrerCorrection() {
       </section>
     </template>
 
-    <section v-else class="carte">
-      <div class="carte__corps">
-        <div v-if="demande.historique.length === 0" class="etat-vide">Aucun changement de statut enregistre.</div>
-        <div v-else class="tableau-conteneur">
-          <table class="tableau tableau--compacte">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Ligne</th>
-                <th>Ancien statut</th>
-                <th>Nouveau statut</th>
-                <th>Utilisateur</th>
-                <th>Commentaire</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(historique, index) in demande.historique" :key="index">
-                <td class="mono">{{ formatDateHeure(historique.dateAction) }}</td>
-                <td class="mono">{{ historique.idDemandePoste }}</td>
-                <td><StatusBadge :valeur="historique.ancienStatut" /></td>
-                <td><StatusBadge :valeur="historique.nouveauStatut" /></td>
-                <td>{{ historique.utilisateur || '—' }}</td>
-                <td>{{ historique.commentaire || '—' }}</td>
-              </tr>
-            </tbody>
-          </table>
+    <section v-else class="rounded-lg border border-surface bg-surface-0 shadow-sm dark:bg-surface-900">
+      <div class="p-4">
+        <div v-if="demande.historique.length === 0" class="rounded-lg border border-dashed border-surface p-6 text-center text-muted-color">Aucun changement de statut enregistre.</div>
+        <div v-else class="overflow-x-auto">
+             <DataTable :value="demande.historique" striped-rows size="small" responsive-layout="scroll">
+               <Column header="Date"><template #body="{ data }">{{ formatDateHeure(data.dateAction) }}</template></Column>
+               <Column field="idDemandePoste" header="Ligne" />
+               <Column header="Ancien statut"><template #body="{ data }"><StatusBadge :valeur="data.ancienStatut" /></template></Column>
+               <Column header="Nouveau statut"><template #body="{ data }"><StatusBadge :valeur="data.nouveauStatut" /></template></Column>
+               <Column header="Utilisateur"><template #body="{ data }">{{ data.utilisateur || '—' }}</template></Column>
+               <Column header="Commentaire"><template #body="{ data }">{{ data.commentaire || '—' }}</template></Column>
+             </DataTable>
         </div>
       </div>
     </section>
@@ -430,36 +419,34 @@ async function enregistrerCorrection() {
       :fermable="!enregistrement"
       @fermer="action = null"
     >
-      <div class="champ">
-        <label class="champ__libelle" for="decision">Decision</label>
-        <select id="decision" v-model="decision" class="saisie">
-          <option v-for="item in DECISIONS" :key="item.valeur" :value="item.valeur">{{ item.libelle }}</option>
-        </select>
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="decision">Decision</label>
+        <PrimeSelect id="decision" v-model="decision" class="w-full" :options="DECISIONS" option-label="libelle" option-value="valeur" />
       </div>
 
-      <div v-if="action.etapeCourante === 'FINANCE'" class="champ">
-        <label class="champ__libelle" for="montantVerifie">Montant verifie (Ar)</label>
+      <div v-if="action.etapeCourante === 'FINANCE'" class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="montantVerifie">Montant verifie (Ar)</label>
         <PrimeInputText
           id="montantVerifie"
           v-model.number="montantVerifie"
-          class="saisie"
+          class="w-full"
           type="number"
           min="0"
           step="1000"
           :placeholder="String(action.budgetEstime)"
         />
-        <span class="champ__aide">Doit correspondre au montant soumis ({{ formatMontant(action.budgetEstime) }}).</span>
+        <span class="text-xs text-muted-color">Doit correspondre au montant soumis ({{ formatMontant(action.budgetEstime) }}).</span>
       </div>
 
-      <div class="champ">
-        <label class="champ__libelle" for="commentaire">Commentaire</label>
-        <PrimeTextarea id="commentaire" v-model="commentaire" class="saisie" rows="3" />
-        <span class="champ__aide">Le commentaire est conserve dans l'historique de la ligne.</span>
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="commentaire">Commentaire</label>
+        <PrimeTextarea id="commentaire" v-model="commentaire" class="w-full" rows="3" />
+        <span class="text-xs text-muted-color">Le commentaire est conserve dans l'historique de la ligne.</span>
       </div>
 
       <template #actions>
-        <PrimeButton class="bouton bouton--secondaire" @click="action = null">Annuler</PrimeButton>
-        <PrimeButton class="bouton bouton--principal" :disabled="enregistrement" @click="enregistrerDecision">
+        <PrimeButton class="inline-flex items-center justify-center gap-2 border border-surface" @click="action = null">Annuler</PrimeButton>
+        <PrimeButton class="inline-flex items-center justify-center gap-2 bg-primary text-primary-contrast" :disabled="enregistrement" @click="enregistrerDecision">
           Enregistrer la decision
         </PrimeButton>
       </template>
@@ -472,72 +459,72 @@ async function enregistrerCorrection() {
       :fermable="!enregistrementCorrection"
       @fermer="ligneEnCorrection = null"
     >
-      <div class="champ">
-        <label class="champ__libelle" for="corrige-intitule">Intitule du poste</label>
-        <PrimeInputText id="corrige-intitule" v-model="correction.intituleDemande" class="saisie" type="text" />
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="corrige-intitule">Intitule du poste</label>
+        <PrimeInputText id="corrige-intitule" v-model="correction.intituleDemande" class="w-full" type="text" />
       </div>
 
-      <div class="champ">
-        <label class="champ__libelle" for="corrige-effectif">Effectif</label>
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="corrige-effectif">Effectif</label>
         <PrimeInputText
           id="corrige-effectif"
           v-model.number="correction.effectif"
-          class="saisie"
+          class="w-full"
           type="number"
           min="1"
           step="1"
         />
       </div>
 
-      <div class="champ">
-        <label class="champ__libelle" for="corrige-budget">Budget estime (Ar)</label>
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="corrige-budget">Budget estime (Ar)</label>
         <PrimeInputText
           id="corrige-budget"
           v-model.number="correction.budgetEstime"
-          class="saisie"
+          class="w-full"
           type="number"
           min="0"
           step="1000"
         />
       </div>
 
-      <div class="champ">
-        <label class="champ__libelle" for="corrige-salaire-min">Salaire minimum estime (Ar)</label>
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="corrige-salaire-min">Salaire minimum estime (Ar)</label>
         <PrimeInputText
           id="corrige-salaire-min"
           v-model.number="correction.salaireMinEstime"
-          class="saisie"
+          class="w-full"
           type="number"
           min="0"
           step="1000"
         />
       </div>
 
-      <div class="champ">
-        <label class="champ__libelle" for="corrige-salaire-max">Salaire maximum estime (Ar)</label>
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="corrige-salaire-max">Salaire maximum estime (Ar)</label>
         <PrimeInputText
           id="corrige-salaire-max"
           v-model.number="correction.salaireMaxEstime"
-          class="saisie"
+          class="w-full"
           type="number"
           min="0"
           step="1000"
         />
       </div>
 
-      <div class="champ">
-        <label class="champ__libelle" for="corrige-profil">Profil recherche</label>
-        <PrimeInputText id="corrige-profil" v-model="correction.profilRecherche" class="saisie" type="text" />
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="corrige-profil">Profil recherche</label>
+        <PrimeInputText id="corrige-profil" v-model="correction.profilRecherche" class="w-full" type="text" />
       </div>
 
-      <div class="champ">
-        <label class="champ__libelle" for="corrige-description">Description du poste</label>
-        <PrimeTextarea id="corrige-description" v-model="correction.descriptionPoste" class="saisie" rows="3" />
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="corrige-description">Description du poste</label>
+        <PrimeTextarea id="corrige-description" v-model="correction.descriptionPoste" class="w-full" rows="3" />
       </div>
 
       <template #actions>
         <PrimeButton
-          class="bouton bouton--secondaire"
+          class="inline-flex items-center justify-center gap-2 border border-surface"
 
           :disabled="enregistrementCorrection"
           @click="ligneEnCorrection = null"
@@ -545,7 +532,7 @@ async function enregistrerCorrection() {
           Annuler
         </PrimeButton>
         <PrimeButton
-          class="bouton bouton--principal"
+          class="inline-flex items-center justify-center gap-2 bg-primary text-primary-contrast"
 
           :disabled="enregistrementCorrection"
           @click="enregistrerCorrection"

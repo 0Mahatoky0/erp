@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import AppSidebar from '@/shared/components/AppSidebar.vue'
 import AppTopbar from '@/shared/components/AppTopbar.vue'
+import NotificationContainer from '@/shared/components/NotificationContainer.vue'
 import { useAuthStore } from '@/shared/store/useAuthStore'
 
 const auth = useAuthStore()
@@ -13,19 +14,19 @@ const titre = computed(() => route.meta.titre || 'ERP TOVO')
 
 function deconnexion() {
   auth.deconnexion()
-  router.push({ name: 'connexion' })
+  router.replace({ name: 'connexion' })
 }
 </script>
 
 <template>
-  <div class="app-layout">
+  <div class="flex min-h-screen bg-surface-50 dark:bg-surface-950">
     <AppSidebar />
 
-    <div class="app-content">
+    <div class="flex min-w-0 flex-1 flex-col">
       <AppTopbar :titre="titre" @deconnexion="deconnexion" />
 
-      <main class="app-main">
-        <div class="app-container">
+      <main class="flex-1 p-4 md:p-6">
+        <div class="mx-auto max-w-[90rem]">
           <RouterView v-slot="{ Component, route: r }">
             <Transition name="page" mode="out-in">
               <component :is="Component" :key="r.path" />
@@ -34,33 +35,12 @@ function deconnexion() {
         </div>
       </main>
     </div>
+
+    <NotificationContainer />
   </div>
 </template>
 
 <style scoped>
-.app-layout {
-  display: flex;
-  min-height: 100vh;
-  background: var(--p-surface-50, #f8fafc);
-}
-
-.app-content {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.app-main {
-  flex: 1;
-  padding: 1.5rem;
-}
-
-.app-container {
-  max-width: 90rem;
-  margin: 0 auto;
-}
-
 .page-enter-active,
 .page-leave-active {
   transition: opacity 0.18s ease, transform 0.18s ease;
@@ -71,11 +51,5 @@ function deconnexion() {
 }
 .page-leave-to {
   opacity: 0;
-}
-
-@media (max-width: 768px) {
-  .app-main {
-    padding: 1rem;
-  }
 }
 </style>

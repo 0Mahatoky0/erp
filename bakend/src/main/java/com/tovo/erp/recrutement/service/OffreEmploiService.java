@@ -2,10 +2,13 @@ package com.tovo.erp.recrutement.service;
 
 import com.tovo.erp.recrutement.model.*;
 import com.tovo.erp.recrutement.repository.*;
+import com.tovo.erp.recrutement.dto.OffreIndicateursDto;
 import jakarta.transaction.Transactional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @Service
 public class OffreEmploiService {
@@ -99,6 +102,36 @@ public class OffreEmploiService {
         OffreEmploi sauvegardee = offres.save(offre);
         enregistrerHistorique(sauvegardee, ancien, OffreStatut.ANNULEE, idUtilisateur);
         return sauvegardee;
+    }
+
+    public OffreIndicateursDto indicateurs(Long idOffre) {
+        if (!offres.existsById(idOffre)) {
+            throw new IllegalArgumentException("Offre introuvable: " + idOffre);
+        }
+        long total = candidatures.countByOffreIdOffre(idOffre);
+        long preselectionnees = compter(idOffre, CandidatureStatut.PRESELECTIONNEE);
+        long retenues = compter(idOffre, CandidatureStatut.RETENUE);
+        return new OffreIndicateursDto(
+                idOffre,
+                total,
+                preselectionnees,
+                taux(preselectionnees, total),
+                compter(idOffre, CandidatureStatut.EN_EVALUATION),
+                retenues,
+                taux(retenues, total),
+                compter(idOffre, CandidatureStatut.LISTE_ATTENTE),
+                compter(idOffre, CandidatureStatut.REFUSEE));
+    }
+
+    private long compter(Long idOffre, CandidatureStatut statut) {
+        return candidatures.countByOffreIdOffreAndStatut(idOffre, statut);
+    }
+
+    private BigDecimal taux(long valeur, long total) {
+        if (total == 0) {
+            return BigDecimal.ZERO.setScale(2);
+        }
+        return BigDecimal.valueOf(valeur * 100.0 / total).setScale(2, RoundingMode.HALF_UP);
     }
 
     private OffreEmploi charger(Long idOffre) {

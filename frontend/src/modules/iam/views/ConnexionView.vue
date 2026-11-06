@@ -42,52 +42,52 @@ async function seConnecter() {
 </script>
 
 <template>
-  <div class="connexion">
-    <section class="connexion__presentation">
-      <div class="connexion__marque">
-        <div class="sidebar__logo">T</div>
+  <div class="grid min-h-screen grid-cols-1 bg-surface-50 lg:grid-cols-2 dark:bg-surface-950">
+    <section class="hidden flex-col justify-center gap-6 bg-primary p-10 text-primary-contrast lg:flex">
+      <div class="text-3xl font-bold">
+        <div class="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-contrast">T</div>
         <div>
-          <div class="sidebar__titre">ERP TOVO</div>
-          <div class="sidebar__sous-titre">Recrutement</div>
+          <div class="text-base font-bold">ERP TOVO</div>
+          <div class="text-xs uppercase tracking-wide text-muted-color">Recrutement</div>
         </div>
       </div>
 
-      <h1 class="connexion__titre">Pilotez vos besoins en recrutement, de la demande a la validation.</h1>
-      <p class="connexion__texte">
+      <h1 class="text-4xl font-bold">Pilotez vos besoins en recrutement, de la demande a la validation.</h1>
+      <p class="max-w-lg text-lg opacity-90">
         Demandes multi-lignes, remplacements, circuit de validation par etape et controle budgetaire :
         tout le processus reste trace dans un seul outil.
       </p>
 
-      <div class="connexion__liste">
-        <div class="connexion__item">
-          <span class="connexion__puce">1</span>
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center gap-3">
+          <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-100 text-primary dark:bg-primary-900">1</span>
           <span>Le manager saisit sa demande, ligne par ligne, et la soumet.</span>
         </div>
-        <div class="connexion__item">
-          <span class="connexion__puce">2</span>
+        <div class="flex items-center gap-3">
+          <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-100 text-primary dark:bg-primary-900">2</span>
           <span>RH, Finance puis Direction valident chaque ligne a leur tour.</span>
         </div>
-        <div class="connexion__item">
-          <span class="connexion__puce">3</span>
+        <div class="flex items-center gap-3">
+          <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-100 text-primary dark:bg-primary-900">3</span>
           <span>Le poste officiel est cree automatiquement a l'acceptation.</span>
         </div>
       </div>
     </section>
 
-    <section class="connexion__panneau">
-      <div class="connexion__boite">
-        <h2 class="connexion__titre-formulaire">Connexion</h2>
-        <p class="connexion__sous-titre">Accedez a votre espace de travail.</p>
+    <section class="flex items-center justify-center p-6">
+      <div class="w-full max-w-md rounded-xl border border-surface bg-surface-0 p-8 shadow-sm dark:bg-surface-900">
+        <h2 class="mb-2 text-2xl font-semibold">Connexion</h2>
+        <p class="mb-6 text-sm text-muted-color">Accedez a votre espace de travail.</p>
 
-        <div v-if="erreur" class="alerte alerte--erreur">{{ erreur }}</div>
+        <div v-if="erreur" class="rounded-lg border p-3 text-sm border-red-200 bg-red-50 text-red-700">{{ erreur }}</div>
 
         <form @submit.prevent="seConnecter">
-          <div class="champ">
-            <label class="champ__libelle" for="email">Adresse e-mail</label>
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" for="email">Adresse e-mail</label>
             <PrimeInputText
               id="email"
               v-model="email"
-              class="saisie"
+              class="w-full"
               type="email"
               autocomplete="username"
               placeholder="prenom.nom@tovo.mg"
@@ -95,28 +95,28 @@ async function seConnecter() {
             />
           </div>
 
-          <div class="champ">
-            <label class="champ__libelle" for="motDePasse">Mot de passe</label>
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" for="motDePasse">Mot de passe</label>
             <PrimeInputText
               id="motDePasse"
               v-model="motDePasse"
-              class="saisie"
+              class="w-full"
               type="password"
               autocomplete="current-password"
               required
             />
           </div>
 
-          <PrimeButton type="submit" class="bouton bouton--principal bouton--bloc" :disabled="envoi">
+          <PrimeButton type="submit" class="inline-flex items-center justify-center gap-2 bg-primary text-primary-contrast w-full" :disabled="envoi">
             {{ envoi ? 'Connexion...' : 'Se connecter' }}
           </PrimeButton>
         </form>
 
         <div class="comptes-demo">
           <div style="margin-bottom: 6px">Comptes de demonstration :</div>
-          <div v-for="compte in COMPTES" :key="compte.email" class="comptes-demo__ligne">
+          <div v-for="compte in COMPTES" :key="compte.email" class="grid gap-2 sm:grid-cols-2">
             <span>{{ compte.role }}</span>
-            <PrimeButton class="comptes-demo__bouton" @click="remplir(compte)">
+            <PrimeButton class="text-left text-sm" @click="remplir(compte)">
               {{ compte.email }}
             </PrimeButton>
           </div>

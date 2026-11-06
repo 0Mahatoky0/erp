@@ -2,6 +2,7 @@
 import PrimeButton from 'primevue/button'
 import PrimeInputText from 'primevue/inputtext'
 import PrimeTextarea from 'primevue/textarea'
+import PrimeSelect from 'primevue/select'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { besoinApi as api } from '@/modules/besoin/api/besoinApi'
@@ -53,7 +54,9 @@ function postesPour(ligne) {
 
 /** Employes du service de la ligne, pour identifier la personne remplacee. */
 function employesPour(ligne) {
-  return employes.value.filter((employe) => !ligne.idService || employe.idService === ligne.idService)
+  return employes.value.filter(
+    (employe) => !ligne.idService || employe.idService === ligne.idService,
+  )
 }
 
 const budgetTotal = computed(() =>
@@ -108,8 +111,10 @@ function corpsLigne(ligne) {
     typeRemplacement: ligne.typeBesoin === 'REMPLACEMENT' ? ligne.typeRemplacement : null,
     idEmployeRemplace: ligne.typeBesoin === 'REMPLACEMENT' ? ligne.idEmployeRemplace : null,
     motifRemplacement: ligne.typeBesoin === 'REMPLACEMENT' ? ligne.motifRemplacement : null,
-    dateDebutRemplacement: ligne.typeBesoin === 'REMPLACEMENT' ? ligne.dateDebutRemplacement || null : null,
-    dateFinRemplacement: ligne.typeBesoin === 'REMPLACEMENT' ? ligne.dateFinRemplacement || null : null,
+    dateDebutRemplacement:
+      ligne.typeBesoin === 'REMPLACEMENT' ? ligne.dateDebutRemplacement || null : null,
+    dateFinRemplacement:
+      ligne.typeBesoin === 'REMPLACEMENT' ? ligne.dateFinRemplacement || null : null,
     intituleDemande: ligne.intituleDemande,
     descriptionPoste: ligne.descriptionPoste || null,
     profilRecherche: ligne.profilRecherche || null,
@@ -147,30 +152,56 @@ async function enregistrer(soumettre) {
 
 <template>
   <div>
-    <div class="page__entete">
+    <div class="flex flex-col gap-4 mb-5 md:flex-row md:items-start md:justify-between">
       <div>
         <h1>Nouvelle demande</h1>
-        <p class="page__description">
-          Une demande peut contenir plusieurs besoins de nature differente. Chaque ligne suivra
-          son propre circuit de validation.
+        <p class="mt-1 text-sm text-muted-color">
+          Une demande peut contenir plusieurs besoins de nature differente. Chaque ligne suivra son
+          propre circuit de validation.
         </p>
       </div>
-      <RouterLink class="bouton bouton--secondaire" :to="{ name: 'demandes' }">Annuler</RouterLink>
+      <PrimeButton
+        as="router-link"
+        :to="{ name: 'demandes' }"
+        label="Annuler"
+        severity="secondary"
+        variant="outlined"
+      />
     </div>
 
-    <div v-if="erreurGlobale" class="alerte alerte--erreur">{{ erreurGlobale }}</div>
+    <div
+      v-if="erreurGlobale"
+      class="rounded-lg border p-3 text-sm border-red-200 bg-red-50 text-red-700"
+    >
+      {{ erreurGlobale }}
+    </div>
 
-    <section class="carte" style="margin-bottom: 16px">
-      <div class="carte__entete"><h2>Entete de la demande</h2></div>
-      <div class="carte__corps">
-        <div class="grille-champs">
-          <div class="champ">
-            <label class="champ__libelle" for="motif">Motif <span class="champ__obligatoire">*</span></label>
-            <PrimeInputText id="motif" v-model="motif" class="saisie" type="text" placeholder="Accroissement d'activite" />
+    <section
+      class="rounded-lg border border-surface bg-surface-0 shadow-sm dark:bg-surface-900"
+      style="margin-bottom: 16px"
+    >
+      <div class="flex items-center justify-between gap-3 border-b border-surface p-4">
+        <h2>Entete de la demande</h2>
+      </div>
+      <div class="p-4">
+        <div class="grid grid-cols-1 gap-x-4 gap-y-1 md:grid-cols-2">
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" for="motif"
+              >Motif <span class="text-red-500">*</span></label
+            >
+            <PrimeInputText
+              id="motif"
+              v-model="motif"
+              class="w-full"
+              type="text"
+              placeholder="Accroissement d'activite"
+            />
           </div>
-          <div class="champ">
-            <label class="champ__libelle" for="dateSouhaitee">Date souhaitee de recrutement <span class="champ__obligatoire">*</span></label>
-            <PrimeInputText id="dateSouhaitee" v-model="dateSouhaitee" class="saisie" type="date" />
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" for="dateSouhaitee"
+              >Date souhaitee de recrutement <span class="text-red-500">*</span></label
+            >
+            <PrimeInputText id="dateSouhaitee" v-model="dateSouhaitee" class="w-full" type="date" />
           </div>
         </div>
       </div>
@@ -179,123 +210,273 @@ async function enregistrer(soumettre) {
     <section
       v-for="(ligne, index) in lignes"
       :key="index"
-      class="carte"
+      class="rounded-lg border border-surface bg-surface-0 shadow-sm dark:bg-surface-900"
       style="margin-bottom: 16px"
     >
-      <div class="carte__entete">
+      <div class="flex items-center justify-between gap-3 border-b border-surface p-4">
         <h2>Ligne {{ index + 1 }}</h2>
-        <PrimeButton class="bouton bouton--fantome bouton--petit" @click="supprimerLigne(index)">
-          Supprimer la ligne
-        </PrimeButton>
+        <PrimeButton
+          label="Supprimer la ligne"
+          icon="pi pi-trash"
+          severity="danger"
+          variant="text"
+          size="small"
+          @click="supprimerLigne(index)"
+        />
       </div>
-      <div class="carte__corps">
-        <div class="grille-champs grille-champs--3">
-          <div class="champ">
-            <label class="champ__libelle" :for="`service-${index}`">Service <span class="champ__obligatoire">*</span></label>
-            <select :id="`service-${index}`" v-model="ligne.idService" class="saisie" @change="ligne.idPoste = null">
-              <option :value="null" disabled>Choisir un service</option>
-              <option v-for="service in services" :key="service.id" :value="service.id">{{ service.nom }}</option>
-            </select>
+      <div class="p-4">
+        <div class="grid grid-cols-1 gap-x-4 gap-y-1 md:grid-cols-2 lg:grid-cols-3">
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" :for="`service-${index}`"
+              >Service <span class="text-red-500">*</span></label
+            >
+            <PrimeSelect
+              :id="`service-${index}`"
+              v-model="ligne.idService"
+              class="w-full"
+              :options="services"
+              option-label="nom"
+              option-value="id"
+              placeholder="Choisir un service"
+              @change="ligne.idPoste = null"
+            />
           </div>
 
-          <div class="champ">
-            <label class="champ__libelle" :for="`type-${index}`">Type de besoin <span class="champ__obligatoire">*</span></label>
-            <select :id="`type-${index}`" v-model="ligne.typeBesoin" class="saisie">
-              <option value="CREATION">Creation de poste</option>
-              <option value="REMPLACEMENT">Remplacement</option>
-            </select>
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" :for="`type-${index}`"
+              >Type de besoin <span class="text-red-500">*</span></label
+            >
+            <PrimeSelect
+              :id="`type-${index}`"
+              v-model="ligne.typeBesoin"
+              class="w-full"
+              :options="[
+                { label: 'Creation de poste', value: 'CREATION' },
+                { label: 'Remplacement', value: 'REMPLACEMENT' },
+              ]"
+              option-label="label"
+              option-value="value"
+            />
           </div>
 
-          <div class="champ">
-            <label class="champ__libelle" :for="`poste-${index}`">Poste existant</label>
-            <select :id="`poste-${index}`" v-model="ligne.idPoste" class="saisie" @change="surChangementPoste(ligne)">
-              <option :value="null">Nouveau poste (a creer a l'acceptation)</option>
-              <option v-for="poste in postesPour(ligne)" :key="poste.id" :value="poste.id">{{ poste.intitule }}</option>
-            </select>
-            <span class="champ__aide">Si le poste existe deja, il sera directement reference.</span>
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" :for="`poste-${index}`"
+              >Poste existant</label
+            >
+            <PrimeSelect
+              :id="`poste-${index}`"
+              v-model="ligne.idPoste"
+              class="w-full"
+              :options="[
+                { id: null, intitule: 'Nouveau poste a creer si accepte' },
+                ...postesPour(ligne),
+              ]"
+              option-label="intitule"
+              option-value="id"
+              @change="surChangementPoste(ligne)"
+            />
+            <span class="text-xs text-muted-color"
+              >Si le poste existe deja, il sera directement reference.</span
+            >
           </div>
         </div>
 
         <template v-if="ligne.typeBesoin === 'REMPLACEMENT'">
-          <div class="grille-champs grille-champs--3">
-            <div class="champ">
-              <label class="champ__libelle" :for="`employe-${index}`">Employe remplace</label>
-              <select :id="`employe-${index}`" v-model="ligne.idEmployeRemplace" class="saisie">
-                <option :value="null">Employe non identifie</option>
-                <option v-for="employe in employesPour(ligne)" :key="employe.id" :value="employe.id">
-                  {{ employe.nom }} {{ employe.prenom }} ({{ employe.matricule }})
-                </option>
-              </select>
+          <div class="grid grid-cols-1 gap-x-4 gap-y-1 md:grid-cols-2 lg:grid-cols-3">
+            <div class="flex flex-col gap-2 mb-4">
+              <label class="text-sm font-semibold text-muted-color" :for="`employe-${index}`"
+                >Employe remplace</label
+              >
+              <PrimeSelect
+                :id="`employe-${index}`"
+                v-model="ligne.idEmployeRemplace"
+                class="w-full"
+                :options="[
+                  { id: null, nom: 'Employe non identifie', prenom: '', matricule: '' },
+                  ...employesPour(ligne),
+                ]"
+                option-label="nom"
+                option-value="id"
+              />
             </div>
-            <div class="champ">
-              <label class="champ__libelle" :for="`typeRemp-${index}`">Type de remplacement <span class="champ__obligatoire">*</span></label>
-              <select :id="`typeRemp-${index}`" v-model="ligne.typeRemplacement" class="saisie">
-                <option value="DEFINITIF">Definitif</option>
-                <option value="TEMPORAIRE">Temporaire</option>
-              </select>
+            <div class="flex flex-col gap-2 mb-4">
+              <label class="text-sm font-semibold text-muted-color" :for="`typeRemp-${index}`"
+                >Type de remplacement <span class="text-red-500">*</span></label
+              >
+              <PrimeSelect
+                :id="`typeRemp-${index}`"
+                v-model="ligne.typeRemplacement"
+                class="w-full"
+                :options="[
+                  { label: 'Definitif', value: 'DEFINITIF' },
+                  { label: 'Temporaire', value: 'TEMPORAIRE' },
+                ]"
+                option-label="label"
+                option-value="value"
+              />
             </div>
-            <div class="champ">
-              <label class="champ__libelle" :for="`motifRemp-${index}`">Motif du remplacement</label>
-              <PrimeInputText :id="`motifRemp-${index}`" v-model="ligne.motifRemplacement" class="saisie" type="text" />
+            <div class="flex flex-col gap-2 mb-4">
+              <label class="text-sm font-semibold text-muted-color" :for="`motifRemp-${index}`"
+                >Motif du remplacement</label
+              >
+              <PrimeInputText
+                :id="`motifRemp-${index}`"
+                v-model="ligne.motifRemplacement"
+                class="w-full"
+                type="text"
+              />
             </div>
-            <div class="champ">
-              <label class="champ__libelle" :for="`debut-${index}`">Debut du remplacement</label>
-              <PrimeInputText :id="`debut-${index}`" v-model="ligne.dateDebutRemplacement" class="saisie" type="date" />
+            <div class="flex flex-col gap-2 mb-4">
+              <label class="text-sm font-semibold text-muted-color" :for="`debut-${index}`"
+                >Debut du remplacement</label
+              >
+              <PrimeInputText
+                :id="`debut-${index}`"
+                v-model="ligne.dateDebutRemplacement"
+                class="w-full"
+                type="date"
+              />
             </div>
-            <div class="champ">
-              <label class="champ__libelle" :for="`fin-${index}`">Fin du remplacement</label>
-              <PrimeInputText :id="`fin-${index}`" v-model="ligne.dateFinRemplacement" class="saisie" type="date" />
+            <div class="flex flex-col gap-2 mb-4">
+              <label class="text-sm font-semibold text-muted-color" :for="`fin-${index}`"
+                >Fin du remplacement</label
+              >
+              <PrimeInputText
+                :id="`fin-${index}`"
+                v-model="ligne.dateFinRemplacement"
+                class="w-full"
+                type="date"
+              />
             </div>
           </div>
         </template>
 
-        <div class="grille-champs">
-          <div class="champ">
-            <label class="champ__libelle" :for="`intitule-${index}`">Intitule du besoin <span class="champ__obligatoire">*</span></label>
-            <PrimeInputText :id="`intitule-${index}`" v-model="ligne.intituleDemande" class="saisie" type="text" />
+        <div class="grid grid-cols-1 gap-x-4 gap-y-1 md:grid-cols-2">
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" :for="`intitule-${index}`"
+              >Intitule du besoin <span class="text-red-500">*</span></label
+            >
+            <PrimeInputText
+              :id="`intitule-${index}`"
+              v-model="ligne.intituleDemande"
+              class="w-full"
+              type="text"
+            />
           </div>
-          <div class="champ">
-            <label class="champ__libelle" :for="`effectif-${index}`">Effectif <span class="champ__obligatoire">*</span></label>
-            <PrimeInputText :id="`effectif-${index}`" v-model.number="ligne.effectif" class="saisie" type="number" min="1" />
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" :for="`effectif-${index}`"
+              >Effectif <span class="text-red-500">*</span></label
+            >
+            <PrimeInputText
+              :id="`effectif-${index}`"
+              v-model.number="ligne.effectif"
+              class="w-full"
+              type="number"
+              min="1"
+            />
           </div>
-          <div class="champ">
-            <label class="champ__libelle" :for="`description-${index}`">Description du poste</label>
-            <PrimeTextarea :id="`description-${index}`" v-model="ligne.descriptionPoste" class="saisie" rows="2" />
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" :for="`description-${index}`"
+              >Description du poste</label
+            >
+            <PrimeTextarea
+              :id="`description-${index}`"
+              v-model="ligne.descriptionPoste"
+              class="w-full"
+              rows="2"
+            />
           </div>
-          <div class="champ">
-            <label class="champ__libelle" :for="`profil-${index}`">Profil recherche</label>
-            <PrimeTextarea :id="`profil-${index}`" v-model="ligne.profilRecherche" class="saisie" rows="2" />
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" :for="`profil-${index}`"
+              >Profil recherche</label
+            >
+            <PrimeTextarea
+              :id="`profil-${index}`"
+              v-model="ligne.profilRecherche"
+              class="w-full"
+              rows="2"
+            />
           </div>
-          <div class="champ">
-            <label class="champ__libelle" :for="`salaireMin-${index}`">Salaire minimum estime (Ar)</label>
-            <PrimeInputText :id="`salaireMin-${index}`" v-model.number="ligne.salaireMinEstime" class="saisie" type="number" min="0" step="1000" />
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" :for="`salaireMin-${index}`"
+              >Salaire minimum estime (Ar)</label
+            >
+            <PrimeInputText
+              :id="`salaireMin-${index}`"
+              v-model.number="ligne.salaireMinEstime"
+              class="w-full"
+              type="number"
+              min="0"
+              step="1000"
+            />
           </div>
-          <div class="champ">
-            <label class="champ__libelle" :for="`salaireMax-${index}`">Salaire maximum estime (Ar)</label>
-            <PrimeInputText :id="`salaireMax-${index}`" v-model.number="ligne.salaireMaxEstime" class="saisie" type="number" min="0" step="1000" />
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" :for="`salaireMax-${index}`"
+              >Salaire maximum estime (Ar)</label
+            >
+            <PrimeInputText
+              :id="`salaireMax-${index}`"
+              v-model.number="ligne.salaireMaxEstime"
+              class="w-full"
+              type="number"
+              min="0"
+              step="1000"
+            />
           </div>
-          <div class="champ">
-            <label class="champ__libelle" :for="`budget-${index}`">Budget estime (Ar) <span class="champ__obligatoire">*</span></label>
-            <PrimeInputText :id="`budget-${index}`" v-model.number="ligne.budgetEstime" class="saisie" type="number" min="0" step="1000" />
-            <span class="champ__aide">Verification de la disponibilite budgetaire a l'etape Finance.</span>
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" :for="`budget-${index}`"
+              >Budget estime (Ar) <span class="text-red-500">*</span></label
+            >
+            <PrimeInputText
+              :id="`budget-${index}`"
+              v-model.number="ligne.budgetEstime"
+              class="w-full"
+              type="number"
+              min="0"
+              step="1000"
+            />
+            <span class="text-xs text-muted-color"
+              >Verification de la disponibilite budgetaire a l'etape Finance.</span
+            >
           </div>
         </div>
       </div>
     </section>
 
-    <section class="carte">
-      <div class="carte__corps" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+    <section class="rounded-lg border border-surface bg-surface-0 shadow-sm dark:bg-surface-900">
+      <div
+        class="p-4"
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        "
+      >
         <div>
-          <PrimeButton class="bouton bouton--secondaire" @click="ajouterLigne">Ajouter une ligne</PrimeButton>
-          <div class="texte-discret" style="font-size: 12.5px; margin-top: 8px">
+          <PrimeButton
+            class="inline-flex items-center justify-center gap-2 border border-surface"
+            @click="ajouterLigne"
+            >Ajouter une ligne</PrimeButton
+          >
+          <div class="text-muted-color" style="font-size: 12.5px; margin-top: 8px">
             {{ lignes.length }} ligne(s) · budget total {{ budgetTotal.toLocaleString('fr-FR') }} Ar
           </div>
         </div>
         <div style="display: flex; gap: 10px">
-          <PrimeButton class="bouton bouton--secondaire" :disabled="envoi" @click="enregistrer(false)">
+          <PrimeButton
+            class="inline-flex items-center justify-center gap-2 border border-surface"
+            :disabled="envoi"
+            @click="enregistrer(false)"
+          >
             Enregistrer en brouillon
           </PrimeButton>
-          <PrimeButton class="bouton bouton--principal" :disabled="envoi" @click="enregistrer(true)">
+          <PrimeButton
+            class="inline-flex items-center justify-center gap-2 bg-primary text-primary-contrast"
+            :disabled="envoi"
+            @click="enregistrer(true)"
+          >
             Enregistrer et soumettre
           </PrimeButton>
         </div>

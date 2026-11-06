@@ -8,6 +8,8 @@ import java.util.List;
 public interface CandidatureRepository extends JpaRepository<Candidature, Long> {
     boolean existsByOffreIdOffreAndCandidatIdCandidat(Long idOffre, Long idCandidat);
     boolean existsByOffreIdOffre(Long idOffre);
+    long countByOffreIdOffre(Long idOffre);
+    long countByOffreIdOffreAndStatut(Long idOffre, CandidatureStatut statut);
     @EntityGraph(attributePaths = {"offre", "candidat"})
     List<Candidature> findByOffreIdOffre(Long idOffre);
     @EntityGraph(attributePaths = {"offre", "candidat"})

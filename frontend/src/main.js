@@ -1,5 +1,3 @@
-import './assets/base.css'
-import './assets/main.css'
 import './assets/tailwind.css'          // ← AJOUT (après tes CSS existants)
 import 'primeicons/primeicons.css'
 

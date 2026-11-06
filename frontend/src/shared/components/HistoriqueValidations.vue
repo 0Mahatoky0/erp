@@ -2,6 +2,8 @@
 import { computed } from 'vue'
 import StatusBadge from '@/shared/components/StatusBadge.vue'
 import { formatDateHeure, libelle } from '@/shared/utils/format'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
 
 /**
  * Historique des decisions d'une ligne de demande : qui, quand, quelle decision.
@@ -20,33 +22,16 @@ const lignes = computed(() =>
 </script>
 
 <template>
-  <div v-if="lignes.length === 0" class="etat-vide">
-    <div class="etat-vide__titre">Aucune decision</div>
+  <div v-if="lignes.length === 0" class="rounded-lg border border-dashed border-surface p-6 text-center text-muted-color">
+    <div class="mb-1 font-semibold text-color">Aucune decision</div>
     <div>Les decisions prises sur cette ligne apparaitront ici.</div>
   </div>
 
-  <div v-else class="tableau-conteneur">
-    <table class="tableau tableau--compacte">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Etape</th>
-          <th>Decision</th>
-          <th>Valideur</th>
-          <th>Commentaire</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(ligne, index) in lignes" :key="index">
-          <td class="mono">{{ formatDateHeure(ligne.dateAction) }}</td>
-          <td>{{ ligne.etapeLible || ligne.etapeLisible }}</td>
-          <td>
-            <StatusBadge :valeur="ligne.decision" />
-          </td>
-          <td>{{ ligne.utilisateur || '—' }}</td>
-          <td>{{ ligne.commentaire || '—' }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  <DataTable v-else :value="lignes" striped-rows responsive-layout="scroll" size="small">
+    <Column header="Date"><template #body="{ data }">{{ formatDateHeure(data.dateAction) }}</template></Column>
+    <Column header="Etape"><template #body="{ data }">{{ data.etapeLible || data.etapeLisible }}</template></Column>
+    <Column header="Decision"><template #body="{ data }"><StatusBadge :valeur="data.decision" /></template></Column>
+    <Column header="Valideur"><template #body="{ data }">{{ data.utilisateur || '—' }}</template></Column>
+    <Column field="commentaire" header="Commentaire" />
+  </DataTable>
 </template>

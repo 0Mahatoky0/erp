@@ -4,9 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 
 import PrimeButton from 'primevue/button'
 import Card from 'primevue/card'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Tag from 'primevue/tag'
 
 import EmptyState from '@/shared/components/EmptyState.vue'
 import StatusBadge from '@/shared/components/StatusBadge.vue'
@@ -22,14 +19,14 @@ const route = useRoute()
 const router = useRouter()
 
 const offre = ref(null)
-const candidatures = ref([])
+const indicateurs = ref(null)
 const loading = ref(false)
 const saving = ref(false)
 const formOuvert = ref(false)
 
 const idOffre = computed(() => route.params.idOffre)
 const peutGerer = computed(() => auth.estRh || auth.estDirection)
-const retour = () => router.push({ name: 'recrutement-offres' })
+const retour = () => router.push({ name: 'recrutement-offre-liste' })
 
 const salaire = computed(() => {
   const { salaireMin: min, salaireMax: max } = offre.value || {}
@@ -58,12 +55,12 @@ async function charger() {
   loading.value = true
   try {
     // Si ton API expose GET /recrutement/offres/{id}, remplace le find par cet appel
-    const [offres, cands] = await Promise.all([
+    const [offres, statistiques] = await Promise.all([
       api.get('/recrutement/offres'),
-      api.get(`/recrutement/offres/${idOffre.value}/candidatures`),
+      api.get(`/recrutement/offres/${idOffre.value}/indicateurs`),
     ])
     offre.value = offres.find((o) => String(o.idOffre ?? o.id) === String(idOffre.value)) || null
-    candidatures.value = cands
+    indicateurs.value = statistiques
   } catch (cause) {
     offre.value = null
     notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible de charger l’offre.')
@@ -161,27 +158,37 @@ watch(idOffre, charger, { immediate: true })
       </Card>
 
       <Card>
-        <template #title>
-          <span class="flex items-center gap-2">
-            Candidatures
-            <Tag :value="String(candidatures.length)" severity="secondary" rounded />
-          </span>
-        </template>
+        <template #title>Indicateurs de recrutement</template>
         <template #content>
-          <DataTable :value="candidatures" dataKey="idCandidature" rowHover stripedRows paginator :rows="10" :rowsPerPageOptions="[10, 25, 50]">
-            <template #empty>
-              <p class="text-center text-muted-color py-6 m-0">Aucune candidature pour cette offre.</p>
-            </template>
-            <Column header="Candidat">
-              <template #body="{ data }"><strong>{{ data.candidat?.prenom }} {{ data.candidat?.nom }}</strong></template>
-            </Column>
-            <Column header="Email">
-              <template #body="{ data }">{{ data.candidat?.email }}</template>
-            </Column>
-            <Column field="statut" header="Statut" sortable>
-              <template #body="{ data }"><StatusBadge :valeur="data.statut" /></template>
-            </Column>
-          </DataTable>
+          <div v-if="indicateurs" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-lg border border-surface p-4">
+              <p class="m-0 text-sm text-muted-color">Candidatures reçues</p>
+              <strong class="text-3xl">{{ indicateurs.nombreCandidatures }}</strong>
+            </div>
+            <div class="rounded-lg border border-surface p-4">
+              <p class="m-0 text-sm text-muted-color">Présélectionnées</p>
+              <strong class="text-3xl">{{ indicateurs.nombrePreselectionnees }}</strong>
+              <p class="m-0 text-sm text-muted-color">{{ indicateurs.tauxPreselection }} % des candidatures</p>
+            </div>
+            <div class="rounded-lg border border-surface p-4">
+              <p class="m-0 text-sm text-muted-color">En évaluation</p>
+              <strong class="text-3xl">{{ indicateurs.nombreEnEvaluation }}</strong>
+            </div>
+            <div class="rounded-lg border border-surface p-4">
+              <p class="m-0 text-sm text-muted-color">Retenues</p>
+              <strong class="text-3xl">{{ indicateurs.nombreRetenues }}</strong>
+              <p class="m-0 text-sm text-muted-color">{{ indicateurs.tauxRetenue }} % des candidatures</p>
+            </div>
+            <div class="rounded-lg border border-surface p-4">
+              <p class="m-0 text-sm text-muted-color">Liste d’attente</p>
+              <strong class="text-3xl">{{ indicateurs.nombreListeAttente }}</strong>
+            </div>
+            <div class="rounded-lg border border-surface p-4">
+              <p class="m-0 text-sm text-muted-color">Refusées</p>
+              <strong class="text-3xl">{{ indicateurs.nombreRefusees }}</strong>
+            </div>
+          </div>
+          <p v-else class="m-0 text-muted-color">Aucun indicateur disponible.</p>
         </template>
       </Card>
     </template>

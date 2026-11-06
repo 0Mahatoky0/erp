@@ -2,6 +2,10 @@
 import PrimeButton from 'primevue/button'
 import PrimeInputText from 'primevue/inputtext'
 import PrimeTextarea from 'primevue/textarea'
+import PrimeSelect from 'primevue/select'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Tag from 'primevue/tag'
 import { computed, onMounted, ref } from 'vue'
 import { besoinApi as api } from '@/modules/besoin/api/besoinApi'
 import EmptyState from '@/shared/components/EmptyState.vue'
@@ -135,52 +139,45 @@ async function desactiver(poste) {
 
 <template>
   <div>
-    <div class="page__entete">
+    <div class="flex flex-col gap-4 mb-5 md:flex-row md:items-start md:justify-between">
       <div>
         <h1>Catalogue des postes</h1>
-        <p class="page__description">
+        <p class="mt-1 text-sm text-muted-color">
           Postes officiels de l'entreprise. Un poste utilise par l'historique est desactive, jamais supprime.
         </p>
       </div>
-      <PrimeButton v-if="auth.estRh" class="bouton bouton--principal" @click="nouvelleEdition">
+      <PrimeButton v-if="auth.estRh" class="inline-flex items-center justify-center gap-2 bg-primary text-primary-contrast" @click="nouvelleEdition">
         Nouveau poste
       </PrimeButton>
     </div>
 
-    <div class="barre-filtres">
-      <div class="champ champ--large">
-        <label class="champ__libelle" for="recherche-poste">Recherche</label>
+    <div class="flex flex-wrap items-end gap-3 mb-4">
+      <div class="flex flex-col gap-2 mb-4 flex-1 min-w-60">
+        <label class="text-sm font-semibold text-muted-color" for="recherche-poste">Recherche</label>
         <PrimeInputText
           id="recherche-poste"
           v-model="recherche"
-          class="saisie"
+          class="w-full"
           type="search"
           placeholder="Intitule ou description"
           @keyup.enter="charger"
         />
       </div>
-      <div class="champ">
-        <label class="champ__libelle" for="service-poste">Service</label>
-        <select id="service-poste" v-model="filtreService" class="saisie" @change="charger">
-          <option value="">Tous les services</option>
-          <option v-for="service in services" :key="service.id" :value="service.id">{{ service.nom }}</option>
-        </select>
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="service-poste">Service</label>
+        <PrimeSelect id="service-poste" v-model="filtreService" class="w-full" :options="[{ id: '', nom: 'Tous les services' }, ...services]" option-label="nom" option-value="id" @change="charger" />
       </div>
-      <div class="champ">
-        <label class="champ__libelle" for="actif-poste">Etat</label>
-        <select id="actif-poste" v-model="filtreActif" class="saisie" @change="charger">
-          <option value="">Tous</option>
-          <option value="true">Actifs</option>
-          <option value="false">Inactifs</option>
-        </select>
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="actif-poste">Etat</label>
+        <PrimeSelect id="actif-poste" v-model="filtreActif" class="w-full" :options="[{ label: 'Tous', value: '' }, { label: 'Actifs', value: 'true' }, { label: 'Inactifs', value: 'false' }]" option-label="label" option-value="value" @change="charger" />
       </div>
-      <PrimeButton class="bouton bouton--secondaire" @click="charger">Filtrer</PrimeButton>
+      <PrimeButton class="inline-flex items-center justify-center gap-2 border border-surface" @click="charger">Filtrer</PrimeButton>
     </div>
 
-    <section class="carte">
-      <div class="carte__entete"><h2>{{ postes.length }} poste(s)</h2></div>
+    <section class="rounded-lg border border-surface bg-surface-0 shadow-sm dark:bg-surface-900">
+      <div class="flex items-center justify-between gap-3 border-b border-surface p-4"><h2>{{ postes.length }} poste(s)</h2></div>
 
-      <div v-if="chargement" class="chargement">Chargement du catalogue...</div>
+      <div v-if="chargement" class="p-4 text-sm text-muted-color">Chargement du catalogue...</div>
 
       <EmptyState
         v-else-if="postes.length === 0"
@@ -188,54 +185,21 @@ async function desactiver(poste) {
         message="Aucun poste ne correspond aux criteres selectionnes."
       />
 
-      <div v-else class="tableau-conteneur">
-        <table class="tableau">
-          <thead>
-            <tr>
-              <th>Intitule</th>
-              <th>Service</th>
-              <th>Departement</th>
-              <th>Salaire min</th>
-              <th>Salaire max</th>
-              <th>Demandes liees</th>
-              <th>Etat</th>
-              <th v-if="auth.estRh"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="poste in postes" :key="poste.id">
-              <td>
-                <div style="font-weight: 500">{{ poste.intitule }}</div>
-                <div v-if="poste.description" class="texte-discret" style="font-size: 12px">
-                  {{ poste.description }}
-                </div>
-              </td>
-              <td>{{ poste.service }}</td>
-              <td>{{ poste.departement }}</td>
-              <td class="mono">{{ formatMontant(poste.salaireMin) }}</td>
-              <td class="mono">{{ formatMontant(poste.salaireMax) }}</td>
-              <td>{{ poste.nbPostesLies }}</td>
-              <td>
-                <span class="badge" :class="poste.actif ? 'badge--succes' : 'badge--neutre'">
-                  {{ poste.actif ? 'Actif' : 'Desactive' }}
-                </span>
-              </td>
-              <td v-if="auth.estRh" class="tableau__actions">
-                <PrimeButton class="bouton bouton--secondaire bouton--petit" @click="modifier(poste)">
-                  Modifier
-                </PrimeButton>
-                <PrimeButton
-                  v-if="poste.actif"
-                  class="bouton bouton--fantome bouton--petit"
-
-                  @click="desactiver(poste)"
-                >
-                  Desactiver
-                </PrimeButton>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-else class="overflow-x-auto">
+        <DataTable :value="postes" striped-rows paginator :rows="10" responsive-layout="scroll">
+          <Column header="Intitule">
+            <template #body="{ data }"><div class="font-medium">{{ data.intitule }}</div><div v-if="data.description" class="text-xs text-muted-color">{{ data.description }}</div></template>
+          </Column>
+          <Column field="service" header="Service" />
+          <Column field="departement" header="Departement" />
+          <Column header="Salaire min"><template #body="{ data }">{{ formatMontant(data.salaireMin) }}</template></Column>
+          <Column header="Salaire max"><template #body="{ data }">{{ formatMontant(data.salaireMax) }}</template></Column>
+          <Column field="nbPostesLies" header="Demandes liees" />
+          <Column header="Etat"><template #body="{ data }"><Tag :value="data.actif ? 'Actif' : 'Desactive'" :severity="data.actif ? 'success' : 'secondary'" rounded /></template></Column>
+          <Column v-if="auth.estRh" header="">
+            <template #body="{ data }"><div class="flex justify-end gap-2"><PrimeButton label="Modifier" severity="secondary" size="small" outlined @click="modifier(data)" /><PrimeButton v-if="data.actif" label="Desactiver" severity="danger" size="small" text @click="desactiver(data)" /></div></template>
+          </Column>
+        </DataTable>
       </div>
     </section>
 
@@ -245,46 +209,40 @@ async function desactiver(poste) {
       :fermable="!enregistrement"
       @fermer="edition = null"
     >
-      <div v-if="!edition.id" class="champ">
-        <label class="champ__libelle" for="service-form">Service <span class="champ__obligatoire">*</span></label>
-        <select id="service-form" v-model="formulaire.idService" class="saisie">
-          <option :value="null" disabled>Choisir un service</option>
-          <option v-for="service in services" :key="service.id" :value="service.id">{{ service.nom }}</option>
-        </select>
+      <div v-if="!edition.id" class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="service-form">Service <span class="text-red-500">*</span></label>
+        <PrimeSelect id="service-form" v-model="formulaire.idService" class="w-full" :options="services" option-label="nom" option-value="id" placeholder="Choisir un service" />
       </div>
 
-      <div class="champ">
-        <label class="champ__libelle" for="intitule-form">Intitule <span class="champ__obligatoire">*</span></label>
-        <PrimeInputText id="intitule-form" v-model="formulaire.intitule" class="saisie" type="text" />
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="intitule-form">Intitule <span class="text-red-500">*</span></label>
+        <PrimeInputText id="intitule-form" v-model="formulaire.intitule" class="w-full" type="text" />
       </div>
 
-      <div class="champ">
-        <label class="champ__libelle" for="description-form">Description</label>
-        <PrimeTextarea id="description-form" v-model="formulaire.description" class="saisie" rows="3" />
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="description-form">Description</label>
+        <PrimeTextarea id="description-form" v-model="formulaire.description" class="w-full" rows="3" />
       </div>
 
-      <div class="grille-champs">
-        <div class="champ">
-          <label class="champ__libelle" for="salaire-min-form">Salaire minimum (Ar)</label>
-          <PrimeInputText id="salaire-min-form" v-model.number="formulaire.salaireMin" class="saisie" type="number" min="0" step="1000" />
+      <div class="grid grid-cols-1 gap-x-4 gap-y-1 md:grid-cols-2">
+        <div class="flex flex-col gap-2 mb-4">
+          <label class="text-sm font-semibold text-muted-color" for="salaire-min-form">Salaire minimum (Ar)</label>
+          <PrimeInputText id="salaire-min-form" v-model.number="formulaire.salaireMin" class="w-full" type="number" min="0" step="1000" />
         </div>
-        <div class="champ">
-          <label class="champ__libelle" for="salaire-max-form">Salaire maximum (Ar)</label>
-          <PrimeInputText id="salaire-max-form" v-model.number="formulaire.salaireMax" class="saisie" type="number" min="0" step="1000" />
+        <div class="flex flex-col gap-2 mb-4">
+          <label class="text-sm font-semibold text-muted-color" for="salaire-max-form">Salaire maximum (Ar)</label>
+          <PrimeInputText id="salaire-max-form" v-model.number="formulaire.salaireMax" class="w-full" type="number" min="0" step="1000" />
         </div>
       </div>
 
-      <div v-if="edition.id" class="champ">
-        <label class="champ__libelle" for="actif-form">Etat du poste</label>
-        <select id="actif-form" v-model="formulaire.actif" class="saisie">
-          <option :value="true">Actif</option>
-          <option :value="false">Desactive</option>
-        </select>
+      <div v-if="edition.id" class="flex flex-col gap-2 mb-4">
+        <label class="text-sm font-semibold text-muted-color" for="actif-form">Etat du poste</label>
+        <PrimeSelect id="actif-form" v-model="formulaire.actif" class="w-full" :options="[{ label: 'Actif', value: true }, { label: 'Desactive', value: false }]" option-label="label" option-value="value" />
       </div>
 
       <template #actions>
-        <PrimeButton class="bouton bouton--secondaire" @click="edition = null">Annuler</PrimeButton>
-        <PrimeButton class="bouton bouton--principal" :disabled="enregistrement" @click="enregistrer">
+        <PrimeButton class="inline-flex items-center justify-center gap-2 border border-surface" @click="edition = null">Annuler</PrimeButton>
+        <PrimeButton class="inline-flex items-center justify-center gap-2 bg-primary text-primary-contrast" :disabled="enregistrement" @click="enregistrer">
           Enregistrer
         </PrimeButton>
       </template>
