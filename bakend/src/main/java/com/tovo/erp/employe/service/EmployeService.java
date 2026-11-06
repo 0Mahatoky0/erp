@@ -147,6 +147,32 @@ public class EmployeService {
         return DocumentEmbaucheDto.de(documentRepository.save(document));
     }
 
+    /**
+     * Attribue le matricule au salarie une seule fois (RG-B4-06). Un matricule
+     * deja present (reembauche) n'est jamais remplace.
+     */
+    @Transactional
+    public String attribuerMatricule(Long idEmploye, java.util.function.Supplier<String> generateur) {
+        Employe employe = employeRepository.findById(idEmploye)
+                .orElseThrow(() -> BusinessException.notFound(
+                        "L'employe " + idEmploye + " n'existe pas."));
+        if (employe.getMatricule() == null || employe.getMatricule().isBlank()) {
+            employe.setMatricule(generateur.get());
+            employeRepository.save(employe);
+        }
+        return employe.getMatricule();
+    }
+
+    /** Met a jour le statut administratif du salarie (activation, depart...). */
+    @Transactional
+    public EmployeEmbaucheDto changerStatut(Long idEmploye, StatutEmploye statut) {
+        Employe employe = employeRepository.findById(idEmploye)
+                .orElseThrow(() -> BusinessException.notFound(
+                        "L'employe " + idEmploye + " n'existe pas."));
+        employe.setStatut(statut);
+        return EmployeEmbaucheDto.de(employeRepository.save(employe));
+    }
+
     @Transactional(readOnly = true)
     public EmployeEmbaucheDto dossier(Long idEmploye) {
         return EmployeEmbaucheDto.de(employeRepository.findById(idEmploye)
