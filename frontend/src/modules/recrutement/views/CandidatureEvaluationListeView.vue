@@ -46,12 +46,14 @@ async function chargerCandidatures() {
   }
   loading.value = true
   try {
-    const [offres, ...resultats] = await Promise.all([
+    const [offres, resultats] = await Promise.all([
       api.get('/recrutement/offres'),
-      statuts.map(async (statut) => [
-        statut.valeur,
-        await api.get(`/recrutement/offres/${idOffre.value}/candidatures?statut=${statut.valeur}`),
-      ]),
+      Promise.all(
+        statuts.map(async (statut) => [
+          statut.valeur,
+          await api.get(`/recrutement/offres/${idOffre.value}/candidatures?statut=${statut.valeur}`),
+        ]),
+      ),
     ])
     offre.value = offres.find((item) => String(item.idOffre ?? item.id) === idOffre.value) || null
     candidaturesParStatut.value = Object.fromEntries(resultats)
