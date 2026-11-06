@@ -130,7 +130,7 @@ onMounted(charger)
     <EmptyState v-else-if="!candidature" titre="Candidature introuvable" message="Cette candidature n’est plus disponible." />
     <template v-else>
       <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <Button label="Retour à l’évaluation de l’offre" icon="pi pi-arrow-left" text severity="secondary" @click="router.push({ name: 'recrutement-candidature-evaluation-liste' })" />
+        <Button label="Retour à l’évaluation de l’offre" icon="pi pi-arrow-left" text severity="secondary" @click="router.push({ name: 'recrutement-candidature-evaluation-liste', params: { idOffre: route.params.idOffre }, query: { statut } })" />
         <div class="flex gap-2">
           <Button label="Précédent" icon="pi pi-chevron-left" outlined :disabled="!precedent" @click="allerVers(precedent)" />
           <Button label="Suivant" icon="pi pi-chevron-right" icon-pos="right" outlined :disabled="!suivant" @click="allerVers(suivant)" />

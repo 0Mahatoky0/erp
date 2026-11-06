@@ -1,9 +1,8 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
-import Select from 'primevue/select'
 import TabView from 'primevue/tabview'
 import TabPanel from 'primevue/tabpanel'
 import Tag from 'primevue/tag'
@@ -14,10 +13,11 @@ import { recrutementApi as api, ErreurApi } from '../api/recrutementApi'
 
 const router = useRouter()
 const notifications = useNotificationStore()
-const offres = ref([])
-const idOffre = ref('')
+const route = useRoute()
+const idOffre = computed(() => String(route.params.idOffre || ''))
+const offre = ref(null)
 const candidaturesParStatut = ref({})
-const statutActif = ref('RECUE')
+const statutActif = ref(String(route.query.statut || 'RECUE'))
 const loading = ref(false)
 
 const statuts = [
@@ -30,13 +30,6 @@ const statuts = [
   { valeur: 'REFUSEE', libelle: 'Refusées' },
   { valeur: 'RETIREE', libelle: 'Retirées' },
 ]
-
-const offresOptions = computed(() =>
-  offres.value.map((offre) => ({
-    ...offre,
-    libelle: `${offre.reference} · ${offre.titre}`,
-  })),
-)
 
 const candidaturesActives = computed(() => candidaturesParStatut.value[statutActif.value] || [])
 const indexStatutActif = computed({
@@ -53,12 +46,14 @@ async function chargerCandidatures() {
   }
   loading.value = true
   try {
-    const resultats = await Promise.all(
+    const [offres, ...resultats] = await Promise.all([
+      api.get('/recrutement/offres'),
       statuts.map(async (statut) => [
         statut.valeur,
         await api.get(`/recrutement/offres/${idOffre.value}/candidatures?statut=${statut.valeur}`),
       ]),
-    )
+    ])
+    offre.value = offres.find((item) => String(item.idOffre ?? item.id) === idOffre.value) || null
     candidaturesParStatut.value = Object.fromEntries(resultats)
   } catch (cause) {
     notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible de charger les candidatures.')
@@ -75,15 +70,11 @@ function ouvrirEvaluation(candidature) {
   })
 }
 
-watch(idOffre, chargerCandidatures)
-
-onMounted(async () => {
-  try {
-    offres.value = await api.get('/recrutement/offres')
-  } catch (cause) {
-    notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible de charger les offres.')
-  }
-})
+watch([idOffre, () => route.query.statut], () => {
+  const statutQuery = String(route.query.statut || 'RECUE')
+  if (statuts.some((item) => item.valeur === statutQuery)) statutActif.value = statutQuery
+  chargerCandidatures()
+}, { immediate: true })
 </script>
 
 <template>
@@ -92,17 +83,42 @@ onMounted(async () => {
       <div>
         <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-primary">Recrutement</p>
         <h1 class="m-0 text-2xl font-bold">Évaluation des candidatures</h1>
-        <p class="mt-1 mb-0 text-muted-color">Sélectionnez une offre puis évaluez ses candidats par étape.</p>
+        <p class="mt-1 mb-0 text-muted-color">Évaluez les candidats de cette offre par étape.</p>
       </div>
       <Button label="Actualiser" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="chargerCandidatures" />
     </header>
 
     <Card>
       <template #content>
-        <Select v-model="idOffre" :options="offresOptions" option-label="libelle" option-value="idOffre" placeholder="Sélectionner une offre" filter class="mb-5 w-full md:w-1/2" />
-
         <EmptyState v-if="!idOffre" titre="Aucune offre sélectionnée" message="Choisissez une offre pour afficher ses candidatures." />
         <div v-else>
+          <div v-if="offre" class="mb-5 rounded-lg border border-surface bg-surface-50 p-4 dark:bg-surface-800">
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p class="m-0 text-xs font-semibold uppercase tracking-wider text-primary">Offre évaluée</p>
+                <h2 class="m-0 text-xl font-semibold">{{ offre.titre }}</h2>
+              </div>
+              <StatusBadge :valeur="offre.statut" />
+            </div>
+            <dl class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <dt class="text-xs text-muted-color">Référence</dt>
+                <dd class="m-0 font-semibold">{{ offre.reference || '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs text-muted-color">Type de contrat</dt>
+                <dd class="m-0 font-semibold">{{ offre.typeContrat || '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs text-muted-color">Lieu de travail</dt>
+                <dd class="m-0 font-semibold">{{ offre.lieuTravail || '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs text-muted-color">Effectif recherché</dt>
+                <dd class="m-0 font-semibold">{{ offre.effectifRecherche ?? '—' }}</dd>
+              </div>
+            </dl>
+          </div>
           <TabView v-model:activeIndex="indexStatutActif">
             <TabPanel v-for="statut in statuts" :key="statut.valeur">
               <template #header>

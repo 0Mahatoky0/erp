@@ -27,6 +27,11 @@ const formOuvert = ref(false)
 const idOffre = computed(() => route.params.idOffre)
 const peutGerer = computed(() => auth.estRh || auth.estDirection)
 const retour = () => router.push({ name: 'recrutement-offre-liste' })
+const ouvrirEvaluation = (statut) => router.push({
+  name: 'recrutement-candidature-evaluation-liste',
+  params: { idOffre: idOffre.value },
+  query: statut ? { statut } : undefined,
+})
 
 const salaire = computed(() => {
   const { salaireMin: min, salaireMax: max } = offre.value || {}
@@ -126,6 +131,7 @@ watch(idOffre, charger, { immediate: true })
         </div>
 
         <div v-if="peutGerer" class="flex flex-wrap gap-2">
+          <PrimeButton label="Évaluer les candidatures" icon="pi pi-file-edit" severity="secondary" outlined @click="ouvrirEvaluation()" />
           <PrimeButton v-if="offre.statut === 'BROUILLON'" label="Modifier" icon="pi pi-pencil" severity="secondary" outlined @click="formOuvert = true" />
           <PrimeButton v-if="offre.statut === 'BROUILLON'" label="Publier" icon="pi pi-send" severity="success" @click="changerStatut('publier', 'Offre publiée.')" />
           <PrimeButton v-if="offre.statut === 'PUBLIEE'" label="Clôturer" icon="pi pi-lock" severity="warn" @click="changerStatut('cloturer', 'Offre clôturée.')" />
@@ -161,29 +167,29 @@ watch(idOffre, charger, { immediate: true })
         <template #title>Indicateurs de recrutement</template>
         <template #content>
           <div v-if="indicateurs" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="rounded-lg border border-surface p-4">
+            <div class="cursor-pointer rounded-lg border border-surface p-4 transition hover:border-primary hover:shadow-sm" role="button" tabindex="0" @click="ouvrirEvaluation('RECUE')" @keydown.enter="ouvrirEvaluation('RECUE')">
               <p class="m-0 text-sm text-muted-color">Candidatures reçues</p>
               <strong class="text-3xl">{{ indicateurs.nombreCandidatures }}</strong>
             </div>
-            <div class="rounded-lg border border-surface p-4">
+            <div class="cursor-pointer rounded-lg border border-surface p-4 transition hover:border-primary hover:shadow-sm" role="button" tabindex="0" @click="ouvrirEvaluation('PRESELECTIONNEE')" @keydown.enter="ouvrirEvaluation('PRESELECTIONNEE')">
               <p class="m-0 text-sm text-muted-color">Présélectionnées</p>
               <strong class="text-3xl">{{ indicateurs.nombrePreselectionnees }}</strong>
               <p class="m-0 text-sm text-muted-color">{{ indicateurs.tauxPreselection }} % des candidatures</p>
             </div>
-            <div class="rounded-lg border border-surface p-4">
+            <div class="cursor-pointer rounded-lg border border-surface p-4 transition hover:border-primary hover:shadow-sm" role="button" tabindex="0" @click="ouvrirEvaluation('EN_EVALUATION')" @keydown.enter="ouvrirEvaluation('EN_EVALUATION')">
               <p class="m-0 text-sm text-muted-color">En évaluation</p>
               <strong class="text-3xl">{{ indicateurs.nombreEnEvaluation }}</strong>
             </div>
-            <div class="rounded-lg border border-surface p-4">
+            <div class="cursor-pointer rounded-lg border border-surface p-4 transition hover:border-primary hover:shadow-sm" role="button" tabindex="0" @click="ouvrirEvaluation('RETENUE')" @keydown.enter="ouvrirEvaluation('RETENUE')">
               <p class="m-0 text-sm text-muted-color">Retenues</p>
               <strong class="text-3xl">{{ indicateurs.nombreRetenues }}</strong>
               <p class="m-0 text-sm text-muted-color">{{ indicateurs.tauxRetenue }} % des candidatures</p>
             </div>
-            <div class="rounded-lg border border-surface p-4">
+            <div class="cursor-pointer rounded-lg border border-surface p-4 transition hover:border-primary hover:shadow-sm" role="button" tabindex="0" @click="ouvrirEvaluation('LISTE_ATTENTE')" @keydown.enter="ouvrirEvaluation('LISTE_ATTENTE')">
               <p class="m-0 text-sm text-muted-color">Liste d’attente</p>
               <strong class="text-3xl">{{ indicateurs.nombreListeAttente }}</strong>
             </div>
-            <div class="rounded-lg border border-surface p-4">
+            <div class="cursor-pointer rounded-lg border border-surface p-4 transition hover:border-primary hover:shadow-sm" role="button" tabindex="0" @click="ouvrirEvaluation('REFUSEE')" @keydown.enter="ouvrirEvaluation('REFUSEE')">
               <p class="m-0 text-sm text-muted-color">Refusées</p>
               <strong class="text-3xl">{{ indicateurs.nombreRefusees }}</strong>
             </div>

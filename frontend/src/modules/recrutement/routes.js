@@ -45,7 +45,7 @@ export const recrutementRoutes = [
         meta: { titre: 'Liste des candidatures · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
       },
       {
-        path: 'evaluation',
+        path: 'evaluation/offres/:idOffre',
         name: 'recrutement-candidature-evaluation-liste',
         component: () => import('./views/CandidatureEvaluationListeView.vue'),
         meta: { titre: 'Évaluation des candidatures · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
