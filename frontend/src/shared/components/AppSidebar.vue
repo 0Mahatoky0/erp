@@ -29,9 +29,8 @@ const sections = computed(() => {
   const recrutement = []
   if (auth.estRh || auth.estDirection || auth.estManager) {
     recrutement.push(
-      { nom: 'recrutement-demandes', label: 'Demandes acceptées', icon: 'pi pi-list-check' },
-      { nom: 'recrutement-offres', label: 'Offres d’emploi', icon: 'pi pi-megaphone' },
-      { nom: 'recrutement-candidatures', label: 'Candidatures', icon: 'pi pi-users' },
+    { nom: 'recrutement-offre-liste', label: 'Offres d’emploi', icon: 'pi pi-megaphone' },
+    { nom: 'recrutement-candidature-liste', label: 'Candidatures', icon: 'pi pi-users' },
       { nom: 'recrutement-selection', label: 'Présélection', icon: 'pi pi-check' },
       { nom: 'recrutement-suivi', label: 'Suivi candidats', icon: 'pi pi-chart-line' },
     )

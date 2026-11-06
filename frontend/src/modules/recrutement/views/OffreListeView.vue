@@ -1,4 +1,4 @@
-<!-- src/modules/recrutement/views/OffresListeView.vue -->
+<!-- src/modules/recrutement/views/OffreListeView.vue -->
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -49,7 +49,7 @@ async function chargerOffres() {
 }
 
 function voirDetail(offre) {
-  router.push({ name: 'recrutement-offre-detail', params: { idOffre: offre.idOffre ?? offre.id } })
+  router.push({ name: 'recrutement-offre-fiche', params: { idOffre: offre.idOffre ?? offre.id } })
 }
 
 // Redirection vers la vue dédiée de saisie de l'offre

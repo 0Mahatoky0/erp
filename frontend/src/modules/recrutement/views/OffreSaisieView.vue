@@ -150,15 +150,15 @@ const enregistrer = async () => {
     if (estEdition.value) {
       await recrutementApi.put(`/recrutement/offres/${idOffre.value}`, payload)
       notifications.succes('Offre d’emploi modifiée avec succès.')
-      await router.push({ name: 'recrutement-offre-detail', params: { idOffre: idOffre.value } })
+      await router.push({ name: 'recrutement-offre-fiche', params: { idOffre: idOffre.value } })
     } else {
       const nouvelleOffre = await recrutementApi.post('/recrutement/offres', payload)
       notifications.succes('Offre d’emploi créée avec succès.')
       const targetId = nouvelleOffre?.idOffre ?? nouvelleOffre?.id
       if (targetId) {
-        await router.push({ name: 'recrutement-offre-detail', params: { idOffre: targetId } })
+        await router.push({ name: 'recrutement-offre-fiche', params: { idOffre: targetId } })
       } else {
-        await router.push({ name: 'recrutement-offres' })
+        await router.push({ name: 'recrutement-offre-liste' })
       }
     }
   } catch (cause) {
@@ -172,9 +172,9 @@ const enregistrer = async () => {
 
 const annuler = () => {
   if (estEdition.value) {
-    router.push({ name: 'recrutement-offre-detail', params: { idOffre: idOffre.value } })
+    router.push({ name: 'recrutement-offre-fiche', params: { idOffre: idOffre.value } })
   } else {
-    router.push({ name: 'recrutement-offres' })
+    router.push({ name: 'recrutement-offre-liste' })
   }
 }
 

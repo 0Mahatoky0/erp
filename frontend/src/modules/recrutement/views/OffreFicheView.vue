@@ -29,7 +29,7 @@ const formOuvert = ref(false)
 
 const idOffre = computed(() => route.params.idOffre)
 const peutGerer = computed(() => auth.estRh || auth.estDirection)
-const retour = () => router.push({ name: 'recrutement-offres' })
+const retour = () => router.push({ name: 'recrutement-offre-liste' })
 
 const salaire = computed(() => {
   const { salaireMin: min, salaireMax: max } = offre.value || {}
