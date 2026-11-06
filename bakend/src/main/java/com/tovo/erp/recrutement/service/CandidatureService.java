@@ -5,9 +5,32 @@ import com.tovo.erp.recrutement.repository.*;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class CandidatureService {
+    private static final Map<CandidatureStatut, Set<CandidatureStatut>> TRANSITIONS_AUTORISEES = Map.of(
+            CandidatureStatut.RECUE, Set.of(CandidatureStatut.EN_ETUDE, CandidatureStatut.RETIREE),
+            CandidatureStatut.EN_ETUDE, Set.of(
+                    CandidatureStatut.PRESELECTIONNEE,
+                    CandidatureStatut.REFUSEE,
+                    CandidatureStatut.RETIREE),
+            CandidatureStatut.PRESELECTIONNEE, Set.of(
+                    CandidatureStatut.EN_EVALUATION,
+                    CandidatureStatut.REFUSEE,
+                    CandidatureStatut.RETIREE),
+            CandidatureStatut.EN_EVALUATION, Set.of(
+                    CandidatureStatut.RETENUE,
+                    CandidatureStatut.LISTE_ATTENTE,
+                    CandidatureStatut.REFUSEE,
+                    CandidatureStatut.RETIREE),
+            CandidatureStatut.LISTE_ATTENTE, Set.of(CandidatureStatut.RETENUE, CandidatureStatut.REFUSEE),
+            CandidatureStatut.RETENUE, Set.of(),
+            CandidatureStatut.REFUSEE, Set.of(),
+            CandidatureStatut.RETIREE, Set.of()
+    );
+
     private final CandidatRepository candidats;
     private final CandidatureRepository candidatures;
     private final OffreEmploiRepository offres;
@@ -45,6 +68,7 @@ public class CandidatureService {
         Candidature candidature = charger(id);
         CandidatureStatut ancien = candidature.getStatut();
         if (ancien == statut) throw new IllegalStateException("Le statut est déjà " + statut);
+        verifierTransition(ancien, statut);
         candidature.setStatut(statut);
         Candidature saved = candidatures.save(candidature);
         historiser(saved, ancien, statut, AuteurType.UTILISATEUR, idUtilisateur, commentaire);
@@ -60,6 +84,13 @@ public class CandidatureService {
 
     private Candidature charger(Long id) {
         return candidatures.findById(id).orElseThrow(() -> new IllegalArgumentException("Candidature introuvable"));
+    }
+
+    private void verifierTransition(CandidatureStatut ancien, CandidatureStatut nouveau) {
+        if (nouveau == null || !TRANSITIONS_AUTORISEES.getOrDefault(ancien, Set.of()).contains(nouveau)) {
+            throw new IllegalStateException(
+                    "Transition de candidature interdite : " + ancien + " -> " + nouveau);
+        }
     }
 
     private void historiser(Candidature c, CandidatureStatut ancien, CandidatureStatut nouveau,

@@ -67,14 +67,46 @@ class CandidatureServiceTest {
     void historiseLaPreselection() {
         Candidature candidature = new Candidature();
         candidature.setIdCandidature(3L);
-        candidature.setStatut(CandidatureStatut.RECUE);
+        candidature.setStatut(CandidatureStatut.EN_ETUDE);
         when(candidatures.findById(3L)).thenReturn(Optional.of(candidature));
         when(candidatures.save(candidature)).thenReturn(candidature);
 
         service.changerStatut(3L, CandidatureStatut.PRESELECTIONNEE, 7L, "Profil retenu");
 
         assertEquals(CandidatureStatut.PRESELECTIONNEE, candidature.getStatut());
-        verify(historiques).save(argThat(h -> h.getAncienStatut() == CandidatureStatut.RECUE
+        verify(historiques).save(argThat(h -> h.getAncienStatut() == CandidatureStatut.EN_ETUDE
                 && h.getNouveauStatut() == CandidatureStatut.PRESELECTIONNEE));
+    }
+
+    @Test
+    void refuseUneTransitionQuiContourneLeCycle() {
+        Candidature candidature = new Candidature();
+        candidature.setIdCandidature(3L);
+        candidature.setStatut(CandidatureStatut.RECUE);
+        when(candidatures.findById(3L)).thenReturn(Optional.of(candidature));
+
+        assertThrows(IllegalStateException.class,
+                () -> service.changerStatut(3L, CandidatureStatut.RETENUE, 7L, "Décision"));
+        verify(candidatures, never()).save(any());
+        verifyNoInteractions(historiques);
+    }
+
+    @Test
+    void rendLesStatutsFinauxEffectivementTerminaux() {
+        for (CandidatureStatut statutFinal : new CandidatureStatut[] {
+                CandidatureStatut.RETENUE,
+                CandidatureStatut.REFUSEE,
+                CandidatureStatut.RETIREE
+        }) {
+            Candidature candidature = new Candidature();
+            candidature.setIdCandidature(3L);
+            candidature.setStatut(statutFinal);
+            when(candidatures.findById(3L)).thenReturn(Optional.of(candidature));
+
+            assertThrows(IllegalStateException.class,
+                    () -> service.changerStatut(3L, CandidatureStatut.EN_ETUDE, 7L, "Réouverture"));
+        }
+        verify(candidatures, never()).save(any());
+        verifyNoInteractions(historiques);
     }
 }
