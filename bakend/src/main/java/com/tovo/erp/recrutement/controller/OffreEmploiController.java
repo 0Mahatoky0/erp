@@ -3,6 +3,7 @@ package com.tovo.erp.recrutement.controller;
 import com.tovo.erp.iam.model.RoleNom;
 import com.tovo.erp.recrutement.dto.CandidatureDto;
 import com.tovo.erp.recrutement.dto.OffreEmploiDto;
+import com.tovo.erp.recrutement.dto.OffreIndicateursDto;
 import com.tovo.erp.recrutement.model.CandidatureStatut;
 import com.tovo.erp.recrutement.model.OffreEmploi;
 import com.tovo.erp.recrutement.model.OffreStatut;
@@ -82,6 +83,12 @@ public class OffreEmploiController {
     public OffreEmploiDto annuler(@PathVariable Long id) {
         exigerRh();
         return OffreEmploiDto.de(offres.annuler(id, utilisateurCourant.exiger().getId()));
+    }
+
+    @GetMapping("/{idOffre}/indicateurs")
+    public OffreIndicateursDto indicateurs(@PathVariable Long idOffre) {
+        exigerRh();
+        return offres.indicateurs(idOffre);
     }
 
     /** Sous-ressource d'une offre : ses candidatures. */

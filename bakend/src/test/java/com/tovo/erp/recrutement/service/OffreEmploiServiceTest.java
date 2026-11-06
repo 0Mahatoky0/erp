@@ -81,6 +81,24 @@ class OffreEmploiServiceTest {
         verify(offres, never()).save(any());
     }
 
+    @Test
+    void calculeLesIndicateursDeCandidature() {
+        when(offres.existsById(1L)).thenReturn(true);
+        when(candidatures.countByOffreIdOffre(1L)).thenReturn(10L);
+        when(candidatures.countByOffreIdOffreAndStatut(1L, CandidatureStatut.PRESELECTIONNEE)).thenReturn(4L);
+        when(candidatures.countByOffreIdOffreAndStatut(1L, CandidatureStatut.EN_EVALUATION)).thenReturn(3L);
+        when(candidatures.countByOffreIdOffreAndStatut(1L, CandidatureStatut.RETENUE)).thenReturn(2L);
+        when(candidatures.countByOffreIdOffreAndStatut(1L, CandidatureStatut.LISTE_ATTENTE)).thenReturn(1L);
+        when(candidatures.countByOffreIdOffreAndStatut(1L, CandidatureStatut.REFUSEE)).thenReturn(3L);
+
+        var result = service.indicateurs(1L);
+
+        assertEquals(10L, result.nombreCandidatures());
+        assertEquals(4L, result.nombrePreselectionnees());
+        assertEquals("40.00", result.tauxPreselection().toPlainString());
+        assertEquals("20.00", result.tauxRetenue().toPlainString());
+    }
+
     private OffreEmploi offre(Long demande) {
         OffreEmploi offre = new OffreEmploi();
         offre.setIdDemandePoste(demande);
