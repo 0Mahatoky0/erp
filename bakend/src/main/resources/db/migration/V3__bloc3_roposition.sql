@@ -36,7 +36,7 @@ CREATE TABLE periodicite_paie(
 );
 
 CREATE TABLE mode_paiement(
-    id_mode_paiement INT 1PRIMARY KEY,
+    id_mode_paiement INT PRIMARY KEY,
     libelle VARCHAR(50)
 );
 
