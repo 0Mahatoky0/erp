@@ -2,6 +2,8 @@ package com.tovo.erp.recrutement.service;
 
 import com.tovo.erp.recrutement.model.*;
 import com.tovo.erp.recrutement.repository.*;
+import com.tovo.erp.recrutement.dto.CandidatDto;
+import com.tovo.erp.recrutement.dto.CandidatureDto;
 import com.tovo.erp.iam.model.RoleNom;
 import com.tovo.erp.iam.model.Utilisateur;
 import jakarta.transaction.Transactional;
@@ -9,6 +11,8 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Collection;
+import java.util.HashMap;
 
 @Service
 public class CandidatureService {
@@ -109,6 +113,26 @@ public class CandidatureService {
     }
 
     public List<Candidature> parCandidat(Long idCandidat) { return candidatures.findByCandidatIdCandidat(idCandidat); }
+
+    @Transactional
+    public CandidatureDto trouverDto(Long idCandidature) {
+        return CandidatureDto.de(charger(idCandidature));
+    }
+
+    @Transactional
+    public Map<Long, CandidatureDto> trouverDtos(Collection<Long> ids) {
+        Map<Long, CandidatureDto> resultat = new HashMap<>();
+        candidatures.findAllById(ids).forEach(candidature ->
+                resultat.put(candidature.getIdCandidature(), CandidatureDto.de(candidature)));
+        return resultat;
+    }
+
+    @Transactional
+    public CandidatDto candidatDuCompte(Long idUtilisateur) {
+        Candidat candidat = candidats.findByIdUtilisateur(idUtilisateur)
+                .orElseThrow(() -> new IllegalArgumentException("Profil candidat introuvable"));
+        return CandidatDto.de(candidat);
+    }
 
     private Candidature charger(Long id) {
         return candidatures.findById(id).orElseThrow(() -> new IllegalArgumentException("Candidature introuvable"));

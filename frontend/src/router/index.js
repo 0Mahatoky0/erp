@@ -4,12 +4,14 @@ import { iamRoutes } from '@/modules/iam/routes'
 import { employeRoutes } from '@/modules/employe/routes'
 import { besoinRoutes } from '@/modules/besoin/routes'
 import { recrutementRoutes } from '@/modules/recrutement/routes'
+import { embaucheRoutes } from '@/modules/embauche/routes'
 
 const routes = [
   ...iamRoutes,
   ...employeRoutes,
   ...besoinRoutes,
   ...recrutementRoutes,
+  ...embaucheRoutes,
   {
     path: '/:pathMatch(.*)*',
     name: 'introuvable',
@@ -32,6 +34,10 @@ router.beforeEach(async (vers) => {
   }
   if (['connexion', 'connexion-candidat', 'inscription-candidat'].includes(vers.name) && auth.connecte) {
     return auth.role === 'CANDIDAT' ? { name: 'espace-candidat' } : { name: 'tableau-bord' }
+  }
+
+  if (auth.role === 'CANDIDAT' && (vers.path === '/admin' || vers.path.startsWith('/admin/'))) {
+    return { name: 'espace-candidat' }
   }
 
   const roles = vers.meta.roles

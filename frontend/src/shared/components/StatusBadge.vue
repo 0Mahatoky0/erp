@@ -39,6 +39,8 @@ const LIBELLES = {
   
   PUBLIEE: 'Publiee',
   CLOTUREE: 'Cloturee',
+  ENVOYEE: 'Envoyee',
+  AJUSTEMENT_DEMANDE: 'Ajustement demande',
 }
 
 const COULEURS = {
@@ -67,6 +69,8 @@ const COULEURS = {
   MANAGER: 'neutre',
   PUBLIEE: 'succes',
   CLOTUREE: 'neutre',
+  ENVOYEE: 'info',
+  AJUSTEMENT_DEMANDE: 'alerte',
 }
 
 const couleur = computed(() => {
