@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 @Entity @Table(name = "candidat") @Getter @Setter @NoArgsConstructor
 public class Candidat {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long idCandidat;
+    @Column(name = "id_utilisateur", unique = true) private Long idUtilisateur;
     @NotBlank @Size(max = 100) @Column(nullable = false) private String nom;
     @NotBlank @Size(max = 100) @Column(nullable = false) private String prenom;
     @NotBlank @Email @Size(max = 255) @Column(nullable = false, unique = true) private String email;
