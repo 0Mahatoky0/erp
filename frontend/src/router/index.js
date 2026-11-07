@@ -36,6 +36,10 @@ router.beforeEach(async (vers) => {
     return auth.role === 'CANDIDAT' ? { name: 'espace-candidat' } : { name: 'tableau-bord' }
   }
 
+  if (auth.role === 'CANDIDAT' && (vers.path === '/admin' || vers.path.startsWith('/admin/'))) {
+    return { name: 'espace-candidat' }
+  }
+
   const roles = vers.meta.roles
   if (roles && !roles.includes(auth.role)) return { name: 'tableau-bord' }
   return true
