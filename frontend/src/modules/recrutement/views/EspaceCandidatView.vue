@@ -78,6 +78,9 @@ onMounted(chargerOffres)
           <i class="pi pi-bell text-2xl text-muted-color" aria-hidden="true"></i>
           <p class="mt-3 font-semibold">Bientôt disponible</p>
           <p class="mt-1 text-sm text-muted-color">Les notifications liées à vos candidatures apparaîtront ici.</p>
+          <RouterLink class="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-contrast no-underline" :to="{ name: 'candidat-proposition-liste' }">
+            Voir mes propositions d’embauche
+          </RouterLink>
         </div>
       </aside>
     </section>

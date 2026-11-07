@@ -35,11 +35,16 @@ const sections = computed(() => {
       { nom: 'recrutement-suivi', label: 'Suivi candidats', icon: 'pi pi-chart-line' },
     )
   }
+  const embauche = []
+  if (auth.estRh || auth.estDirection) {
+    embauche.push({ nom: 'embauche-proposition-liste', label: 'Propositions d’embauche', icon: 'pi pi-file-edit' })
+  }
 
   return [
     { label: 'Demande', items: principal },
     { label: 'Gestion', items: gestion },
     { label: 'Recrutement', items: recrutement },
+    { label: 'Embauche', items: embauche },
   ]
     .filter((s) => s.items.length)
     .map((s) => ({
