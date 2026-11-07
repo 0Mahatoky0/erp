@@ -6,6 +6,12 @@ export const recrutementRoutes = [
     meta: { titre: 'Offres d’emploi', public: true },
   },
   {
+    path: '/candidat',
+    name: 'espace-candidat',
+    component: () => import('./views/EspaceCandidatView.vue'),
+    meta: { titre: 'Espace candidat', roles: ['CANDIDAT'] },
+  },
+  {
     path: '/admin/recrutement',
     component: () => import('@/shared/layouts/AppLayout.vue'),
     children: [

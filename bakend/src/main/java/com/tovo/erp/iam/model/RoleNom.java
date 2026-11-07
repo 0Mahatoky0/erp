@@ -18,5 +18,8 @@ public enum RoleNom {
     FINANCE,
 
     /** Prend la decision finale lorsque son approbation est requise. */
-    DIRECTION
+    DIRECTION,
+
+    /** Consulte les offres et depose ses candidatures. */
+    CANDIDAT
 }

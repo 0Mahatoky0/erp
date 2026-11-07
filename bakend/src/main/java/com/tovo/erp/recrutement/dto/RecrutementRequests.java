@@ -10,7 +10,7 @@ public final class RecrutementRequests {
     private RecrutementRequests() {
     }
 
-    public record CandidatureRequest(@NotNull Long idOffre, @NotNull @Valid CandidatRequest candidat,
+    public record CandidatureRequest(@NotNull Long idOffre,
             String messageCandidat, @Size(max = 100) String source) {
     }
 

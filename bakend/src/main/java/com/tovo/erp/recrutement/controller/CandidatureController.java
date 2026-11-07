@@ -38,7 +38,7 @@ public class CandidatureController {
     @PostMapping
     public ResponseEntity<CandidatureDto> postuler(@Valid @RequestBody RecrutementRequests.CandidatureRequest request) {
         Candidature candidature = candidatures.postuler(
-                request.idOffre(), request.candidat().toEntity(), request.messageCandidat(), request.source());
+                request.idOffre(), utilisateurCourant.exiger(), request.messageCandidat(), request.source());
         return ResponseEntity.status(HttpStatus.CREATED).body(CandidatureDto.de(candidature));
     }
 

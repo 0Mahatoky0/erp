@@ -4,10 +4,12 @@ import PrimeInputText from 'primevue/inputtext'
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/store/useAuthStore'
+import { RouterLink } from 'vue-router'
 
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
+const candidat = route.name === 'connexion-candidat'
 
 const email = ref('manager@tovo.mg')
 const motDePasse = ref('Manager@2026')
@@ -32,7 +34,7 @@ async function seConnecter() {
   try {
     await auth.connexion(email.value.trim(), motDePasse.value)
     const suite = typeof route.query.suite === 'string' ? route.query.suite : null
-    router.push(suite || { name: 'tableau-bord' })
+    router.push(suite || (candidat ? { name: 'espace-candidat' } : { name: 'tableau-bord' }))
   } catch (e) {
     erreur.value = e.message || 'Connexion impossible.'
   } finally {
@@ -76,8 +78,8 @@ async function seConnecter() {
 
     <section class="flex items-center justify-center p-6">
       <div class="w-full max-w-md rounded-xl border border-surface bg-surface-0 p-8 shadow-sm dark:bg-surface-900">
-        <h2 class="mb-2 text-2xl font-semibold">Connexion</h2>
-        <p class="mb-6 text-sm text-muted-color">Accedez a votre espace de travail.</p>
+        <h2 class="mb-2 text-2xl font-semibold">{{ candidat ? 'Connexion candidat' : 'Connexion' }}</h2>
+        <p class="mb-6 text-sm text-muted-color">{{ candidat ? 'Connectez-vous pour postuler à une offre.' : 'Accedez a votre espace de travail.' }}</p>
 
         <div v-if="erreur" class="rounded-lg border p-3 text-sm border-red-200 bg-red-50 text-red-700">{{ erreur }}</div>
 
@@ -112,7 +114,10 @@ async function seConnecter() {
           </PrimeButton>
         </form>
 
-        <div class="comptes-demo">
+        <RouterLink v-if="candidat" class="mt-4 block text-center text-primary" :to="{ name: 'inscription-candidat' }">
+          Créer un compte candidat
+        </RouterLink>
+        <div v-if="!candidat" class="comptes-demo">
           <div style="margin-bottom: 6px">Comptes de demonstration :</div>
           <div v-for="compte in COMPTES" :key="compte.email" class="grid gap-2 sm:grid-cols-2">
             <span>{{ compte.role }}</span>
