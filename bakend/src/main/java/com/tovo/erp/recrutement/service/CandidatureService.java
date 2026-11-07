@@ -4,6 +4,8 @@ import com.tovo.erp.recrutement.dto.CandidatureDto;
 import com.tovo.erp.recrutement.dto.CandidatureEmbaucheDto;
 import com.tovo.erp.recrutement.model.*;
 import com.tovo.erp.recrutement.repository.*;
+import com.tovo.erp.iam.model.RoleNom;
+import com.tovo.erp.iam.model.Utilisateur;
 import com.tovo.erp.shared.BusinessException;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
@@ -68,12 +70,38 @@ public class CandidatureService {
     }
 
     @Transactional
+    public Candidature postuler(Long idOffre, Utilisateur utilisateur, String message, String source) {
+        if (!RoleNom.CANDIDAT.name().equals(utilisateur.getRole().getNom())) {
+            throw new IllegalStateException("Seul un compte candidat peut postuler");
+        }
+        OffreEmploi offre = offres.findById(idOffre)
+                .orElseThrow(() -> new IllegalArgumentException("Offre introuvable"));
+        if (offre.getStatut() != OffreStatut.PUBLIEE)
+            throw new IllegalStateException("L'offre n'est pas ouverte aux candidatures");
+        Candidat existant = candidats.findByIdUtilisateur(utilisateur.getId())
+                .orElseThrow(() -> new IllegalStateException("Le profil candidat est introuvable"));
+        if (candidatures.existsByOffreIdOffreAndCandidatIdCandidat(idOffre, existant.getIdCandidat()))
+            throw new IllegalStateException("Le candidat a déjà postulé à cette offre");
+        Candidature candidature = new Candidature();
+        candidature.setOffre(offre);
+        candidature.setCandidat(existant);
+        candidature.setMessageCandidat(message);
+        candidature.setSource(source);
+        Candidature saved = candidatures.save(candidature);
+        historiser(saved, null, CandidatureStatut.RECUE, AuteurType.CANDIDAT, null);
+        return saved;
+    }
+
+    /** Compatibilite des tests legacy ; les endpoints utilisent le compte authentifie. */
+    @Deprecated
+    @Transactional
     public Candidature postuler(Long idOffre, Candidat candidat, String message, String source) {
         OffreEmploi offre = offres.findById(idOffre)
                 .orElseThrow(() -> new IllegalArgumentException("Offre introuvable"));
         if (offre.getStatut() != OffreStatut.PUBLIEE)
             throw new IllegalStateException("L'offre n'est pas ouverte aux candidatures");
-        Candidat existant = candidats.findByEmailIgnoreCase(candidat.getEmail()).orElseGet(() -> candidats.save(candidat));
+        Candidat existant = candidats.findByEmailIgnoreCase(candidat.getEmail())
+                .orElseGet(() -> candidats.save(candidat));
         if (candidatures.existsByOffreIdOffreAndCandidatIdCandidat(idOffre, existant.getIdCandidat()))
             throw new IllegalStateException("Le candidat a déjà postulé à cette offre");
         Candidature candidature = new Candidature();

@@ -1,24 +1,22 @@
 <script setup>
 import PrimeButton from 'primevue/button'
-import PrimeInputText from 'primevue/inputtext'
 import PrimeTextarea from 'primevue/textarea'
 import Message from 'primevue/message'
 import { onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/shared/store/useAuthStore'
 import { recrutementApi as api, ErreurApi } from '@/modules/recrutement/api/recrutementApi'
 
 const offres = ref([])
+const auth = useAuthStore()
+const router = useRouter()
+const route = useRoute()
 const offreSelectionnee = ref(null)
 const chargement = ref(false)
 const envoi = ref(false)
 const message = ref('')
 const erreur = ref('')
 const formulaire = ref({
-  nom: '',
-  prenom: '',
-  email: '',
-  telephone: '',
-  adresse: '',
   messageCandidat: '',
 })
 
@@ -35,6 +33,10 @@ async function chargerOffres() {
 }
 
 function ouvrirCandidature(offre) {
+  if (!auth.connecte || auth.role !== 'CANDIDAT') {
+    router.push({ name: 'connexion-candidat', query: { suite: `/?offre=${offre.idOffre}` } })
+    return
+  }
   offreSelectionnee.value = offre
   message.value = ''
   erreur.value = ''
@@ -54,18 +56,11 @@ async function envoyerCandidature() {
   try {
     await api.post('/recrutement/candidatures', {
       idOffre: offreSelectionnee.value.idOffre,
-      candidat: {
-        nom: formulaire.value.nom,
-        prenom: formulaire.value.prenom,
-        email: formulaire.value.email,
-        telephone: formulaire.value.telephone || null,
-        adresse: formulaire.value.adresse || null,
-      },
       messageCandidat: formulaire.value.messageCandidat || null,
       source: 'SITE_CARRIERE',
     })
     message.value = 'Votre candidature a bien ete envoyee aux equipes de recrutement.'
-    formulaire.value = { nom: '', prenom: '', email: '', telephone: '', adresse: '', messageCandidat: '' }
+    formulaire.value = { messageCandidat: '' }
   } catch (cause) {
     erreur.value = cause instanceof ErreurApi ? cause.message : 'Impossible d’envoyer votre candidature.'
   } finally {
@@ -73,7 +68,12 @@ async function envoyerCandidature() {
   }
 }
 
-onMounted(chargerOffres)
+onMounted(async () => {
+  await chargerOffres()
+  const idOffre = Number(route.query.offre)
+  const offre = offres.value.find((item) => item.idOffre === idOffre)
+  if (offre && auth.role === 'CANDIDAT') ouvrirCandidature(offre)
+})
 </script>
 
 <template>
@@ -82,11 +82,14 @@ onMounted(chargerOffres)
       <div>
         <p class="text-xs font-semibold uppercase tracking-wider text-primary">ERP TOVO · ESPACE CANDIDAT</p>
         <h1 class="my-2 max-w-2xl text-4xl font-bold tracking-tight md:text-5xl">Trouvez le poste qui vous correspond.</h1>
-        <p class="max-w-2xl text-base text-muted-color">Consultez nos opportunites et envoyez votre candidature sans creer de compte.</p>
+        <p class="max-w-2xl text-base text-muted-color">Consultez nos opportunites et postulez avec votre compte candidat.</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <RouterLink class="shrink-0 rounded-md border border-surface bg-surface-0 px-4 py-2 font-semibold text-primary transition-colors hover:bg-surface-100" :to="{ name: 'connexion-candidat' }">Se connecter en tant que candidat</RouterLink>
+        <RouterLink class="shrink-0 rounded-md border border-surface bg-surface-0 px-4 py-2 font-semibold text-primary transition-colors hover:bg-surface-100" :to="{ name: 'connexion' }">Espace administrateur</RouterLink>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <RouterLink class="shrink-0 rounded-md border border-surface bg-surface-0 px-4 py-2 font-semibold text-primary transition-colors hover:bg-surface-100" :to="{ name: 'candidature-suivi-public' }">Suivre ma candidature</RouterLink>
-        <RouterLink class="shrink-0 rounded-md border border-surface bg-surface-0 px-4 py-2 font-semibold text-primary transition-colors hover:bg-surface-100" :to="{ name: 'connexion' }">Connexion administrateur</RouterLink>
       </div>
     </header>
 
@@ -102,11 +105,6 @@ onMounted(chargerOffres)
       <Message v-if="message" severity="success" :closable="false" role="status">{{ message }}</Message>
       <p v-if="erreur" class="text-sm text-red-600" role="alert">{{ erreur }}</p>
       <form class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" @submit.prevent="envoyerCandidature">
-        <label class="flex flex-col gap-2 font-semibold">Nom<PrimeInputText v-model="formulaire.nom" required maxlength="100" autocomplete="family-name" /></label>
-        <label class="flex flex-col gap-2 font-semibold">Prénom<PrimeInputText v-model="formulaire.prenom" required maxlength="100" autocomplete="given-name" /></label>
-        <label class="flex flex-col gap-2 font-semibold">E-mail<PrimeInputText v-model="formulaire.email" required type="email" maxlength="255" autocomplete="email" /></label>
-        <label class="flex flex-col gap-2 font-semibold">Téléphone<PrimeInputText v-model="formulaire.telephone" maxlength="30" autocomplete="tel" /></label>
-        <label class="flex flex-col gap-2 font-semibold md:col-span-2">Adresse<PrimeInputText v-model="formulaire.adresse" autocomplete="street-address" /></label>
         <label class="flex flex-col gap-2 font-semibold md:col-span-2">Message de motivation<PrimeTextarea v-model="formulaire.messageCandidat" rows="5" /></label>
         <div class="flex w-full flex-wrap gap-2">
           <PrimeButton type="submit" :label="envoi ? 'Envoi...' : 'Envoyer ma candidature'" :disabled="envoi" />

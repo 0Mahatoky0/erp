@@ -32,7 +32,9 @@ router.beforeEach(async (vers) => {
   if (!vers.meta.public && !auth.connecte) {
     return { name: 'connexion', query: { suite: vers.fullPath } }
   }
-  if (vers.name === 'connexion' && auth.connecte) return { name: 'tableau-bord' }
+  if (['connexion', 'connexion-candidat', 'inscription-candidat'].includes(vers.name) && auth.connecte) {
+    return auth.role === 'CANDIDAT' ? { name: 'espace-candidat' } : { name: 'tableau-bord' }
+  }
 
   const roles = vers.meta.roles
   if (roles && !roles.includes(auth.role)) return { name: 'tableau-bord' }

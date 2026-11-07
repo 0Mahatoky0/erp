@@ -37,17 +37,30 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
+    appliquerReponse(reponse) {
+      this.token = reponse.token
+      this.profil = reponse.profil
+      localStorage.setItem(CLE_TOKEN, reponse.token)
+      definirJeton(reponse.token)
+      return reponse.profil
+    },
+
     /** Connexion avec identifiants (RM-001, RM-002). */
     async connexion(email, motDePasse) {
       this.chargement = true
       surJetonExpire(() => this.deconnexion())
       try {
         const reponse = await api.post('/auth/login', { email, motDePasse })
-        this.token = reponse.token
-        this.profil = reponse.profil
-        localStorage.setItem(CLE_TOKEN, reponse.token)
-        definirJeton(reponse.token)
-        return reponse.profil
+        return this.appliquerReponse(reponse)
+      } finally {
+        this.chargement = false
+      }
+    },
+
+    async inscriptionCandidat(donnees) {
+      this.chargement = true
+      try {
+        return this.appliquerReponse(await api.post('/recrutement/candidats/inscription', donnees))
       } finally {
         this.chargement = false
       }
