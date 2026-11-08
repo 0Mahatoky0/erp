@@ -83,10 +83,23 @@ async function requete(methode, chemin, corps) {
   return response.status === 204 ? null : response.data
 }
 
+async function telecharger(chemin, nomFichier = 'document') {
+  const response = await client.get(chemin, { responseType: 'blob' })
+  const url = URL.createObjectURL(response.data)
+  const lien = document.createElement('a')
+  lien.href = url
+  lien.download = nomFichier
+  document.body.appendChild(lien)
+  lien.click()
+  lien.remove()
+  URL.revokeObjectURL(url)
+}
+
 export const api = {
   get: (chemin) => requete('GET', chemin),
   post: (chemin, corps) => requete('POST', chemin, corps),
   put: (chemin, corps) => requete('PUT', chemin, corps),
   patch: (chemin, corps) => requete('PATCH', chemin, corps),
   delete: (chemin) => requete('DELETE', chemin),
+  telecharger,
 }

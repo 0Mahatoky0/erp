@@ -29,10 +29,21 @@ const sections = computed(() => {
   const recrutement = []
   if (auth.estRh || auth.estDirection || auth.estManager) {
     recrutement.push(
-    { nom: 'recrutement-offre-liste', label: 'Offres d’emploi', icon: 'pi pi-megaphone' },
-    { nom: 'recrutement-candidature-liste', label: 'Candidatures', icon: 'pi pi-users' },
-      { nom: 'recrutement-selection', label: 'Présélection', icon: 'pi pi-check' },
-      { nom: 'recrutement-suivi', label: 'Suivi candidats', icon: 'pi pi-chart-line' },
+      { nom: 'recrutement-offre-liste', label: 'Offres d’emploi', icon: 'pi pi-megaphone' },
+    )
+  }
+  if (auth.estRh || auth.estDirection) {
+    recrutement.push(
+      { nom: 'recrutement-candidature-liste', label: 'Candidatures', icon: 'pi pi-users' },
+      { nom: 'recrutement-candidature-preselection-liste', label: 'Présélection', icon: 'pi pi-check' },
+      { nom: 'recrutement-candidature-suivi-liste', label: 'Suivi candidats', icon: 'pi pi-chart-line' },
+    )
+  }
+
+  const embauche = []
+  if (auth.estRh || auth.estDirection || auth.estManager || auth.estFinance) {
+    embauche.push(
+      { nom: 'embauche-proposition-liste', label: 'Propositions d’embauche', icon: 'pi pi-file-edit' },
     )
   }
 
@@ -40,6 +51,7 @@ const sections = computed(() => {
     { label: 'Demande', items: principal },
     { label: 'Gestion', items: gestion },
     { label: 'Recrutement', items: recrutement },
+    { label: 'Embauche', items: embauche },
   ]
     .filter((s) => s.items.length)
     .map((s) => ({
