@@ -31,8 +31,6 @@ const sections = computed(() => {
     recrutement.push(
     { nom: 'recrutement-offre-liste', label: 'Offres d’emploi', icon: 'pi pi-megaphone' },
     { nom: 'recrutement-candidature-liste', label: 'Candidatures', icon: 'pi pi-users' },
-      { nom: 'recrutement-selection', label: 'Présélection', icon: 'pi pi-check' },
-      { nom: 'recrutement-suivi', label: 'Suivi candidats', icon: 'pi pi-chart-line' },
     )
   }
   const embauche = []

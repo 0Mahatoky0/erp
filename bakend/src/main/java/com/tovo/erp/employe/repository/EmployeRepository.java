@@ -10,6 +10,9 @@ import java.util.List;
 
 public interface EmployeRepository extends JpaRepository<Employe, Long> {
 
+    boolean existsByEmailIgnoreCase(String email);
+    boolean existsByMatricule(String matricule);
+
     List<Employe> findByStatutOrderByNomAscPrenomAsc(StatutEmploye statut);
 
     @Query("""

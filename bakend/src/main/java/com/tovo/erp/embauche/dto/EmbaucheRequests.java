@@ -1,6 +1,7 @@
 package com.tovo.erp.embauche.dto;
 
 import com.tovo.erp.embauche.model.DecisionProposition;
+import com.tovo.erp.embauche.model.DecisionContrat;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
@@ -27,5 +28,9 @@ public final class EmbaucheRequests {
             LocalDateTime dateDebutSouhaitee,
             LocalDateTime dateFinSouhaitee,
             String commentaire) {
+    }
+
+    public record ReponseContratRequest(
+            @NotNull DecisionContrat decision) {
     }
 }
