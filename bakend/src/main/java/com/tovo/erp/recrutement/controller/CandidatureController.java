@@ -2,11 +2,11 @@ package com.tovo.erp.recrutement.controller;
 
 import com.tovo.erp.iam.model.RoleNom;
 import com.tovo.erp.recrutement.dto.CandidatureDto;
+import com.tovo.erp.recrutement.dto.CandidatureEmbaucheDto;
 import com.tovo.erp.recrutement.dto.HistoriqueCandidatureDto;
 import com.tovo.erp.recrutement.dto.RecrutementRequests;
 import com.tovo.erp.recrutement.model.Candidature;
 import com.tovo.erp.recrutement.model.CandidatureStatut;
-import com.tovo.erp.recrutement.repository.CandidatureRepository;
 import com.tovo.erp.recrutement.repository.HistoriqueCandidatureRepository;
 import com.tovo.erp.recrutement.service.CandidatureService;
 import com.tovo.erp.shared.UtilisateurCourant;
@@ -22,15 +22,13 @@ import java.util.List;
 public class CandidatureController {
 
     private final CandidatureService candidatures;
-    private final CandidatureRepository candidatureRepository;
     private final HistoriqueCandidatureRepository historiqueRepository;
     private final UtilisateurCourant utilisateurCourant;
 
-    public CandidatureController(CandidatureService candidatures, CandidatureRepository candidatureRepository,
+    public CandidatureController(CandidatureService candidatures,
                                  HistoriqueCandidatureRepository historiqueRepository,
                                  UtilisateurCourant utilisateurCourant) {
         this.candidatures = candidatures;
-        this.candidatureRepository = candidatureRepository;
         this.historiqueRepository = historiqueRepository;
         this.utilisateurCourant = utilisateurCourant;
     }
@@ -42,27 +40,43 @@ public class CandidatureController {
         return ResponseEntity.status(HttpStatus.CREATED).body(CandidatureDto.de(candidature));
     }
 
-    @GetMapping("/{id}")
-    public CandidatureDto candidature(@PathVariable Long id) {
-        return CandidatureDto.de(candidatureRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Candidature introuvable: " + id)));
+    @GetMapping(value = "/public")
+    public List<CandidatureDto> publicParEmail(@RequestParam String email) {
+        return candidatures.listerParEmailPublic(email);
     }
 
-    @PatchMapping("/{id}/statut")
+    @GetMapping
+    public List<CandidatureDto> lister(@RequestParam(required = false) CandidatureStatut statut) {
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        return candidatures.listerParStatut(statut);
+    }
+
+    @GetMapping("/{id:[0-9]+}")
+    public CandidatureDto candidature(@PathVariable Long id) {
+        return candidatures.detail(id);
+    }
+
+    @GetMapping("/{id:[0-9]+}/embauche")
+    public CandidatureEmbaucheDto dossierEmbauche(@PathVariable Long id) {
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        return candidatures.detailsPourEmbauche(id);
+    }
+
+    @PatchMapping("/{id:[0-9]+}/statut")
     public CandidatureDto statut(@PathVariable Long id, @Valid @RequestBody RecrutementRequests.StatutRequest request) {
         utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
-        return CandidatureDto.de(candidatures.changerStatut(
-                id, request.statut(), utilisateurCourant.exiger().getId(), request.commentaire()));
+        return candidatures.changerStatut(
+                id, request.statut(), utilisateurCourant.exiger().getId(), request.commentaire());
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:[0-9]+}")
     public CandidatureDto retirer(@PathVariable Long id) {
         utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
-        return CandidatureDto.de(candidatures.changerStatut(
-                id, CandidatureStatut.RETIREE, utilisateurCourant.exiger().getId(), "Retrait de candidature"));
+        return candidatures.changerStatut(
+                id, CandidatureStatut.RETIREE, utilisateurCourant.exiger().getId(), "Retrait de candidature");
     }
 
-    @GetMapping("/{id}/historique")
+    @GetMapping("/{id:[0-9]+}/historique")
     public List<HistoriqueCandidatureDto> historique(@PathVariable Long id) {
         return historiqueRepository.findByCandidatureIdCandidatureOrderByDateActionAsc(id)
                 .stream().map(HistoriqueCandidatureDto::de).toList();

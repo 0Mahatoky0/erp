@@ -17,10 +17,11 @@ public record CandidatureDto(
         LocalDateTime dateModification) {
 
     public static CandidatureDto de(Candidature candidature) {
+        var offre = candidature.getOffre();
         return new CandidatureDto(
                 candidature.getIdCandidature(),
                 CandidatDto.de(candidature.getCandidat()),
-                OffreEmploiDto.resume(candidature.getOffre()),
+                offre == null ? null : OffreEmploiDto.resume(offre),
                 candidature.getMessageCandidat(),
                 candidature.getSource(),
                 candidature.getStatut(),

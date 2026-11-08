@@ -65,8 +65,20 @@ class CandidatureServiceTest {
 
     @Test
     void historiseLaPreselection() {
+        Candidat candidat = new Candidat();
+        candidat.setIdCandidat(2L);
+        candidat.setNom("Nom");
+        candidat.setPrenom("Prenom");
+        candidat.setEmail("candidat@example.com");
+        OffreEmploi offre = new OffreEmploi();
+        offre.setIdOffre(1L);
+        offre.setReference("OF-2026-0001");
+        offre.setTitre("Developpeur");
+        offre.setStatut(OffreStatut.PUBLIEE);
         Candidature candidature = new Candidature();
         candidature.setIdCandidature(3L);
+        candidature.setCandidat(candidat);
+        candidature.setOffre(offre);
         candidature.setStatut(CandidatureStatut.EN_ETUDE);
         when(candidatures.findById(3L)).thenReturn(Optional.of(candidature));
         when(candidatures.save(candidature)).thenReturn(candidature);
@@ -108,5 +120,51 @@ class CandidatureServiceTest {
         }
         verify(candidatures, never()).save(any());
         verifyNoInteractions(historiques);
+    }
+
+    @Test
+    void retrouveLesCandidaturesDUnCandidatParEmailPourLeSuiviPublic() {
+        Candidat candidat = new Candidat();
+        candidat.setIdCandidat(42L);
+        candidat.setEmail("test@example.com");
+        Candidature une = new Candidature();
+        une.setIdCandidature(10L);
+        une.setCandidat(candidat);
+        une.setStatut(CandidatureStatut.RECUE);
+        Candidature deux = new Candidature();
+        deux.setIdCandidature(11L);
+        deux.setCandidat(candidat);
+        deux.setStatut(CandidatureStatut.RETENUE);
+
+        when(candidats.findByEmailIgnoreCase("test@example.com")).thenReturn(Optional.of(candidat));
+        when(candidatures.findByCandidatIdCandidatOrderByDateCandidatureDesc(42L))
+                .thenReturn(java.util.List.of(une, deux));
+
+        var resultats = service.listerParEmailPublic("test@example.com");
+
+        assertEquals(2, resultats.size());
+        assertEquals(CandidatureStatut.RECUE, resultats.get(0).statut());
+        assertEquals(CandidatureStatut.RETENUE, resultats.get(1).statut());
+    }
+
+    @Test
+    void supporteUneCandidatureSansOffreLieePourLeSuiviPublic() {
+        Candidat candidat = new Candidat();
+        candidat.setIdCandidat(42L);
+        candidat.setEmail("test@example.com");
+        Candidature sansOffre = new Candidature();
+        sansOffre.setIdCandidature(12L);
+        sansOffre.setCandidat(candidat);
+        sansOffre.setStatut(CandidatureStatut.RECUE);
+
+        when(candidats.findByEmailIgnoreCase("test@example.com")).thenReturn(Optional.of(candidat));
+        when(candidatures.findByCandidatIdCandidatOrderByDateCandidatureDesc(42L))
+                .thenReturn(java.util.List.of(sansOffre));
+
+        var resultats = service.listerParEmailPublic("test@example.com");
+
+        assertEquals(1, resultats.size());
+        assertNull(resultats.get(0).offre());
+        assertEquals(CandidatureStatut.RECUE, resultats.get(0).statut());
     }
 }

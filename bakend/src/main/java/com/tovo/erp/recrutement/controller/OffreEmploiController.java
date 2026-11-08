@@ -87,7 +87,7 @@ public class OffreEmploiController {
 
     @GetMapping("/{idOffre}/indicateurs")
     public OffreIndicateursDto indicateurs(@PathVariable Long idOffre) {
-        exigerRh();
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION, RoleNom.MANAGER);
         return offres.indicateurs(idOffre);
     }
 
@@ -95,6 +95,7 @@ public class OffreEmploiController {
     @GetMapping("/{idOffre}/candidatures")
     public List<CandidatureDto> candidaturesDeLOffre(@PathVariable Long idOffre,
                                                      @RequestParam(required = false) CandidatureStatut statut) {
+        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION, RoleNom.MANAGER);
         return candidatures.parOffre(idOffre, statut).stream()
                 .map(CandidatureDto::de).collect(Collectors.toList());
     }
