@@ -47,11 +47,20 @@ const sections = computed(() => {
     )
   }
 
+  const contrats = []
+  if (auth.estRh || auth.estDirection || auth.estManager || auth.estFinance) {
+    contrats.push(
+      { nom: 'contrat-liste', label: 'Contrats', icon: 'pi pi-file-check' },
+      { nom: 'contrat-onboarding-liste', label: 'Onboarding', icon: 'pi pi-list-check' },
+    )
+  }
+
   return [
     { label: 'Demande', items: principal },
     { label: 'Gestion', items: gestion },
     { label: 'Recrutement', items: recrutement },
     { label: 'Embauche', items: embauche },
+    { label: 'Contrats', items: contrats },
   ]
     .filter((s) => s.items.length)
     .map((s) => ({
