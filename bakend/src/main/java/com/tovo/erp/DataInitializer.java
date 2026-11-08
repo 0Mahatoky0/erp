@@ -17,6 +17,7 @@ import com.tovo.erp.iam.repository.RoleRepository;
 import com.tovo.erp.besoin.repository.ServiceRepository;
 import com.tovo.erp.iam.repository.UtilisateurRepository;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ import java.util.List;
  * et n'ecrase jamais des donnees metier.
  */
 @Component
+@Order(1)
 public class DataInitializer implements CommandLineRunner {
 
     private final RoleRepository roleRepository;
