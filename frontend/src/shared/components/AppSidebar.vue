@@ -31,13 +31,14 @@ const sections = computed(() => {
     recrutement.push(
     { nom: 'recrutement-offre-liste', label: 'Offres d’emploi', icon: 'pi pi-megaphone' },
     { nom: 'recrutement-candidature-liste', label: 'Candidatures', icon: 'pi pi-users' },
-      { nom: 'recrutement-selection', label: 'Présélection', icon: 'pi pi-check' },
-      { nom: 'recrutement-suivi', label: 'Suivi candidats', icon: 'pi pi-chart-line' },
     )
   }
   const embauche = []
   if (auth.estRh || auth.estDirection) {
-    embauche.push({ nom: 'embauche-proposition-liste', label: 'Propositions d’embauche', icon: 'pi pi-file-edit' })
+    embauche.push(
+      { nom: 'embauche-proposition-liste', label: 'Propositions d’embauche', icon: 'pi pi-file-edit' },
+      { nom: 'embauche-contrat-liste', label: 'Contrats d’embauche', icon: 'pi pi-file-check' },
+    )
   }
 
   return [

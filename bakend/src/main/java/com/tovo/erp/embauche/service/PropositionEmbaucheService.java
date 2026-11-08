@@ -54,7 +54,7 @@ public class PropositionEmbaucheService {
     @Transactional(readOnly = true)
     public List<PropositionEmbaucheDto> lister(Utilisateur utilisateur) {
         List<PropositionEmbauche> resultat;
-        if (RoleNom.CANDIDAT.name().equals(utilisateur.getRole().getNom())) {
+        if (estCandidat(utilisateur)) {
             CandidatDto candidat = candidatures.candidatDuCompte(utilisateur.getId());
             resultat = propositions.findByIdCandidatOrderByDatePropositionDesc(candidat.idCandidat());
         } else {
@@ -78,7 +78,7 @@ public class PropositionEmbaucheService {
                                           Utilisateur utilisateur) {
         PropositionEmbauche proposition = chargerEntite(id);
         verifierAcces(proposition, utilisateur);
-        if (!RoleNom.CANDIDAT.name().equals(utilisateur.getRole().getNom())) {
+        if (!estCandidat(utilisateur)) {
             throw BusinessException.forbidden("Seul le candidat peut répondre à cette proposition.");
         }
         if (proposition.getStatut() != PropositionStatut.ENVOYEE
@@ -139,10 +139,14 @@ public class PropositionEmbaucheService {
     }
 
     private void verifierAcces(PropositionEmbauche proposition, Utilisateur utilisateur) {
-        if (RoleNom.CANDIDAT.name().equals(utilisateur.getRole().getNom())
+        if (estCandidat(utilisateur)
                 && !candidatures.candidatDuCompte(utilisateur.getId()).idCandidat()
                 .equals(proposition.getIdCandidat())) {
             throw BusinessException.forbidden("Cette proposition ne vous est pas destinée.");
         }
+    }
+
+    private boolean estCandidat(Utilisateur utilisateur) {
+        return RoleNom.CANDIDAT.name().equals(utilisateur.getRole().getNom());
     }
 }

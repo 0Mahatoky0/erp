@@ -63,18 +63,6 @@ export const recrutementRoutes = [
         meta: { titre: 'Fiche d’évaluation · Recrutement', roles: ['RH', 'DIRECTION'] },
       },
       {
-        path: 'selection',
-        name: 'recrutement-selection',
-        redirect: { name: 'recrutement-candidature-liste' },
-        meta: { titre: 'Présélection · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
-      },
-      {
-        path: 'suivi',
-        name: 'recrutement-suivi',
-        redirect: { name: 'recrutement-candidature-liste' },
-        meta: { titre: 'Suivi des candidats · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
-      },
-      {
         path: 'candidatures/:idCandidature',
         name: 'recrutement-candidature-fiche',
         component: () => import('./views/CandidatureFicheView.vue'),
