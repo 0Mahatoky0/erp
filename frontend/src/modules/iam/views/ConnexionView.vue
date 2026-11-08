@@ -113,13 +113,25 @@ async function seConnecter() {
         </form>
 
         <div class="comptes-demo">
-          <div style="margin-bottom: 6px">Comptes de demonstration :</div>
+          <div class="mb-2">Comptes de démonstration :</div>
           <div v-for="compte in COMPTES" :key="compte.email" class="grid gap-2 sm:grid-cols-2">
             <span>{{ compte.role }}</span>
             <PrimeButton class="text-left text-sm" @click="remplir(compte)">
               {{ compte.email }}
             </PrimeButton>
           </div>
+        </div>
+
+        <div class="mt-6 border-t border-surface pt-4 dark:border-surface-700">
+          <PrimeButton
+            label="Accéder à l’espace candidat"
+            icon="pi pi-user"
+            severity="secondary"
+            variant="outlined"
+            class="w-full"
+            as="router-link"
+            :to="{ name: 'accueil-candidat' }"
+          />
         </div>
       </div>
     </section>

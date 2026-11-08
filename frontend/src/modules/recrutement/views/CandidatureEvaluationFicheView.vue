@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
@@ -13,7 +13,6 @@ import { useNotificationStore } from '@/shared/store/useNotificationStore'
 import { recrutementApi as api, ErreurApi } from '../api/recrutementApi'
 
 const route = useRoute()
-const router = useRouter()
 const notifications = useNotificationStore()
 const candidature = ref(null)
 const offre = ref(null)
@@ -112,13 +111,12 @@ async function enregistrerDecision() {
   }
 }
 
-function allerVers(candidat) {
-  if (!candidat) return
-  router.push({
+function lienVers(candidat) {
+  return {
     name: 'recrutement-candidature-evaluation-fiche',
     params: { idOffre: route.params.idOffre, idCandidature: candidat.idCandidature },
     query: { statut: statut.value },
-  })
+  }
 }
 
 onMounted(charger)
@@ -130,10 +128,34 @@ onMounted(charger)
     <EmptyState v-else-if="!candidature" titre="Candidature introuvable" message="Cette candidature n’est plus disponible." />
     <template v-else>
       <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <Button label="Retour à l’évaluation de l’offre" icon="pi pi-arrow-left" text severity="secondary" @click="router.push({ name: 'recrutement-candidature-evaluation-liste', params: { idOffre: route.params.idOffre }, query: { statut } })" />
+        <Button
+          label="Retour à l’évaluation de l’offre"
+          icon="pi pi-arrow-left"
+          text
+          severity="secondary"
+          as="router-link"
+          :to="{ name: 'recrutement-candidature-evaluation-liste', params: { idOffre: route.params.idOffre }, query: { statut } }"
+        />
         <div class="flex gap-2">
-          <Button label="Précédent" icon="pi pi-chevron-left" outlined :disabled="!precedent" @click="allerVers(precedent)" />
-          <Button label="Suivant" icon="pi pi-chevron-right" icon-pos="right" outlined :disabled="!suivant" @click="allerVers(suivant)" />
+          <Button
+            v-if="precedent"
+            label="Précédent"
+            icon="pi pi-chevron-left"
+            variant="outlined"
+            as="router-link"
+            :to="lienVers(precedent)"
+          />
+          <Button v-else label="Précédent" icon="pi pi-chevron-left" variant="outlined" disabled />
+          <Button
+            v-if="suivant"
+            label="Suivant"
+            icon="pi pi-chevron-right"
+            icon-pos="right"
+            variant="outlined"
+            as="router-link"
+            :to="lienVers(suivant)"
+          />
+          <Button v-else label="Suivant" icon="pi pi-chevron-right" icon-pos="right" variant="outlined" disabled />
         </div>
       </div>
 

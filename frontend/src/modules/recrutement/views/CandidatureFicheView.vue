@@ -1,9 +1,12 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
+import Message from 'primevue/message'
 import Tag from 'primevue/tag'
+import Textarea from 'primevue/textarea'
 import Timeline from 'primevue/timeline'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -11,9 +14,9 @@ import StatusBadge from '@/shared/components/StatusBadge.vue'
 import EmptyState from '@/shared/components/EmptyState.vue'
 import { useNotificationStore } from '@/shared/store/useNotificationStore'
 import { recrutementApi as api, ErreurApi } from '../api/recrutementApi'
+import { TRANSITIONS_CANDIDATURE, libelleStatut } from '../utils/statutsCandidature'
 
 const route = useRoute()
-const router = useRouter()
 const notifications = useNotificationStore()
 const candidature = ref(null)
 const historique = ref([])
@@ -22,15 +25,12 @@ const entretiens = ref([])
 const passages = ref([])
 const evaluations = ref([])
 const loading = ref(false)
+const motifDialog = ref(false)
+const motif = ref('')
+const motifManquant = ref(false)
 
 const idCandidature = computed(() => route.params.idCandidature)
-const transitions = computed(() => ({
-  RECUE: ['EN_ETUDE'],
-  EN_ETUDE: ['PRESELECTIONNEE', 'REFUSEE'],
-  PRESELECTIONNEE: ['EN_EVALUATION', 'REFUSEE'],
-  EN_EVALUATION: ['RETENUE', 'LISTE_ATTENTE', 'REFUSEE'],
-  LISTE_ATTENTE: ['RETENUE', 'REFUSEE'],
-}[candidature.value?.statut] || []))
+const actions = computed(() => TRANSITIONS_CANDIDATURE[candidature.value?.statut] || [])
 
 async function charger() {
   loading.value = true
@@ -56,11 +56,11 @@ async function charger() {
   }
 }
 
-async function changerStatut(nouveauStatut) {
+async function changerStatut(nouveauStatut, commentaire) {
   try {
     await api.patch(`/recrutement/candidatures/${idCandidature.value}/statut`, {
       statut: nouveauStatut,
-      commentaire: `Passage au statut ${nouveauStatut}`,
+      commentaire,
     })
     notifications.succes('Statut de la candidature mis à jour.')
     await charger()
@@ -69,8 +69,24 @@ async function changerStatut(nouveauStatut) {
   }
 }
 
-function retour() {
-  router.push({ name: 'recrutement-candidature-liste' })
+function appliquer(action) {
+  if (action.statut !== 'REFUSEE') {
+    changerStatut(action.statut, action.libelle)
+    return
+  }
+  motif.value = ''
+  motifManquant.value = false
+  motifDialog.value = true
+}
+
+async function confirmerRefus() {
+  const texte = motif.value.trim()
+  if (!texte) {
+    motifManquant.value = true
+    return
+  }
+  await changerStatut('REFUSEE', texte)
+  motifDialog.value = false
 }
 
 onMounted(charger)
@@ -78,7 +94,15 @@ onMounted(charger)
 
 <template>
   <section>
-    <Button label="Retour aux candidatures" icon="pi pi-arrow-left" text severity="secondary" class="mb-2" @click="retour" />
+    <Button
+      label="Retour aux candidatures"
+      icon="pi pi-arrow-left"
+      text
+      severity="secondary"
+      class="mb-2"
+      as="router-link"
+      :to="{ name: 'recrutement-candidature-liste' }"
+    />
     <div v-if="loading" class="py-8 text-center text-muted-color">Chargement de la fiche...</div>
     <EmptyState v-else-if="!candidature" titre="Candidature introuvable" message="Cette candidature n’est plus disponible." />
     <template v-else>
@@ -90,7 +114,16 @@ onMounted(charger)
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <StatusBadge :valeur="candidature.statut" />
-          <Button v-for="transition in transitions" :key="transition" :label="transition" size="small" @click="changerStatut(transition)" />
+          <Button
+            v-for="action in actions"
+            :key="action.statut"
+            :label="action.libelle"
+            :icon="action.icone"
+            :severity="action.severite"
+            size="small"
+            variant="outlined"
+            @click="appliquer(action)"
+          />
         </div>
       </header>
 
@@ -100,7 +133,7 @@ onMounted(charger)
           <template #content>
             <Timeline v-if="historique.length" :value="historique" align="left">
               <template #content="{ item }">
-                <Tag :value="item.nouveauStatut" />
+                <Tag :value="libelleStatut(item.nouveauStatut)" />
                 <p class="m-0 mt-1 text-sm text-muted-color">{{ item.commentaire || 'Changement de statut' }}</p>
               </template>
             </Timeline>
@@ -140,6 +173,20 @@ onMounted(charger)
           </template>
         </Card>
       </div>
+
+      <Dialog v-model:visible="motifDialog" modal header="Écarter la candidature" :style="{ width: '28rem' }">
+        <div class="flex flex-col gap-2">
+          <label for="motif-refus" class="text-sm font-semibold text-muted-color">Motif du refus</label>
+          <Textarea id="motif-refus" v-model="motif" rows="4" auto-resize />
+          <Message v-if="motifManquant" severity="error" size="small" :closable="false">
+            Le motif du refus est obligatoire.
+          </Message>
+        </div>
+        <template #footer>
+          <Button label="Annuler" severity="secondary" variant="outlined" @click="motifDialog = false" />
+          <Button label="Confirmer" icon="pi pi-check" severity="danger" @click="confirmerRefus" />
+        </template>
+      </Dialog>
     </template>
   </section>
 </template>

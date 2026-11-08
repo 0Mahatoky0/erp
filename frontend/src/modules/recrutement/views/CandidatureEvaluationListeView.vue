@@ -1,62 +1,67 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
-import TabView from 'primevue/tabview'
+import Tab from 'primevue/tab'
+import TabList from 'primevue/tablist'
 import TabPanel from 'primevue/tabpanel'
+import TabPanels from 'primevue/tabpanels'
+import Tabs from 'primevue/tabs'
 import Tag from 'primevue/tag'
+import Column from 'primevue/column'
+import DataTable from 'primevue/datatable'
 import EmptyState from '@/shared/components/EmptyState.vue'
 import StatusBadge from '@/shared/components/StatusBadge.vue'
 import { useNotificationStore } from '@/shared/store/useNotificationStore'
+import { formatDateHeure } from '@/shared/utils/format'
 import { recrutementApi as api, ErreurApi } from '../api/recrutementApi'
+import { STATUTS_CANDIDATURE } from '../utils/statutsCandidature'
 
-const router = useRouter()
 const notifications = useNotificationStore()
 const route = useRoute()
 const idOffre = computed(() => String(route.params.idOffre || ''))
 const offre = ref(null)
-const candidaturesParStatut = ref({})
-const statutActif = ref(String(route.query.statut || 'RECUE'))
+const candidatures = ref([])
+const statutActif = ref(String(route.query.statut || 'TOUTES'))
 const loading = ref(false)
 
-const statuts = [
-  { valeur: 'RECUE', libelle: 'Reçues' },
-  { valeur: 'EN_ETUDE', libelle: 'En étude' },
-  { valeur: 'PRESELECTIONNEE', libelle: 'Présélectionnées' },
-  { valeur: 'EN_EVALUATION', libelle: 'En évaluation' },
-  { valeur: 'LISTE_ATTENTE', libelle: 'Liste d’attente' },
-  { valeur: 'RETENUE', libelle: 'Retenues' },
-  { valeur: 'REFUSEE', libelle: 'Refusées' },
-  { valeur: 'RETIREE', libelle: 'Retirées' },
+const onglets = [
+  { valeur: 'TOUTES', libelle: 'Toutes' },
+  ...STATUTS_CANDIDATURE.map((statut) => ({ valeur: statut.valeur, libelle: statut.libelle })),
 ]
 
-const candidaturesActives = computed(() => candidaturesParStatut.value[statutActif.value] || [])
-const indexStatutActif = computed({
-  get: () => statuts.findIndex((item) => item.valeur === statutActif.value),
-  set: (index) => {
-    if (statuts[index]) statutActif.value = statuts[index].valeur
-  },
-})
+const compter = (valeur) =>
+  valeur === 'TOUTES'
+    ? candidatures.value.length
+    : candidatures.value.filter((candidature) => candidature.statut === valeur).length
+
+const candidaturesPour = (valeur) =>
+  valeur === 'TOUTES'
+    ? candidatures.value
+    : candidatures.value.filter((candidature) => candidature.statut === valeur)
+
+function lienEvaluation(candidature) {
+  return {
+    name: 'recrutement-candidature-evaluation-fiche',
+    params: { idOffre: idOffre.value, idCandidature: candidature.idCandidature },
+    query: statutActif.value === 'TOUTES' ? undefined : { statut: statutActif.value },
+  }
+}
 
 async function chargerCandidatures() {
   if (!idOffre.value) {
-    candidaturesParStatut.value = {}
+    candidatures.value = []
     return
   }
   loading.value = true
   try {
-    const [offres, resultats] = await Promise.all([
+    const [offres, listeCandidatures] = await Promise.all([
       api.get('/recrutement/offres'),
-      Promise.all(
-        statuts.map(async (statut) => [
-          statut.valeur,
-          await api.get(`/recrutement/offres/${idOffre.value}/candidatures?statut=${statut.valeur}`),
-        ]),
-      ),
+      api.get(`/recrutement/offres/${idOffre.value}/candidatures`),
     ])
     offre.value = offres.find((item) => String(item.idOffre ?? item.id) === idOffre.value) || null
-    candidaturesParStatut.value = Object.fromEntries(resultats)
+    candidatures.value = listeCandidatures
   } catch (cause) {
     notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible de charger les candidatures.')
   } finally {
@@ -64,17 +69,9 @@ async function chargerCandidatures() {
   }
 }
 
-function ouvrirEvaluation(candidature) {
-  router.push({
-    name: 'recrutement-candidature-evaluation-fiche',
-    params: { idOffre: idOffre.value, idCandidature: candidature.idCandidature },
-    query: { statut: statutActif.value },
-  })
-}
-
 watch([idOffre, () => route.query.statut], () => {
-  const statutQuery = String(route.query.statut || 'RECUE')
-  if (statuts.some((item) => item.valeur === statutQuery)) statutActif.value = statutQuery
+  const statutQuery = String(route.query.statut || 'TOUTES')
+  statutActif.value = onglets.some((item) => item.valeur === statutQuery) ? statutQuery : 'TOUTES'
   chargerCandidatures()
 }, { immediate: true })
 </script>
@@ -87,12 +84,23 @@ watch([idOffre, () => route.query.statut], () => {
         <h1 class="m-0 text-2xl font-bold">Évaluation des candidatures</h1>
         <p class="mt-1 mb-0 text-muted-color">Évaluez les candidats de cette offre par étape.</p>
       </div>
-      <Button label="Actualiser" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="chargerCandidatures" />
+      <Button
+        label="Actualiser"
+        icon="pi pi-refresh"
+        severity="secondary"
+        variant="outlined"
+        :loading="loading"
+        @click="chargerCandidatures"
+      />
     </header>
 
     <Card>
       <template #content>
-        <EmptyState v-if="!idOffre" titre="Aucune offre sélectionnée" message="Choisissez une offre pour afficher ses candidatures." />
+        <EmptyState
+          v-if="!idOffre"
+          titre="Aucune offre sélectionnée"
+          message="Choisissez une offre pour afficher ses candidatures."
+        />
         <div v-else>
           <div v-if="offre" class="mb-5 rounded-lg border border-surface bg-surface-50 p-4 dark:bg-surface-800">
             <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -121,30 +129,60 @@ watch([idOffre, () => route.query.statut], () => {
               </div>
             </dl>
           </div>
-          <TabView v-model:activeIndex="indexStatutActif">
-            <TabPanel v-for="statut in statuts" :key="statut.valeur">
-              <template #header>
+
+          <Tabs v-model:value="statutActif">
+            <TabList>
+              <Tab v-for="onglet in onglets" :key="onglet.valeur" :value="onglet.valeur">
                 <span class="flex items-center gap-2">
-                  {{ statut.libelle }}
-                  <Tag :value="String((candidaturesParStatut[statut.valeur] || []).length)" rounded severity="secondary" />
+                  {{ onglet.libelle }}
+                  <Tag :value="String(compter(onglet.valeur))" rounded severity="secondary" />
                 </span>
-              </template>
-              <div v-if="loading" class="py-8 text-center text-muted-color">Chargement...</div>
-              <EmptyState v-else-if="!candidaturesActives.length" titre="Aucune candidature" message="Aucun candidat dans cette étape." />
-              <div v-else class="grid gap-3 md:grid-cols-2">
-                <article v-for="candidature in candidaturesActives" :key="candidature.idCandidature" class="rounded-lg border border-surface p-4">
-                  <div class="flex items-start justify-between gap-3">
-                    <div>
-                      <h2 class="m-0 text-lg font-semibold">{{ candidature.candidat?.prenom }} {{ candidature.candidat?.nom }}</h2>
-                      <p class="m-0 text-sm text-muted-color">{{ candidature.candidat?.email }}</p>
-                    </div>
-                    <StatusBadge :valeur="candidature.statut" />
-                  </div>
-                  <Button class="mt-4" label="Ouvrir l’évaluation" icon="pi pi-file-edit" size="small" @click="ouvrirEvaluation(candidature)" />
-                </article>
-              </div>
-            </TabPanel>
-          </TabView>
+              </Tab>
+            </TabList>
+            <TabPanels>
+              <TabPanel v-for="onglet in onglets" :key="onglet.valeur" :value="onglet.valeur">
+                <DataTable
+                  :value="candidaturesPour(onglet.valeur)"
+                  data-key="idCandidature"
+                  row-hover
+                  paginator
+                  :rows="10"
+                  :rows-per-page-options="[10, 25, 50]"
+                  :loading="loading"
+                >
+                  <Column header="Candidat" sortable sort-field="candidat.nom">
+                    <template #body="{ data }">
+                      <strong>{{ data.candidat?.prenom }} {{ data.candidat?.nom }}</strong>
+                      <div class="text-sm text-muted-color">{{ data.candidat?.email }}</div>
+                    </template>
+                  </Column>
+                  <Column field="statut" header="Statut" sortable>
+                    <template #body="{ data }"><StatusBadge :valeur="data.statut" /></template>
+                  </Column>
+                  <Column field="dateCandidature" header="Reçue le" sortable>
+                    <template #body="{ data }">{{ formatDateHeure(data.dateCandidature) }}</template>
+                  </Column>
+                  <Column header="Action">
+                    <template #body="{ data }">
+                      <Button
+                        label="Détail"
+                        icon="pi pi-eye"
+                        size="small"
+                        variant="outlined"
+                        as="router-link"
+                        :to="lienEvaluation(data)"
+                      />
+                    </template>
+                  </Column>
+                  <template #empty>
+                    <p class="m-0 py-6 text-center text-muted-color">
+                      Aucun candidat dans cette étape.
+                    </p>
+                  </template>
+                </DataTable>
+              </TabPanel>
+            </TabPanels>
+          </Tabs>
         </div>
       </template>
     </Card>

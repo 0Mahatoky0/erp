@@ -84,7 +84,10 @@ onMounted(chargerOffres)
         <h1 class="my-2 max-w-2xl text-4xl font-bold tracking-tight md:text-5xl">Trouvez le poste qui vous correspond.</h1>
         <p class="max-w-2xl text-base text-muted-color">Consultez nos opportunites et envoyez votre candidature sans creer de compte.</p>
       </div>
-      <RouterLink class="shrink-0 rounded-md border border-surface bg-surface-0 px-4 py-2 font-semibold text-primary transition-colors hover:bg-surface-100" :to="{ name: 'connexion' }">Connexion administrateur</RouterLink>
+      <div class="flex flex-wrap items-center gap-2">
+        <RouterLink class="shrink-0 rounded-md border border-surface bg-surface-0 px-4 py-2 font-semibold text-primary transition-colors hover:bg-surface-100" :to="{ name: 'candidature-suivi-public' }">Suivre ma candidature</RouterLink>
+        <RouterLink class="shrink-0 rounded-md border border-surface bg-surface-0 px-4 py-2 font-semibold text-primary transition-colors hover:bg-surface-100" :to="{ name: 'connexion' }">Connexion administrateur</RouterLink>
+      </div>
     </header>
 
     <section v-if="offreSelectionnee" class="mx-auto w-full max-w-6xl rounded-xl border border-surface bg-surface-0 p-6 shadow-sm dark:bg-surface-900">

@@ -60,7 +60,7 @@ const chargerLignesBesoin = async () => {
     if (form.value.idDemandePoste) {
       synchroniserBesoinSelectionne(form.value.idDemandePoste)
     }
-  } catch (cause) {
+  } catch {
     notifications.erreur('Impossible de charger les lignes de besoin validées.')
   } finally {
     chargementBesoin.value = false

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import PrimeButton from 'primevue/button'
 import Card from 'primevue/card'
+import { useConfirm } from 'primevue/useconfirm'
 
 import EmptyState from '@/shared/components/EmptyState.vue'
 import StatusBadge from '@/shared/components/StatusBadge.vue'
@@ -15,6 +16,7 @@ import { recrutementApi as api, ErreurApi } from '../api/recrutementApi'
 
 const auth = useAuthStore()
 const notifications = useNotificationStore()
+const confirm = useConfirm()
 const route = useRoute()
 const router = useRouter()
 
@@ -84,15 +86,24 @@ async function changerStatut(action, message) {
   }
 }
 
-async function supprimer() {
-  if (!window.confirm(`Supprimer l’offre ${offre.value.reference} ?`)) return
-  try {
-    await api.delete(`/recrutement/offres/${idOffre.value}`)
-    notifications.succes('Offre supprimée.')
-    retour()
-  } catch (cause) {
-    notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible de supprimer l’offre.')
-  }
+function supprimer() {
+  confirm.require({
+    header: 'Supprimer l’offre',
+    message: `Confirmer la suppression de l’offre ${offre.value.reference} ?`,
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: 'Supprimer',
+    rejectLabel: 'Annuler',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await api.delete(`/recrutement/offres/${idOffre.value}`)
+        notifications.succes('Offre supprimée.')
+        retour()
+      } catch (cause) {
+        notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible de supprimer l’offre.')
+      }
+    },
+  })
 }
 
 async function enregistrer(payload) {
@@ -167,32 +178,44 @@ watch(idOffre, charger, { immediate: true })
         <template #title>Indicateurs de recrutement</template>
         <template #content>
           <div v-if="indicateurs" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="cursor-pointer rounded-lg border border-surface p-4 transition hover:border-primary hover:shadow-sm" role="button" tabindex="0" @click="ouvrirEvaluation('RECUE')" @keydown.enter="ouvrirEvaluation('RECUE')">
-              <p class="m-0 text-sm text-muted-color">Candidatures reçues</p>
-              <strong class="text-3xl">{{ indicateurs.nombreCandidatures }}</strong>
-            </div>
-            <div class="cursor-pointer rounded-lg border border-surface p-4 transition hover:border-primary hover:shadow-sm" role="button" tabindex="0" @click="ouvrirEvaluation('PRESELECTIONNEE')" @keydown.enter="ouvrirEvaluation('PRESELECTIONNEE')">
-              <p class="m-0 text-sm text-muted-color">Présélectionnées</p>
-              <strong class="text-3xl">{{ indicateurs.nombrePreselectionnees }}</strong>
-              <p class="m-0 text-sm text-muted-color">{{ indicateurs.tauxPreselection }} % des candidatures</p>
-            </div>
-            <div class="cursor-pointer rounded-lg border border-surface p-4 transition hover:border-primary hover:shadow-sm" role="button" tabindex="0" @click="ouvrirEvaluation('EN_EVALUATION')" @keydown.enter="ouvrirEvaluation('EN_EVALUATION')">
-              <p class="m-0 text-sm text-muted-color">En évaluation</p>
-              <strong class="text-3xl">{{ indicateurs.nombreEnEvaluation }}</strong>
-            </div>
-            <div class="cursor-pointer rounded-lg border border-surface p-4 transition hover:border-primary hover:shadow-sm" role="button" tabindex="0" @click="ouvrirEvaluation('RETENUE')" @keydown.enter="ouvrirEvaluation('RETENUE')">
-              <p class="m-0 text-sm text-muted-color">Retenues</p>
-              <strong class="text-3xl">{{ indicateurs.nombreRetenues }}</strong>
-              <p class="m-0 text-sm text-muted-color">{{ indicateurs.tauxRetenue }} % des candidatures</p>
-            </div>
-            <div class="cursor-pointer rounded-lg border border-surface p-4 transition hover:border-primary hover:shadow-sm" role="button" tabindex="0" @click="ouvrirEvaluation('LISTE_ATTENTE')" @keydown.enter="ouvrirEvaluation('LISTE_ATTENTE')">
-              <p class="m-0 text-sm text-muted-color">Liste d’attente</p>
-              <strong class="text-3xl">{{ indicateurs.nombreListeAttente }}</strong>
-            </div>
-            <div class="cursor-pointer rounded-lg border border-surface p-4 transition hover:border-primary hover:shadow-sm" role="button" tabindex="0" @click="ouvrirEvaluation('REFUSEE')" @keydown.enter="ouvrirEvaluation('REFUSEE')">
-              <p class="m-0 text-sm text-muted-color">Refusées</p>
-              <strong class="text-3xl">{{ indicateurs.nombreRefusees }}</strong>
-            </div>
+            <PrimeButton severity="secondary" outlined class="h-full w-full" @click="ouvrirEvaluation()">
+              <span class="flex flex-col items-center gap-1">
+                <span class="text-sm text-muted-color">Candidatures au total</span>
+                <strong class="text-3xl">{{ indicateurs.nombreCandidatures }}</strong>
+              </span>
+            </PrimeButton>
+            <PrimeButton severity="secondary" outlined class="h-full w-full" @click="ouvrirEvaluation('PRESELECTIONNEE')">
+              <span class="flex flex-col items-center gap-1">
+                <span class="text-sm text-muted-color">Présélectionnées</span>
+                <strong class="text-3xl">{{ indicateurs.nombrePreselectionnees }}</strong>
+                <span class="text-sm text-muted-color">{{ indicateurs.tauxPreselection }} % des candidatures</span>
+              </span>
+            </PrimeButton>
+            <PrimeButton severity="secondary" outlined class="h-full w-full" @click="ouvrirEvaluation('EN_EVALUATION')">
+              <span class="flex flex-col items-center gap-1">
+                <span class="text-sm text-muted-color">En évaluation</span>
+                <strong class="text-3xl">{{ indicateurs.nombreEnEvaluation }}</strong>
+              </span>
+            </PrimeButton>
+            <PrimeButton severity="secondary" outlined class="h-full w-full" @click="ouvrirEvaluation('RETENUE')">
+              <span class="flex flex-col items-center gap-1">
+                <span class="text-sm text-muted-color">Retenues</span>
+                <strong class="text-3xl">{{ indicateurs.nombreRetenues }}</strong>
+                <span class="text-sm text-muted-color">{{ indicateurs.tauxRetenue }} % des candidatures</span>
+              </span>
+            </PrimeButton>
+            <PrimeButton severity="secondary" outlined class="h-full w-full" @click="ouvrirEvaluation('LISTE_ATTENTE')">
+              <span class="flex flex-col items-center gap-1">
+                <span class="text-sm text-muted-color">Liste d’attente</span>
+                <strong class="text-3xl">{{ indicateurs.nombreListeAttente }}</strong>
+              </span>
+            </PrimeButton>
+            <PrimeButton severity="secondary" outlined class="h-full w-full" @click="ouvrirEvaluation('REFUSEE')">
+              <span class="flex flex-col items-center gap-1">
+                <span class="text-sm text-muted-color">Refusées</span>
+                <strong class="text-3xl">{{ indicateurs.nombreRefusees }}</strong>
+              </span>
+            </PrimeButton>
           </div>
           <p v-else class="m-0 text-muted-color">Aucun indicateur disponible.</p>
         </template>

@@ -6,6 +6,12 @@ export const recrutementRoutes = [
     meta: { titre: 'Offres d’emploi', public: true },
   },
   {
+    path: '/candidature/suivi',
+    name: 'candidature-suivi-public',
+    component: () => import('./views/SuiviCandidaturePublicView.vue'),
+    meta: { titre: 'Suivi de candidature', public: true },
+  },
+  {
     path: '/admin/recrutement',
     component: () => import('@/shared/layouts/AppLayout.vue'),
     children: [
@@ -42,7 +48,7 @@ export const recrutementRoutes = [
         path: 'candidatures',
         name: 'recrutement-candidature-liste',
         component: () => import('./views/CandidatureListeView.vue'),
-        meta: { titre: 'Liste des candidatures · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
+        meta: { titre: 'Liste des candidatures · Recrutement', roles: ['RH', 'DIRECTION'] },
       },
       {
         path: 'evaluation/offres/:idOffre',
@@ -57,22 +63,22 @@ export const recrutementRoutes = [
         meta: { titre: 'Fiche d’évaluation · Recrutement', roles: ['RH', 'DIRECTION'] },
       },
       {
-        path: 'selection',
-        name: 'recrutement-selection',
-        redirect: { name: 'recrutement-candidature-liste' },
-        meta: { titre: 'Présélection · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
+        path: 'candidatures/preselection',
+        name: 'recrutement-candidature-preselection-liste',
+        component: () => import('./views/CandidaturePreselectionListeView.vue'),
+        meta: { titre: 'Présélection · Recrutement', roles: ['RH', 'DIRECTION'] },
       },
       {
-        path: 'suivi',
-        name: 'recrutement-suivi',
-        redirect: { name: 'recrutement-candidature-liste' },
-        meta: { titre: 'Suivi des candidats · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
+        path: 'candidatures/suivi',
+        name: 'recrutement-candidature-suivi-liste',
+        component: () => import('./views/CandidatureSuiviListeView.vue'),
+        meta: { titre: 'Suivi des candidats · Recrutement', roles: ['RH', 'DIRECTION'] },
       },
       {
         path: 'candidatures/:idCandidature',
         name: 'recrutement-candidature-fiche',
         component: () => import('./views/CandidatureFicheView.vue'),
-        meta: { titre: 'Fiche candidature · Recrutement', roles: ['RH', 'DIRECTION', 'MANAGER'] },
+        meta: { titre: 'Fiche candidature · Recrutement', roles: ['RH', 'DIRECTION'] },
       },
     ],
   },
