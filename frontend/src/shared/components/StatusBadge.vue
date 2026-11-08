@@ -41,6 +41,9 @@ const LIBELLES = {
   CLOTUREE: 'Cloturee',
   ENVOYEE: 'Envoyee',
   AJUSTEMENT_DEMANDE: 'Ajustement demande',
+  PROPOSE: 'Contrat proposé',
+  ACCEPTE: 'Contrat accepté',
+  VALIDE: 'Contrat validé',
 }
 
 const COULEURS = {
@@ -71,6 +74,9 @@ const COULEURS = {
   CLOTUREE: 'neutre',
   ENVOYEE: 'info',
   AJUSTEMENT_DEMANDE: 'alerte',
+  PROPOSE: 'info',
+  ACCEPTE: 'succes',
+  VALIDE: 'succes',
 }
 
 const couleur = computed(() => {

@@ -21,6 +21,18 @@ export const embaucheRoutes = [
         component: () => import('./views/PropositionEmbaucheFicheView.vue'),
         meta: { titre: 'Fiche proposition d’embauche', roles: ['RH', 'DIRECTION'] },
       },
+      {
+        path: 'contrats',
+        name: 'embauche-contrat-liste',
+        component: () => import('./views/ContratEmbaucheListeView.vue'),
+        meta: { titre: 'Contrats d’embauche', roles: ['RH', 'DIRECTION'] },
+      },
+      {
+        path: 'contrats/:idContrat',
+        name: 'embauche-contrat-fiche',
+        component: () => import('./views/ContratEmbaucheFicheView.vue'),
+        meta: { titre: 'Fiche contrat d’embauche', roles: ['RH', 'DIRECTION'] },
+      },
     ],
   },
   {
@@ -28,6 +40,18 @@ export const embaucheRoutes = [
     name: 'candidat-proposition-liste',
     component: () => import('./views/PropositionEmbaucheListeView.vue'),
     meta: { titre: 'Mes propositions d’embauche', roles: ['CANDIDAT'] },
+  },
+  {
+    path: '/candidat/contrats',
+    name: 'candidat-contrat-liste',
+    component: () => import('./views/ContratEmbaucheListeView.vue'),
+    meta: { titre: 'Mes contrats proposés', roles: ['CANDIDAT'] },
+  },
+  {
+    path: '/candidat/contrats/:idContrat',
+    name: 'candidat-contrat-fiche',
+    component: () => import('./views/ContratEmbaucheFicheView.vue'),
+    meta: { titre: 'Mon contrat proposé', roles: ['CANDIDAT'] },
   },
   {
     path: '/candidat/propositions/:idProposition',

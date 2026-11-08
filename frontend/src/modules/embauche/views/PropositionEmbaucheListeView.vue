@@ -19,6 +19,7 @@ const route = useRoute()
 const propositions = ref([])
 const recherche = ref('')
 const loading = ref(false)
+const contrats = ref([])
 
 const estCandidat = computed(() => auth.role === 'CANDIDAT')
 const filtrees = computed(() => {
@@ -36,6 +37,7 @@ async function charger() {
   loading.value = true
   try {
     propositions.value = await api.get('/embauche/propositions')
+    contrats.value = await api.get('/embauche/propositions/contrats')
   } catch (cause) {
     notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible de charger les propositions.')
   } finally {
@@ -47,6 +49,19 @@ function ouvrir(proposition) {
   router.push({
     name: estCandidat.value ? 'candidat-proposition-fiche' : 'embauche-proposition-fiche',
     params: { idProposition: proposition.idPropositionEmbauche },
+  })
+}
+
+function contratDe(proposition) {
+  return contrats.value.find((contrat) => contrat.idPropositionEmbauche === proposition.idPropositionEmbauche)
+}
+
+function ouvrirContrat(proposition) {
+  const contrat = contratDe(proposition)
+  if (!contrat) return
+  router.push({
+    name: estCandidat.value ? 'candidat-contrat-fiche' : 'embauche-contrat-fiche',
+    params: { idContrat: contrat.idContrat },
   })
 }
 
@@ -90,7 +105,18 @@ onMounted(charger)
           </Column>
           <Column header="Action">
             <template #body="{ data }">
-              <Button label="Ouvrir la fiche" icon="pi pi-eye" size="small" outlined @click="ouvrir(data)" />
+              <div class="flex flex-wrap gap-2">
+                <Button label="Ouvrir la fiche" icon="pi pi-eye" size="small" outlined @click="ouvrir(data)" />
+                <Button
+                  v-if="contratDe(data)"
+                  label="Voir le contrat"
+                  icon="pi pi-file"
+                  size="small"
+                  severity="secondary"
+                  outlined
+                  @click="ouvrirContrat(data)"
+                />
+              </div>
             </template>
           </Column>
         </DataTable>

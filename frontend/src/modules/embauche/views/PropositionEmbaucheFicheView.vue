@@ -19,6 +19,7 @@ const auth = useAuthStore()
 const notifications = useNotificationStore()
 const proposition = ref(null)
 const reponses = ref([])
+const contrat = ref(null)
 const loading = ref(false)
 const saving = ref(false)
 const form = ref({
@@ -43,6 +44,9 @@ const peutRepondre = computed(() => (
   && ['ENVOYEE', 'AJUSTEMENT_DEMANDE'].includes(proposition.value?.statut)
 ))
 const demandeAjustement = computed(() => form.value.decision === 'AJUSTEMENT_DEMANDE')
+const peutProposerContrat = computed(() => (
+  !estCandidat.value && proposition.value?.statut === 'ACCEPTEE' && !contrat.value
+))
 const date = (valeur) => valeur ? new Date(valeur).toLocaleString('fr-FR') : '—'
 const iso = (valeur) => valeur ? new Date(valeur).toISOString().slice(0, 19) : null
 
@@ -52,6 +56,8 @@ async function charger() {
     const id = route.params.idProposition
     proposition.value = await api.get(`/embauche/propositions/${id}`)
     reponses.value = await api.get(`/embauche/propositions/${id}/reponses`)
+    const contrats = await api.get('/embauche/propositions/contrats')
+    contrat.value = contrats.find((element) => element.idPropositionEmbauche === Number(id)) || null
     form.value.salaireSouhaite = proposition.value.salairePropose
     form.value.lieuSouhaite = proposition.value.lieuTravail || ''
     form.value.typeContratSouhaite = proposition.value.typeContrat
@@ -62,6 +68,26 @@ async function charger() {
   } finally {
     loading.value = false
   }
+}
+
+async function proposerContrat() {
+  saving.value = true
+  try {
+    contrat.value = await api.post(`/embauche/propositions/${route.params.idProposition}/contrat`)
+    notifications.succes('Le contrat a été proposé au candidat.')
+  } catch (cause) {
+    notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible de proposer le contrat.')
+  } finally {
+    saving.value = false
+  }
+}
+
+function voirContrat() {
+  if (!contrat.value) return
+  router.push({
+    name: estCandidat.value ? 'candidat-contrat-fiche' : 'embauche-contrat-fiche',
+    params: { idContrat: contrat.value.idContrat },
+  })
 }
 
 async function repondre() {
@@ -102,7 +128,24 @@ onMounted(charger)
             {{ proposition.candidat?.prenom }} {{ proposition.candidat?.nom }} · {{ proposition.offre?.reference }}
           </p>
         </div>
-        <StatusBadge :valeur="proposition.statut" />
+        <div class="flex flex-wrap items-center gap-2">
+          <StatusBadge :valeur="proposition.statut" />
+          <Button
+            v-if="peutProposerContrat"
+            label="Proposer le contrat"
+            icon="pi pi-file-plus"
+            :loading="saving"
+            @click="proposerContrat"
+          />
+          <Button
+            v-else-if="contrat"
+            label="Voir le contrat"
+            icon="pi pi-file"
+            severity="secondary"
+            outlined
+            @click="voirContrat"
+          />
+        </div>
       </header>
 
       <div class="grid gap-5 lg:grid-cols-2">
