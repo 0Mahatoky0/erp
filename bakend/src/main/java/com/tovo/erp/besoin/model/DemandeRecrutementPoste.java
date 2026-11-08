@@ -95,6 +95,10 @@ public class DemandeRecrutementPoste {
     @Column(name = "effectif", nullable = false)
     private Integer effectif = 1;
 
+    /** Nombre d'embauches deja conclues sur cette ligne (section 5.4, etape 8). */
+    @Column(name = "nombre_pourvus", nullable = false)
+    private Integer nombrePourvus = 0;
+
     @Column(name = "budget_estime", nullable = false)
     private BigDecimal budgetEstime;
 

@@ -328,6 +328,30 @@ public class DemandeService {
         return DemandeDto.versResume(entite, lignes);
     }
 
+    /** Detail d'une ligne utilise par le module embauche (lecture seule). */
+    @Transactional(readOnly = true)
+    public DemandeDto.LigneDetail detailLignePourEmbauche(Long idLigne) {
+        DemandeRecrutementPoste ligne = ligneRepository.findDetailParId(idLigne)
+                .orElseThrow(() -> BusinessException.notFound(
+                        "La ligne de demande " + idLigne + " n'existe pas."));
+        return versLigneDetail(ligne);
+    }
+
+    /**
+     * Enregistre une embauche sur une ligne de besoin et retourne le nombre
+     * de postes pourvus apres incrementation.
+     */
+    @Transactional
+    public int enregistrerEmbauche(Long idLigne) {
+        DemandeRecrutementPoste ligne = ligneRepository.findById(idLigne)
+                .orElseThrow(() -> BusinessException.notFound(
+                        "La ligne de demande " + idLigne + " n'existe pas."));
+        ligne.setNombrePourvus((ligne.getNombrePourvus() == null ? 0 : ligne.getNombrePourvus()) + 1);
+        ligne.setDateModification(LocalDateTime.now());
+        ligneRepository.save(ligne);
+        return ligne.getNombrePourvus();
+    }
+
     // ------------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------------
@@ -478,6 +502,7 @@ public class DemandeService {
                 ligne.getSalaireMinEstime(),
                 ligne.getSalaireMaxEstime(),
                 ligne.getEffectif(),
+                ligne.getNombrePourvus(),
                 ligne.getBudgetEstime(),
                 ligne.getStatut(),
                 ligne.getEtapeCourante(),

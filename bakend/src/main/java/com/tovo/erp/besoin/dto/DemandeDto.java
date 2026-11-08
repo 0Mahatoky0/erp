@@ -90,7 +90,7 @@ public final class DemandeDto {
                                LocalDate dateDebutRemplacement, LocalDate dateFinRemplacement,
                                String intituleDemande, String descriptionPoste, String profilRecherche,
                                BigDecimal salaireMinEstime, BigDecimal salaireMaxEstime,
-                               Integer effectif, BigDecimal budgetEstime,
+                               Integer effectif, Integer nombrePourvus, BigDecimal budgetEstime,
                                StatutLigne statut, EtapeValidation etapeCourante,
                                int episode, LocalDateTime dateCreation, LocalDateTime dateModification,
                                LocalDateTime dateSoumission,
