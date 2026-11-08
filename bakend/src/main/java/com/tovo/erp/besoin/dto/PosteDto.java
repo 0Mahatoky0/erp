@@ -14,7 +14,8 @@ public final class PosteDto {
     }
 
     /** Poste du catalogue, avec le nom de son service. */
-    public record Liste(Long id, Long idService, String service, String departement,
+    public record Liste(Long id, Long idService, String service,
+                        Long idDepartement, String departement,
                         String intitule, String description,
                         BigDecimal salaireMin, BigDecimal salaireMax,
                         boolean actif, long nbPostesLies) {
@@ -24,6 +25,7 @@ public final class PosteDto {
                     poste.getId(),
                     poste.getService().getId(),
                     poste.getService().getNom(),
+                    poste.getService().getDepartement().getId(),
                     poste.getService().getDepartement().getNom(),
                     poste.getIntitule(),
                     poste.getDescription(),

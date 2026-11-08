@@ -22,9 +22,11 @@ const recherche = ref('')
 
 const STATUTS = [
   { valeur: '', libelle: 'Tous les statuts' },
+  { valeur: 'PRE_EMBAUCHE', libelle: 'Pre-embauche' },
   { valeur: 'ACTIF', libelle: 'Actif' },
   { valeur: 'INACTIF', libelle: 'Inactif' },
   { valeur: 'PARTI', libelle: 'Parti' },
+  { valeur: 'NON_PRIS_POSTE', libelle: 'Non pris de poste' },
 ]
 
 async function charger() {

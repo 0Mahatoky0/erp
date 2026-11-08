@@ -11,7 +11,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Catalogue des postes officiels (RM-006 a RM-011).
@@ -39,6 +43,24 @@ public class PosteService {
         return posteRepository.rechercher(idService, actif, Recherche.motif(recherche)).stream()
                 .map(poste -> PosteDto.Liste.de(poste, ligneRepository.countByPosteId(poste.getId())))
                 .toList();
+    }
+
+    /** Noms des postes, en une requete, pour enrichir les listes d'autres modules. */
+    @Transactional(readOnly = true)
+    public Map<Long, String> nomsParIds(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Map.of();
+        }
+        return posteRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(Poste::getId, Poste::getIntitule, (a, b) -> a));
+    }
+
+    /** Retourne un poste du catalogue par son identifiant. */
+    @Transactional(readOnly = true)
+    public PosteDto.Liste trouver(Long id) {
+        Poste poste = posteRepository.findById(id)
+                .orElseThrow(() -> BusinessException.notFound("Le poste " + id + " n'existe pas."));
+        return PosteDto.Liste.de(poste, ligneRepository.countByPosteId(poste.getId()));
     }
 
     /** Cree un poste officiel (role RH). */
