@@ -1,5 +1,6 @@
 package com.tovo.erp.contrat.service;
 
+import com.tovo.erp.contrat.dto.ContratDtos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -16,17 +17,23 @@ public class ContratEcheanceJob {
     private static final Logger LOG = LoggerFactory.getLogger(ContratEcheanceJob.class);
 
     private final ContratService contrats;
+    private final AvenantService avenants;
 
-    public ContratEcheanceJob(ContratService contrats) {
+    public ContratEcheanceJob(ContratService contrats, AvenantService avenants) {
         this.contrats = contrats;
+        this.avenants = avenants;
     }
 
     @Scheduled(fixedDelayString = "${erp.contrat.verification-echeances-ms:3600000}")
     public void traiterEcheances() {
-        ContratService.ResultatEcheances resultat = contrats.traiterEcheances();
-        if (resultat.actives() + resultat.termines() + resultat.absences() > 0) {
-            LOG.info("Echeances contrats : {} active(s), {} termine(s), {} absence(s).",
-                    resultat.actives(), resultat.termines(), resultat.absences());
+        int avenantsAppliques = avenants.appliquerEcheances();
+        ContratDtos.ResultatEcheances resultat = contrats.traiterEcheances();
+        if (resultat.actives() + resultat.termines() + resultat.absences()
+                + avenantsAppliques > 0) {
+            LOG.info("Echeances contrats : {} active(s), {} termine(s), {} absence(s), "
+                            + "{} avenant(s) applique(s).",
+                    resultat.actives(), resultat.termines(), resultat.absences(),
+                    avenantsAppliques);
         }
     }
 }

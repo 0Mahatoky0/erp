@@ -1,12 +1,20 @@
 package com.tovo.erp.contrat.service;
 
+import com.tovo.erp.besoin.dto.PosteDto;
+import com.tovo.erp.besoin.service.PosteService;
 import com.tovo.erp.contrat.dto.ContratDtos;
+import com.tovo.erp.contrat.model.Affectation;
 import com.tovo.erp.contrat.model.CategorieTache;
 import com.tovo.erp.contrat.model.Contrat;
 import com.tovo.erp.contrat.model.Onboarding;
+import com.tovo.erp.contrat.model.OnboardingModele;
+import com.tovo.erp.contrat.model.OnboardingModeleTache;
 import com.tovo.erp.contrat.model.OnboardingStatut;
 import com.tovo.erp.contrat.model.OnboardingTache;
 import com.tovo.erp.contrat.model.TacheStatut;
+import com.tovo.erp.contrat.repository.AffectationRepository;
+import com.tovo.erp.contrat.repository.OnboardingModeleRepository;
+import com.tovo.erp.contrat.repository.OnboardingModeleTacheRepository;
 import com.tovo.erp.contrat.repository.OnboardingRepository;
 import com.tovo.erp.contrat.repository.OnboardingTacheRepository;
 import com.tovo.erp.shared.BusinessException;
@@ -15,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -60,13 +69,25 @@ public class OnboardingService {
 
     private final OnboardingRepository onboardings;
     private final OnboardingTacheRepository taches;
+    private final OnboardingModeleRepository modeles;
+    private final OnboardingModeleTacheRepository tachesModeles;
+    private final AffectationRepository affectations;
+    private final PosteService postes;
     private final ContratProperties properties;
 
     public OnboardingService(OnboardingRepository onboardings,
                              OnboardingTacheRepository taches,
+                             OnboardingModeleRepository modeles,
+                             OnboardingModeleTacheRepository tachesModeles,
+                             AffectationRepository affectations,
+                             PosteService postes,
                              ContratProperties properties) {
         this.onboardings = onboardings;
         this.taches = taches;
+        this.modeles = modeles;
+        this.tachesModeles = tachesModeles;
+        this.affectations = affectations;
+        this.postes = postes;
         this.properties = properties;
     }
 
@@ -80,8 +101,17 @@ public class OnboardingService {
     private Onboarding creer(Contrat contrat, Long idResponsableRh) {
         LocalDate dateDebut = contrat.getDateDebut() == null ? LocalDate.now() : contrat.getDateDebut();
         Onboarding onboarding = new Onboarding();
+        OnboardingModele modele = choisirModele(contrat);
+        List<ModeleTache> tachesModele = modele == null
+                ? MODELE : tachesDuModele(modele);
+
         onboarding.setIdEmploye(contrat.getIdEmploye());
         onboarding.setIdContrat(contrat.getId());
+        onboarding.setTemplateId(modele == null ? null : modele.getId());
+        onboarding.setTemplateCode(modele == null ? "STANDARD" : modele.getCode());
+        onboarding.setTypeContrat(contrat.getTypeContrat() == null
+                ? null : contrat.getTypeContrat().name());
+        onboarding.setSite(siteDe(contrat));
         onboarding.setDateDebut(dateDebut);
         onboarding.setDateCible(dateDebut.plusDays(properties.onboardingJours()));
         onboarding.setIdResponsableRh(idResponsableRh);
@@ -90,28 +120,114 @@ public class OnboardingService {
         onboardings.save(onboarding);
 
         java.util.Map<String, Long> ids = new java.util.HashMap<>();
-        for (ModeleTache modele : MODELE) {
+        for (ModeleTache definition : tachesModele) {
             OnboardingTache tache = new OnboardingTache();
             tache.setOnboarding(onboarding);
-            tache.setCode(modele.code());
-            tache.setLibelle(modele.libelle());
-            tache.setCategorie(modele.categorie());
-            tache.setResponsable(modele.responsable());
-            tache.setEcheanceOffsetJours(modele.offsetJours());
-            tache.setEcheance(dateDebut.plusDays(modele.offsetJours()));
-            tache.setObligatoire(modele.obligatoire());
-            tache.setBloquante(modele.bloquante());
-            tache.setIdDependDe(modele.dependDe() == null ? null : ids.get(modele.dependDe()));
-            if ("ADMIN_CONTRAT_SIGNE".equals(modele.code())) {
+            tache.setCode(definition.code());
+            tache.setLibelle(definition.libelle());
+            tache.setCategorie(definition.categorie());
+            tache.setResponsable(definition.responsable());
+            tache.setEcheanceOffsetJours(definition.offsetJours());
+            tache.setEcheance(dateDebut.plusDays(definition.offsetJours()));
+            tache.setObligatoire(definition.obligatoire());
+            tache.setBloquante(definition.bloquante());
+            tache.setIdDependDe(definition.dependDe() == null
+                    ? null : ids.get(definition.dependDe()));
+            if ("ADMIN_CONTRAT_SIGNE".equals(definition.code())) {
                 tache.setStatut(TacheStatut.FAIT);
                 tache.setDateFait(LocalDate.now());
             } else {
                 tache.setStatut(TacheStatut.A_FAIRE);
             }
             taches.save(tache);
-            ids.put(modele.code(), tache.getId());
+            ids.put(definition.code(), tache.getId());
         }
         return recalculer(onboarding);
+    }
+
+    private OnboardingModele choisirModele(Contrat contrat) {
+        List<OnboardingModele> disponibles = modeles.findByActifTrueOrderByIdAsc();
+        if (disponibles.isEmpty()) {
+            return null;
+        }
+        String type = contrat.getTypeContrat() == null ? null : contrat.getTypeContrat().name();
+        String categorie = null;
+        String site = siteDe(contrat);
+        PosteDto.Liste poste = posteDuContrat(contrat);
+        if (poste != null) {
+            categorie = poste.categorie();
+            if (poste.site() != null && !poste.site().isBlank()) {
+                site = poste.site();
+            }
+        }
+        final String categorieFinale = categorie;
+        final String siteFinal = site;
+        return disponibles.stream()
+                .filter(m -> correspond(m, type, categorieFinale, siteFinal))
+                .max(Comparator.comparingInt(m -> score(m, type, categorieFinale, siteFinal)))
+                .orElseGet(() -> disponibles.stream()
+                        .filter(m -> m.getTypeContrat() == null
+                                && m.getCategoriePoste() == null && m.getSite() == null)
+                        .findFirst().orElse(null));
+    }
+
+    private PosteDto.Liste posteDuContrat(Contrat contrat) {
+        Long idPoste = affectations.findByIdContratOrderByDateDebutDesc(contrat.getId()).stream()
+                .map(Affectation::getIdPoste)
+                .filter(java.util.Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+        if (idPoste == null) {
+            return null;
+        }
+        try {
+            return postes.trouver(idPoste);
+        } catch (BusinessException ex) {
+            return null;
+        }
+    }
+
+    private boolean correspond(OnboardingModele modele, String type, String categorie, String site) {
+        if (modele.getTypeContrat() != null && !modele.getTypeContrat().equalsIgnoreCase(type)) {
+            return false;
+        }
+        if (modele.getCategoriePoste() != null
+                && !modele.getCategoriePoste().equalsIgnoreCase(categorie)) {
+            return false;
+        }
+        return modele.getSite() == null || modele.getSite().equalsIgnoreCase(site);
+    }
+
+    private int score(OnboardingModele modele, String type, String categorie, String site) {
+        int score = 0;
+        if (modele.getTypeContrat() != null) {
+            score += 4;
+        }
+        if (modele.getCategoriePoste() != null) {
+            score += 2;
+        }
+        if (modele.getSite() != null) {
+            score += 1;
+        }
+        return score;
+    }
+
+    private List<ModeleTache> tachesDuModele(OnboardingModele modele) {
+        List<OnboardingModeleTache> configurees = tachesModeles
+                .findByIdModeleOrderByIdAsc(modele.getId());
+        if (configurees.isEmpty()) {
+            return MODELE;
+        }
+        return configurees.stream()
+                .map(t -> new ModeleTache(t.getCode(), t.getLibelle(), t.getCategorie(),
+                        t.getResponsable(), t.getEcheanceOffsetJours() == null
+                                ? 0 : t.getEcheanceOffsetJours(),
+                        t.isObligatoire(), t.isBloquante(), t.getDependCode()))
+                .toList();
+    }
+
+    private String siteDe(Contrat contrat) {
+        return contrat.getLieuTravail();
     }
 
     @Transactional(readOnly = true)

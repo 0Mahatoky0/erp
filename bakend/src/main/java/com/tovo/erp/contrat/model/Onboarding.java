@@ -33,6 +33,18 @@ public class Onboarding {
     @Column(name = "id_contrat")
     private Long idContrat;
 
+    @Column(name = "template_id")
+    private Long templateId;
+
+    @Column(name = "template_code", length = 50)
+    private String templateCode;
+
+    @Column(name = "type_contrat", length = 30)
+    private String typeContrat;
+
+    @Column(name = "site", length = 150)
+    private String site;
+
     @Column(name = "date_debut")
     private LocalDate dateDebut;
 

@@ -2,7 +2,6 @@ package com.tovo.erp.embauche.service;
 
 import com.tovo.erp.besoin.service.DemandeService;
 import com.tovo.erp.contrat.dto.ContratDtos;
-import com.tovo.erp.contrat.model.TypeContrat;
 import com.tovo.erp.contrat.service.ContratService;
 import com.tovo.erp.embauche.dto.PropositionDtos;
 import com.tovo.erp.embauche.model.AuteurProposition;
@@ -110,8 +109,7 @@ public class EmbaucheService {
         }
 
         CandidatureEmbaucheDto candidature = candidatures.detailsPourEmbauche(proposition.getIdCandidature());
-        if (candidature.statut() != com.tovo.erp.recrutement.model.CandidatureStatut.RETENUE
-                && candidature.statut() != com.tovo.erp.recrutement.model.CandidatureStatut.ACCEPTEE) {
+        if (!candidature.estEmbauchable()) {
             throw new BusinessException("CANDIDATURE_NON_RETENUE",
                     "La candidature n'est plus dans un etat permettant l'embauche (statut : "
                             + candidature.statut() + ").");
@@ -143,12 +141,13 @@ public class EmbaucheService {
                 proposition.getDateDebutPrevue());
 
         LocalDate dateFinPrevue = proposition.getDureeMois() == null ? null
-                : proposition.getDateDebutPrevue().plusMonths(proposition.getDureeMois());
+                : proposition.getDateDebutPrevue().plusMonths(proposition.getDureeMois())
+                        .minusDays(1);
         ContratDtos.ContratEmbaucheDto contrat = contrats.creerContratEmbauche(
                 new ContratDtos.CreationContratRequest(
                         salarie.id(),
                         proposition.getId(),
-                        TypeContrat.valueOf(proposition.getTypeContrat().name()),
+                        proposition.getTypeContrat().name(),
                         proposition.getDateDebutPrevue(),
                         dateFinPrevue,
                         proposition.getSalaireBrutMensuel(),
@@ -156,7 +155,7 @@ public class EmbaucheService {
                         proposition.getPrimesAvantages(),
                         proposition.getHoraires(),
                         proposition.getLieuTravail(),
-                        null,
+                        proposition.getMotifCdd(),
                         proposition.getIdPoste(),
                         proposition.getIdDepartement(),
                         proposition.getIdService(),

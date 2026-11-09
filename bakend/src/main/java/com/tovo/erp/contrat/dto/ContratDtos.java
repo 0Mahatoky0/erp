@@ -7,7 +7,10 @@ import com.tovo.erp.contrat.model.AvenantEtat;
 import com.tovo.erp.contrat.model.CategorieTache;
 import com.tovo.erp.contrat.model.Contrat;
 import com.tovo.erp.contrat.model.ContratEtat;
+import com.tovo.erp.contrat.model.DecisionFinEssai;
 import com.tovo.erp.contrat.model.MotifAffectation;
+import com.tovo.erp.contrat.model.Notification;
+import com.tovo.erp.contrat.model.NotificationStatut;
 import com.tovo.erp.contrat.model.Onboarding;
 import com.tovo.erp.contrat.model.OnboardingStatut;
 import com.tovo.erp.contrat.model.OnboardingTache;
@@ -35,7 +38,7 @@ public final class ContratDtos {
     public record CreationContratRequest(
             Long idEmploye,
             Long idProposition,
-            TypeContrat typeContrat,
+            String typeContrat,
             LocalDate dateDebut,
             LocalDate dateFinPrevue,
             BigDecimal salaireBase,
@@ -72,6 +75,10 @@ public final class ContratDtos {
             List<Long> idTaches) {
     }
 
+    /** Resultat d'un passage du planificateur d'echeances. */
+    public record ResultatEcheances(int actives, int termines, int absences) {
+    }
+
     /** Contrat expose en lecture. */
     public record ContratDto(
             Long id,
@@ -96,6 +103,13 @@ public final class ContratDtos {
             LocalDateTime dateSignatureSalarie,
             LocalDateTime dateSignatureEmployeur,
             Long signataireEmployeurId,
+            String empreinteSignatureSalarie,
+            String empreinteSignatureEmployeur,
+            String ipSignatureSalarie,
+            String ipSignatureEmployeur,
+            DecisionFinEssai decisionFinEssai,
+            LocalDate dateDecisionFinEssai,
+            Long idUtilisateurDecisionFinEssai,
             Long documentPdfId,
             String gabaritVersion,
             String motifAnnulation,
@@ -128,6 +142,13 @@ public final class ContratDtos {
                     contrat.getDateSignatureSalarie(),
                     contrat.getDateSignatureEmployeur(),
                     contrat.getSignataireEmployeurId(),
+                    contrat.getEmpreinteSignatureSalarie(),
+                    contrat.getEmpreinteSignatureEmployeur(),
+                    contrat.getIpSignatureSalarie(),
+                    contrat.getIpSignatureEmployeur(),
+                    contrat.getDecisionFinEssai(),
+                    contrat.getDateDecisionFinEssai(),
+                    contrat.getIdUtilisateurDecisionFinEssai(),
                     contrat.getDocumentPdfId(),
                     contrat.getGabaritVersion(),
                     contrat.getMotifAnnulation(),
@@ -211,6 +232,10 @@ public final class ContratDtos {
             Long id,
             Long idEmploye,
             Long idContrat,
+            Long templateId,
+            String templateCode,
+            String typeContrat,
+            String site,
             LocalDate dateDebut,
             LocalDate dateCible,
             Long idResponsableRh,
@@ -224,6 +249,10 @@ public final class ContratDtos {
                     onboarding.getId(),
                     onboarding.getIdEmploye(),
                     onboarding.getIdContrat(),
+                    onboarding.getTemplateId(),
+                    onboarding.getTemplateCode(),
+                    onboarding.getTypeContrat(),
+                    onboarding.getSite(),
                     onboarding.getDateDebut(),
                     onboarding.getDateCible(),
                     onboarding.getIdResponsableRh(),
@@ -234,8 +263,12 @@ public final class ContratDtos {
         }
     }
 
-    /** Signature du contrat par le salarie puis l'employeur (RG-B4-05). */
-    public record SignatureRequest(Long signataireEmployeurId) {
+    /** Signature electronique du salarie depuis son compte candidat (RG-B4-05). */
+    public record SignatureSalarieRequest(@NotBlank String nomSignataire) {
+    }
+
+    /** Signature electronique de l'employeur (RG-B4-05). */
+    public record SignatureEmployeurRequest(Long signataireEmployeurId, String nomSignataire) {
     }
 
     /** Annulation d'un contrat CREE ou retractation avant la date de debut. */
@@ -275,7 +308,8 @@ public final class ContratDtos {
             LocalDate dateFin,
             @Min(1) Integer tauxActivite,
             boolean principale,
-            @NotNull MotifAffectation motif) {
+            @NotNull MotifAffectation motif,
+            Boolean derogationCapacite) {
     }
 
     /** Modification d'un contrat signe (RG-B4-05). */
@@ -288,6 +322,10 @@ public final class ContratDtos {
             LocalDate nouvelleDateFin,
             String nouveauxHoraires,
             String nouveauLieu,
+            Long nouveauPosteId,
+            Long nouveauDepartementId,
+            Long nouveauServiceId,
+            Long nouveauManagerId,
             Long idDocument) {
     }
 
@@ -304,7 +342,12 @@ public final class ContratDtos {
             LocalDate nouvelleDateFin,
             String nouveauxHoraires,
             String nouveauLieu,
+            Long nouveauPosteId,
+            Long nouveauDepartementId,
+            Long nouveauServiceId,
+            Long nouveauManagerId,
             Long idDocument,
+            LocalDateTime dateApplication,
             AvenantEtat etat,
             LocalDateTime dateSignature,
             Long signataireId,
@@ -323,7 +366,12 @@ public final class ContratDtos {
                     avenant.getNouvelleDateFin(),
                     avenant.getNouveauxHoraires(),
                     avenant.getNouveauLieu(),
+                    avenant.getNouveauPosteId(),
+                    avenant.getNouveauDepartementId(),
+                    avenant.getNouveauServiceId(),
+                    avenant.getNouveauManagerId(),
                     avenant.getIdDocument(),
+                    avenant.getDateApplication(),
                     avenant.getEtat(),
                     avenant.getDateSignature(),
                     avenant.getSignataireId(),
@@ -338,7 +386,47 @@ public final class ContratDtos {
             Long idPreuveDocument) {
     }
 
-    /** Alerte calculee a la demande (aucune notification poussee entre modules). */
+    /** Decision de fin de periode d'essai (RG-B4-14). */
+    public record DecisionFinEssaiRequest(
+            @NotNull DecisionFinEssai decision,
+            String commentaire) {
+    }
+
+    /** Notification interne generee par les alertes et relances. */
+    public record NotificationDto(
+            Long id,
+            String type,
+            String niveau,
+            String message,
+            Long idContrat,
+            Long idEmploye,
+            Long idTache,
+            String destinataireRole,
+            LocalDate echeance,
+            NotificationStatut statut,
+            LocalDateTime dateCreation,
+            LocalDateTime dateEnvoi,
+            LocalDateTime dateLecture) {
+
+        public static NotificationDto de(Notification notification) {
+            return new NotificationDto(
+                    notification.getId(),
+                    notification.getType(),
+                    notification.getNiveau(),
+                    notification.getMessage(),
+                    notification.getIdContrat(),
+                    notification.getIdEmploye(),
+                    notification.getIdTache(),
+                    notification.getDestinataireRole(),
+                    notification.getEcheance(),
+                    notification.getStatut(),
+                    notification.getDateCreation(),
+                    notification.getDateEnvoi(),
+                    notification.getDateLecture());
+        }
+    }
+
+    /** Alerte calculee a la demande. */
     public record AlerteDto(
             String categorie,
             String niveau,

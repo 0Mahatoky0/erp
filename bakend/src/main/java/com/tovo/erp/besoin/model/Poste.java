@@ -46,6 +46,18 @@ public class Poste {
     @Column(name = "salaire_max", precision = 15, scale = 2)
     private BigDecimal salaireMax;
 
+    /** Nombre de postes ouverts ; null signifie non plafonne (RG-B4-15). */
+    @Column(name = "effectif_autorise")
+    private Integer effectifAutorise;
+
+    /** Categorie utilisee pour choisir le modele d'onboarding. */
+    @Column(name = "categorie", length = 50)
+    private String categorie;
+
+    /** Site utilise pour choisir le modele d'onboarding. */
+    @Column(name = "site", length = 150)
+    private String site;
+
     /** Un poste deja utilise n'est pas supprime mais desactive (RM-011). */
     @Column(name = "actif", nullable = false)
     private boolean actif = true;

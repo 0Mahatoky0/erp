@@ -99,6 +99,28 @@ public class Contrat {
     @Column(name = "signataire_employeur_id")
     private Long signataireEmployeurId;
 
+    @Column(name = "empreinte_signature_salarie", length = 128)
+    private String empreinteSignatureSalarie;
+
+    @Column(name = "empreinte_signature_employeur", length = 128)
+    private String empreinteSignatureEmployeur;
+
+    @Column(name = "ip_signature_salarie", length = 64)
+    private String ipSignatureSalarie;
+
+    @Column(name = "ip_signature_employeur", length = 64)
+    private String ipSignatureEmployeur;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "decision_fin_essai", length = 20)
+    private DecisionFinEssai decisionFinEssai;
+
+    @Column(name = "date_decision_fin_essai")
+    private LocalDate dateDecisionFinEssai;
+
+    @Column(name = "id_utilisateur_decision_fin_essai")
+    private Long idUtilisateurDecisionFinEssai;
+
     @Column(name = "document_pdf_id")
     private Long documentPdfId;
 

@@ -19,7 +19,6 @@ import com.tovo.erp.embauche.repository.VersionPropositionRepository;
 import com.tovo.erp.iam.model.RoleNom;
 import com.tovo.erp.iam.model.Utilisateur;
 import com.tovo.erp.recrutement.dto.CandidatureEmbaucheDto;
-import com.tovo.erp.recrutement.model.CandidatureStatut;
 import com.tovo.erp.recrutement.service.CandidatureService;
 import com.tovo.erp.shared.BusinessException;
 import com.tovo.erp.shared.reference.ReferenceService;
@@ -85,7 +84,7 @@ public class PropositionService {
     @Transactional
     public PropositionDtos.Detail creer(Utilisateur auteur, PropositionDtos.Creation demande) {
         CandidatureEmbaucheDto candidature = candidatures.detailsPourEmbauche(demande.idCandidature());
-        if (candidature.statut() != CandidatureStatut.RETENUE) {
+        if (!candidature.estRetenue()) {
             throw new BusinessException("CANDIDATURE_NON_RETENUE",
                     "Une proposition ne peut etre creee que pour une candidature RETENUE (statut : "
                             + candidature.statut() + ").");
@@ -422,6 +421,7 @@ public class PropositionService {
                 proposition.getIdManager(),
                 proposition.getTypeContrat(),
                 proposition.getDureeMois(),
+                proposition.getMotifCdd(),
                 proposition.getDateDebutPrevue(),
                 proposition.getPeriodeEssaiMois(),
                 proposition.getSalaireBrutMensuel(),
@@ -461,12 +461,18 @@ public class PropositionService {
             throw new BusinessException("DUREE_CDD_INVALIDE",
                     "Un CDD doit preciser une duree en mois strictement positive.");
         }
+        if (demande.typeContrat() == com.tovo.erp.embauche.model.TypeContratEmbauche.CDD
+                && (demande.motifCdd() == null || demande.motifCdd().isBlank())) {
+            throw new BusinessException("MOTIF_CDD_MANQUANT",
+                    "Le motif du recours au CDD est obligatoire.");
+        }
         proposition.setIdPoste(poste.id());
         proposition.setIdService(poste.idService());
         proposition.setIdDepartement(poste.idDepartement());
         proposition.setIdManager(demande.idManager());
         proposition.setTypeContrat(demande.typeContrat());
         proposition.setDureeMois(demande.dureeMois());
+        proposition.setMotifCdd(demande.motifCdd());
         proposition.setDateDebutPrevue(demande.dateDebutPrevue());
         proposition.setPeriodeEssaiMois(demande.periodeEssaiMois() == null
                 ? 1 : demande.periodeEssaiMois());

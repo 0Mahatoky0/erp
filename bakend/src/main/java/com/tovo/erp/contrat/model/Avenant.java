@@ -63,6 +63,21 @@ public class Avenant {
     @Column(name = "nouveau_lieu", length = 150)
     private String nouveauLieu;
 
+    @Column(name = "nouveau_poste_id")
+    private Long nouveauPosteId;
+
+    @Column(name = "nouveau_departement_id")
+    private Long nouveauDepartementId;
+
+    @Column(name = "nouveau_service_id")
+    private Long nouveauServiceId;
+
+    @Column(name = "nouveau_manager_id")
+    private Long nouveauManagerId;
+
+    @Column(name = "date_application")
+    private LocalDateTime dateApplication;
+
     @Column(name = "id_document")
     private Long idDocument;
 
