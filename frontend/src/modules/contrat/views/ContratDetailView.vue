@@ -29,6 +29,7 @@ const salarie = ref(null)
 const affectations = ref([])
 const onboarding = ref(null)
 const avenants = ref([])
+const notificationsContrat = ref([])
 const chargement = ref(true)
 const actionEnCours = ref(false)
 const dialogue = ref(null)
@@ -37,6 +38,12 @@ const motifAnnulation = ref('')
 const renouvellement = ref({})
 const transformation = ref({})
 const avenant = ref({})
+const decisionEssai = ref({ decision: 'CONFIRMATION', commentaire: '' })
+
+const DECISIONS_ESSAI = [
+  { valeur: 'CONFIRMATION', libelle: 'Confirmer le salarié' },
+  { valeur: 'RUPTURE', libelle: 'Rompre la période d’essai' },
+]
 
 const TYPES_AVENANT = [
   { valeur: 'SALAIRE', libelle: 'Salaire' },
@@ -68,6 +75,10 @@ const peutTransformer = computed(() => peutAgir.value && contrat.value?.etat ===
 const peutAvenant = computed(() =>
   peutAgir.value && ['SIGNE', 'VALIDE'].includes(contrat.value?.etat),
 )
+const peutDeciderEssai = computed(() =>
+  peutAgir.value && ['SIGNE', 'VALIDE'].includes(contrat.value?.etat)
+  && contrat.value?.finPeriodeEssai && !contrat.value?.decisionFinEssai,
+)
 const tachesBloquantes = computed(() =>
   (onboarding.value?.taches || []).filter((t) => t.bloquante
     && !['FAIT', 'NON_APPLICABLE'].includes(t.statut)),
@@ -88,16 +99,20 @@ async function charger() {
   chargement.value = true
   try {
     contrat.value = await api.get(`/contrats/${id.value}`)
-    const [dossier, listeAffectations, parcours, listeAvenants] = await Promise.all([
+    const [dossier, listeAffectations, parcours, listeAvenants, listeNotifications] = await Promise.all([
       api.get(`/employes/${contrat.value.idEmploye}/dossier`),
       api.get(`/contrats/employe/${contrat.value.idEmploye}/affectations`),
       api.get(`/contrats/${id.value}/onboarding`).catch(() => null),
       api.get(`/contrats/${id.value}/avenants`),
+      api.get('/contrats/notifications').catch(() => []),
     ])
     salarie.value = dossier
     affectations.value = listeAffectations
     onboarding.value = parcours || null
     avenants.value = listeAvenants
+    notificationsContrat.value = listeNotifications.filter(
+      (notification) => notification.idContrat === contrat.value.id,
+    )
   } catch (cause) {
     notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible de charger le contrat.')
   } finally {
@@ -121,9 +136,31 @@ async function executer(action, succes) {
 }
 
 const signer = () => executer(
-  () => api.post(`/contrats/${id.value}/signer`),
-  'Contrat signé : matricule attribué et onboarding créé.',
+  () => api.post(`/contrats/${id.value}/signer-employeur`),
+  'Signature employeur enregistrée.',
 )
+
+function ouvrirDecisionEssai() {
+  decisionEssai.value = { decision: 'CONFIRMATION', commentaire: '' }
+  dialogue.value = 'essai'
+}
+
+const confirmerDecisionEssai = () => executer(
+  () => api.post(`/contrats/${id.value}/decision-fin-essai`, {
+    decision: decisionEssai.value.decision,
+    commentaire: decisionEssai.value.commentaire || null,
+  }),
+  'Décision de fin d’essai enregistrée.',
+)
+
+async function marquerNotificationLue(notification) {
+  try {
+    await api.patch(`/contrats/notifications/${notification.id}/lire`)
+    notification.statut = 'LUE'
+  } catch (cause) {
+    notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Action impossible.')
+  }
+}
 
 const valider = () => executer(
   () => api.post(`/contrats/${id.value}/valider`),
@@ -213,7 +250,7 @@ const confirmerAvenant = () => executer(
 
 const signerAvenant = (item) => executer(
   () => api.post(`/contrats/avenants/${item.id}/signer`),
-  'Avenant signé et appliqué.',
+  'Avenant signé ; les changements s’appliqueront à sa date d’effet.',
 )
 
 const validerAvenant = (item) => executer(
@@ -270,7 +307,8 @@ onMounted(charger)
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <Button v-if="peutSigner" label="Signer" icon="pi pi-pen-to-square" :loading="actionEnCours" @click="signer" />
+        <Button v-if="peutSigner" label="Signer (employeur)" icon="pi pi-pen-to-square" :loading="actionEnCours" @click="signer" />
+        <Button v-if="peutDeciderEssai" label="Décision fin d’essai" icon="pi pi-flag" severity="secondary" outlined @click="ouvrirDecisionEssai" />
         <Button v-if="peutValider" label="Valider" icon="pi pi-check" severity="success" :loading="actionEnCours" @click="valider" />
         <Button v-if="peutAnnuler" label="Annuler" icon="pi pi-times" severity="danger" outlined @click="dialogue = 'annulation'" />
         <Button label="PDF" icon="pi pi-download" severity="secondary" outlined :disabled="!contrat.documentPdfId" @click="telecharger" />
@@ -312,8 +350,14 @@ onMounted(charger)
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div><div class="text-xs font-semibold uppercase text-muted-color">Signature salarié</div><div>{{ formatDateHeure(contrat.dateSignatureSalarie) }}</div></div>
           <div><div class="text-xs font-semibold uppercase text-muted-color">Signature employeur</div><div>{{ formatDateHeure(contrat.dateSignatureEmployeur) }}</div></div>
+          <div><div class="text-xs font-semibold uppercase text-muted-color">Empreinte salarié</div><div class="break-all text-xs">{{ contrat.empreinteSignatureSalarie || '—' }}</div><div class="text-xs text-muted-color">IP {{ contrat.ipSignatureSalarie || '—' }}</div></div>
+          <div><div class="text-xs font-semibold uppercase text-muted-color">Empreinte employeur</div><div class="break-all text-xs">{{ contrat.empreinteSignatureEmployeur || '—' }}</div><div class="text-xs text-muted-color">IP {{ contrat.ipSignatureEmployeur || '—' }}</div></div>
           <div><div class="text-xs font-semibold uppercase text-muted-color">PDF figé</div><div>{{ contrat.documentPdfId ? `Document #${contrat.documentPdfId}` : 'Non généré' }}</div></div>
           <div><div class="text-xs font-semibold uppercase text-muted-color">Dernière modification</div><div>{{ formatDateHeure(contrat.dateModification) }}</div></div>
+        </div>
+        <div v-if="contrat.decisionFinEssai" class="mt-4 rounded-lg border border-surface-300 p-3 text-sm dark:border-surface-700">
+          <strong>Décision fin d’essai :</strong> {{ libelle(contrat.decisionFinEssai) }}
+          le {{ formatDate(contrat.dateDecisionFinEssai) }}
         </div>
       </template>
     </Card>
@@ -404,6 +448,26 @@ onMounted(charger)
       </template>
     </Card>
 
+    <Card>
+      <template #title>Notifications et relances</template>
+      <template #content>
+        <DataTable v-if="notificationsContrat.length" :value="notificationsContrat" data-key="id"
+          striped-rows size="small" responsive-layout="scroll">
+          <Column header="Niveau"><template #body="{ data }"><StatusBadge :valeur="data.niveau" /></template></Column>
+          <Column field="message" header="Message" />
+          <Column header="Échéance"><template #body="{ data }">{{ formatDate(data.echeance) }}</template></Column>
+          <Column header="Statut"><template #body="{ data }"><StatusBadge :valeur="data.statut" /></template></Column>
+          <Column header="Action">
+            <template #body="{ data }">
+              <Button v-if="data.statut !== 'LUE'" label="Marquer lue" size="small" outlined
+                @click="marquerNotificationLue(data)" />
+            </template>
+          </Column>
+        </DataTable>
+        <p v-else class="m-0 text-muted-color">Aucune notification pour ce contrat.</p>
+      </template>
+    </Card>
+
     <Card v-if="peutRenouveler || peutTransformer">
       <template #title>Décision de fin de CDD</template>
       <template #content>
@@ -416,6 +480,26 @@ onMounted(charger)
         </div>
       </template>
     </Card>
+
+    <ModalDialog v-if="dialogue === 'essai'" titre="Décision de fin de période d’essai"
+      sous-titre="La décision est tracée sur le contrat. Une rupture met fin au contrat et désactive le salarié."
+      @fermer="dialogue = null">
+      <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-semibold">Décision</label>
+          <Select v-model="decisionEssai.decision" :options="DECISIONS_ESSAI"
+            option-label="libelle" option-value="valeur" />
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-semibold">Commentaire</label>
+          <Textarea v-model="decisionEssai.commentaire" rows="3" />
+        </div>
+      </div>
+      <template #actions>
+        <Button label="Fermer" severity="secondary" outlined @click="dialogue = null" />
+        <Button label="Enregistrer la décision" :loading="actionEnCours" @click="confirmerDecisionEssai" />
+      </template>
+    </ModalDialog>
 
     <ModalDialog v-if="dialogue === 'annulation'" titre="Annuler le contrat"
       sous-titre="Un contrat signé ne peut être annulé qu’avant sa date de début (rétractation)." @fermer="dialogue = null">
@@ -460,7 +544,7 @@ onMounted(charger)
     </ModalDialog>
 
     <ModalDialog v-if="dialogue === 'avenant'" titre="Nouvel avenant"
-      sous-titre="Les valeurs avant/après sont conservées ; l’avenant s’applique à sa signature." large
+      sous-titre="Les valeurs avant/après sont conservées ; l’avenant s’applique à sa date d’effet." large
       @fermer="dialogue = null">
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div class="flex flex-col gap-2">

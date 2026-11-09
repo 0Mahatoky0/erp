@@ -87,6 +87,13 @@ const LIBELLES = {
   LIEU: 'Lieu',
   DUREE: 'Durée',
   AUTRE: 'Autre',
+  INFO: 'Info',
+  ATTENTION: 'Attention',
+  DANGER: 'Critique',
+  A_ENVOYER: 'A envoyer',
+  LUE: 'Lue',
+  CONFIRMATION: 'Confirmation',
+  RUPTURE: 'Rupture',
 }
 
 const COULEURS = {
@@ -163,6 +170,13 @@ const COULEURS = {
   LIEU: 'info',
   DUREE: 'info',
   AUTRE: 'neutre',
+  INFO: 'info',
+  ATTENTION: 'alerte',
+  DANGER: 'danger',
+  A_ENVOYER: 'alerte',
+  LUE: 'neutre',
+  CONFIRMATION: 'succes',
+  RUPTURE: 'danger',
 }
 
 const couleur = computed(() => {
