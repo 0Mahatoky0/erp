@@ -2,23 +2,33 @@ package com.tovo.erp.contrat.dto;
 
 import com.tovo.erp.contrat.model.Affectation;
 import com.tovo.erp.contrat.model.AffectationStatut;
+import com.tovo.erp.contrat.model.Avenant;
+import com.tovo.erp.contrat.model.AvenantEtat;
 import com.tovo.erp.contrat.model.CategorieTache;
 import com.tovo.erp.contrat.model.Contrat;
 import com.tovo.erp.contrat.model.ContratEtat;
+import com.tovo.erp.contrat.model.DecisionFinEssai;
 import com.tovo.erp.contrat.model.MotifAffectation;
+import com.tovo.erp.contrat.model.Notification;
+import com.tovo.erp.contrat.model.NotificationStatut;
 import com.tovo.erp.contrat.model.Onboarding;
 import com.tovo.erp.contrat.model.OnboardingStatut;
 import com.tovo.erp.contrat.model.OnboardingTache;
 import com.tovo.erp.contrat.model.StatutExecutionContrat;
 import com.tovo.erp.contrat.model.TacheStatut;
+import com.tovo.erp.contrat.model.TypeAvenant;
 import com.tovo.erp.contrat.model.TypeContrat;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/** Objets de transfert du module contrat / affectation / onboarding. */
+/** Objets de transfert du module contrat / affectation / onboarding (bloc 4). */
 public final class ContratDtos {
 
     private ContratDtos() {
@@ -28,7 +38,7 @@ public final class ContratDtos {
     public record CreationContratRequest(
             Long idEmploye,
             Long idProposition,
-            TypeContrat typeContrat,
+            String typeContrat,
             LocalDate dateDebut,
             LocalDate dateFinPrevue,
             BigDecimal salaireBase,
@@ -45,7 +55,7 @@ public final class ContratDtos {
             Long idResponsableRh) {
     }
 
-    /** Resultat de la creation automatique : contrat, affectation et onboarding. */
+    /** Resultat de la creation automatique : contrat et affectation. */
     public record ContratEmbaucheDto(
             Long idContrat,
             String numero,
@@ -65,23 +75,48 @@ public final class ContratDtos {
             List<Long> idTaches) {
     }
 
+    /** Resultat d'un passage du planificateur d'echeances. */
+    public record ResultatEcheances(int actives, int termines, int absences) {
+    }
+
     /** Contrat expose en lecture. */
     public record ContratDto(
             Long id,
             String numero,
             Long idEmploye,
             Long idProposition,
-            TypeContrat typeContrat,
+            Long idContratPrecedent,
             Integer rang,
+            TypeContrat typeContrat,
             LocalDate dateDebut,
             LocalDate dateFinPrevue,
+            LocalDate dateFinReelle,
             LocalDate finPeriodeEssai,
             BigDecimal salaireBase,
             String devise,
+            String primesAvantages,
+            String horaires,
+            String lieuTravail,
+            String motifCdd,
             ContratEtat etat,
             StatutExecutionContrat statutExecution,
+            LocalDateTime dateSignatureSalarie,
+            LocalDateTime dateSignatureEmployeur,
+            Long signataireEmployeurId,
+            String empreinteSignatureSalarie,
+            String empreinteSignatureEmployeur,
+            String ipSignatureSalarie,
+            String ipSignatureEmployeur,
+            DecisionFinEssai decisionFinEssai,
+            LocalDate dateDecisionFinEssai,
+            Long idUtilisateurDecisionFinEssai,
             Long documentPdfId,
-            LocalDateTime dateCreation) {
+            String gabaritVersion,
+            String motifAnnulation,
+            LocalDateTime dateAnnulation,
+            LocalDateTime dateCloture,
+            LocalDateTime dateCreation,
+            LocalDateTime dateModification) {
 
         public static ContratDto de(Contrat contrat) {
             return new ContratDto(
@@ -89,17 +124,38 @@ public final class ContratDtos {
                     contrat.getNumero(),
                     contrat.getIdEmploye(),
                     contrat.getIdProposition(),
-                    contrat.getTypeContrat(),
+                    contrat.getIdContratPrecedent(),
                     contrat.getRang(),
+                    contrat.getTypeContrat(),
                     contrat.getDateDebut(),
                     contrat.getDateFinPrevue(),
+                    contrat.getDateFinReelle(),
                     contrat.getFinPeriodeEssai(),
                     contrat.getSalaireBase(),
                     contrat.getDevise(),
+                    contrat.getPrimesAvantages(),
+                    contrat.getHoraires(),
+                    contrat.getLieuTravail(),
+                    contrat.getMotifCdd(),
                     contrat.getEtat(),
                     contrat.getStatutExecution(),
+                    contrat.getDateSignatureSalarie(),
+                    contrat.getDateSignatureEmployeur(),
+                    contrat.getSignataireEmployeurId(),
+                    contrat.getEmpreinteSignatureSalarie(),
+                    contrat.getEmpreinteSignatureEmployeur(),
+                    contrat.getIpSignatureSalarie(),
+                    contrat.getIpSignatureEmployeur(),
+                    contrat.getDecisionFinEssai(),
+                    contrat.getDateDecisionFinEssai(),
+                    contrat.getIdUtilisateurDecisionFinEssai(),
                     contrat.getDocumentPdfId(),
-                    contrat.getDateCreation());
+                    contrat.getGabaritVersion(),
+                    contrat.getMotifAnnulation(),
+                    contrat.getDateAnnulation(),
+                    contrat.getDateCloture(),
+                    contrat.getDateCreation(),
+                    contrat.getDateModification());
         }
     }
 
@@ -149,8 +205,10 @@ public final class ContratDtos {
             LocalDate echeance,
             boolean obligatoire,
             boolean bloquante,
+            Long idDependDe,
             TacheStatut statut,
-            LocalDate dateFait) {
+            LocalDate dateFait,
+            Long idPreuveDocument) {
 
         public static TacheDto de(OnboardingTache tache) {
             return new TacheDto(
@@ -162,8 +220,10 @@ public final class ContratDtos {
                     tache.getEcheance(),
                     tache.isObligatoire(),
                     tache.isBloquante(),
+                    tache.getIdDependDe(),
                     tache.getStatut(),
-                    tache.getDateFait());
+                    tache.getDateFait(),
+                    tache.getIdPreuveDocument());
         }
     }
 
@@ -172,11 +232,16 @@ public final class ContratDtos {
             Long id,
             Long idEmploye,
             Long idContrat,
+            Long templateId,
+            String templateCode,
+            String typeContrat,
+            String site,
             LocalDate dateDebut,
             LocalDate dateCible,
             Long idResponsableRh,
             OnboardingStatut statut,
             Integer progression,
+            LocalDateTime dateCloture,
             List<TacheDto> taches) {
 
         public static OnboardingDto de(Onboarding onboarding, List<OnboardingTache> taches) {
@@ -184,12 +249,191 @@ public final class ContratDtos {
                     onboarding.getId(),
                     onboarding.getIdEmploye(),
                     onboarding.getIdContrat(),
+                    onboarding.getTemplateId(),
+                    onboarding.getTemplateCode(),
+                    onboarding.getTypeContrat(),
+                    onboarding.getSite(),
                     onboarding.getDateDebut(),
                     onboarding.getDateCible(),
                     onboarding.getIdResponsableRh(),
                     onboarding.getStatut(),
                     onboarding.getProgression(),
+                    onboarding.getDateCloture(),
                     taches.stream().map(TacheDto::de).toList());
         }
+    }
+
+    /** Signature electronique du salarie depuis son compte candidat (RG-B4-05). */
+    public record SignatureSalarieRequest(@NotBlank String nomSignataire) {
+    }
+
+    /** Signature electronique de l'employeur (RG-B4-05). */
+    public record SignatureEmployeurRequest(Long signataireEmployeurId, String nomSignataire) {
+    }
+
+    /** Annulation d'un contrat CREE ou retractation avant la date de debut. */
+    public record AnnulationRequest(@NotBlank String motif) {
+    }
+
+    /** Renouvellement d'un CDD dans la limite legale (RG-B4-12). */
+    public record RenouvellementRequest(
+            @NotNull LocalDate dateFinPrevue,
+            BigDecimal salaireBase,
+            String primesAvantages,
+            String horaires,
+            String lieuTravail,
+            @NotBlank String motifCdd,
+            Long signataireEmployeurId) {
+    }
+
+    /** Transformation d'un CDD en CDI. */
+    public record TransformationCdiRequest(
+            LocalDate dateDebut,
+            BigDecimal salaireBase,
+            String primesAvantages,
+            String horaires,
+            String lieuTravail,
+            Long signataireEmployeurId) {
+    }
+
+    /** Creation d'une affectation supplementaire (mutation, promotion...). */
+    public record AffectationRequest(
+            Long idPoste,
+            Long idDepartement,
+            Long idService,
+            Long idManager,
+            String lieuTravail,
+            String horaires,
+            @NotNull LocalDate dateDebut,
+            LocalDate dateFin,
+            @Min(1) Integer tauxActivite,
+            boolean principale,
+            @NotNull MotifAffectation motif,
+            Boolean derogationCapacite) {
+    }
+
+    /** Modification d'un contrat signe (RG-B4-05). */
+    public record AvenantRequest(
+            @NotNull TypeAvenant type,
+            @NotNull LocalDate dateEffet,
+            String anciennesValeurs,
+            String nouvellesValeurs,
+            @DecimalMin("0") BigDecimal nouveauSalaire,
+            LocalDate nouvelleDateFin,
+            String nouveauxHoraires,
+            String nouveauLieu,
+            Long nouveauPosteId,
+            Long nouveauDepartementId,
+            Long nouveauServiceId,
+            Long nouveauManagerId,
+            Long idDocument) {
+    }
+
+    /** Avenant expose en lecture. */
+    public record AvenantDto(
+            Long id,
+            Long idContrat,
+            String numero,
+            TypeAvenant type,
+            LocalDate dateEffet,
+            String anciennesValeurs,
+            String nouvellesValeurs,
+            BigDecimal nouveauSalaire,
+            LocalDate nouvelleDateFin,
+            String nouveauxHoraires,
+            String nouveauLieu,
+            Long nouveauPosteId,
+            Long nouveauDepartementId,
+            Long nouveauServiceId,
+            Long nouveauManagerId,
+            Long idDocument,
+            LocalDateTime dateApplication,
+            AvenantEtat etat,
+            LocalDateTime dateSignature,
+            Long signataireId,
+            LocalDateTime dateCreation) {
+
+        public static AvenantDto de(Avenant avenant) {
+            return new AvenantDto(
+                    avenant.getId(),
+                    avenant.getIdContrat(),
+                    avenant.getNumero(),
+                    avenant.getType(),
+                    avenant.getDateEffet(),
+                    avenant.getAnciennesValeurs(),
+                    avenant.getNouvellesValeurs(),
+                    avenant.getNouveauSalaire(),
+                    avenant.getNouvelleDateFin(),
+                    avenant.getNouveauxHoraires(),
+                    avenant.getNouveauLieu(),
+                    avenant.getNouveauPosteId(),
+                    avenant.getNouveauDepartementId(),
+                    avenant.getNouveauServiceId(),
+                    avenant.getNouveauManagerId(),
+                    avenant.getIdDocument(),
+                    avenant.getDateApplication(),
+                    avenant.getEtat(),
+                    avenant.getDateSignature(),
+                    avenant.getSignataireId(),
+                    avenant.getDateCreation());
+        }
+    }
+
+    /** Mise a jour d'une tache d'integration. */
+    public record TacheMiseAJourRequest(
+            @NotNull TacheStatut statut,
+            LocalDate dateFait,
+            Long idPreuveDocument) {
+    }
+
+    /** Decision de fin de periode d'essai (RG-B4-14). */
+    public record DecisionFinEssaiRequest(
+            @NotNull DecisionFinEssai decision,
+            String commentaire) {
+    }
+
+    /** Notification interne generee par les alertes et relances. */
+    public record NotificationDto(
+            Long id,
+            String type,
+            String niveau,
+            String message,
+            Long idContrat,
+            Long idEmploye,
+            Long idTache,
+            String destinataireRole,
+            LocalDate echeance,
+            NotificationStatut statut,
+            LocalDateTime dateCreation,
+            LocalDateTime dateEnvoi,
+            LocalDateTime dateLecture) {
+
+        public static NotificationDto de(Notification notification) {
+            return new NotificationDto(
+                    notification.getId(),
+                    notification.getType(),
+                    notification.getNiveau(),
+                    notification.getMessage(),
+                    notification.getIdContrat(),
+                    notification.getIdEmploye(),
+                    notification.getIdTache(),
+                    notification.getDestinataireRole(),
+                    notification.getEcheance(),
+                    notification.getStatut(),
+                    notification.getDateCreation(),
+                    notification.getDateEnvoi(),
+                    notification.getDateLecture());
+        }
+    }
+
+    /** Alerte calculee a la demande. */
+    public record AlerteDto(
+            String categorie,
+            String niveau,
+            String message,
+            Long idContrat,
+            String numeroContrat,
+            Long idEmploye,
+            LocalDate echeance) {
     }
 }

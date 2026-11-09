@@ -89,6 +89,9 @@ public class PropositionEmbauche {
     @Column(name = "lieu_travail", length = 150)
     private String lieuTravail;
 
+    @Column(name = "motif_cdd", columnDefinition = "TEXT")
+    private String motifCdd;
+
     @Column(name = "date_envoi")
     private LocalDateTime dateEnvoi;
 

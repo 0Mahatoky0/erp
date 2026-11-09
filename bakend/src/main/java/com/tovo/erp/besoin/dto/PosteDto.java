@@ -18,6 +18,7 @@ public final class PosteDto {
                         Long idDepartement, String departement,
                         String intitule, String description,
                         BigDecimal salaireMin, BigDecimal salaireMax,
+                        Integer effectifAutorise, String categorie, String site,
                         boolean actif, long nbPostesLies) {
 
         public static Liste de(Poste poste, long nbPostesLies) {
@@ -31,6 +32,9 @@ public final class PosteDto {
                     poste.getDescription(),
                     poste.getSalaireMin(),
                     poste.getSalaireMax(),
+                    poste.getEffectifAutorise(),
+                    poste.getCategorie(),
+                    poste.getSite(),
                     poste.isActif(),
                     nbPostesLies);
         }

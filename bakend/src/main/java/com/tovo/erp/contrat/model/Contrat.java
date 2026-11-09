@@ -99,11 +99,42 @@ public class Contrat {
     @Column(name = "signataire_employeur_id")
     private Long signataireEmployeurId;
 
+    @Column(name = "empreinte_signature_salarie", length = 128)
+    private String empreinteSignatureSalarie;
+
+    @Column(name = "empreinte_signature_employeur", length = 128)
+    private String empreinteSignatureEmployeur;
+
+    @Column(name = "ip_signature_salarie", length = 64)
+    private String ipSignatureSalarie;
+
+    @Column(name = "ip_signature_employeur", length = 64)
+    private String ipSignatureEmployeur;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "decision_fin_essai", length = 20)
+    private DecisionFinEssai decisionFinEssai;
+
+    @Column(name = "date_decision_fin_essai")
+    private LocalDate dateDecisionFinEssai;
+
+    @Column(name = "id_utilisateur_decision_fin_essai")
+    private Long idUtilisateurDecisionFinEssai;
+
     @Column(name = "document_pdf_id")
     private Long documentPdfId;
 
     @Column(name = "gabarit_version", length = 50)
     private String gabaritVersion;
+
+    @Column(name = "motif_annulation", columnDefinition = "TEXT")
+    private String motifAnnulation;
+
+    @Column(name = "date_annulation")
+    private LocalDateTime dateAnnulation;
+
+    @Column(name = "date_cloture")
+    private LocalDateTime dateCloture;
 
     @Column(name = "date_creation", nullable = false)
     private LocalDateTime dateCreation = LocalDateTime.now();

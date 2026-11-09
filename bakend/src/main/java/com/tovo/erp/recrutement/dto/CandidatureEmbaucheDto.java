@@ -33,6 +33,16 @@ public record CandidatureEmbaucheDto(
         CandidatureStatut statut,
         LocalDateTime dateCandidature) {
 
+    /** Vrai si la candidature est retenue pour recevoir une proposition. */
+    public boolean estRetenue() {
+        return statut == CandidatureStatut.RETENUE;
+    }
+
+    /** Vrai si la candidature permet encore de poursuivre l'embauche. */
+    public boolean estEmbauchable() {
+        return statut == CandidatureStatut.RETENUE || statut == CandidatureStatut.ACCEPTEE;
+    }
+
     public static CandidatureEmbaucheDto de(Candidature candidature) {
         var candidat = candidature.getCandidat();
         var offre = candidature.getOffre();

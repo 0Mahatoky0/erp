@@ -25,9 +25,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Consultation des employes (RM-057 a RM-060) et gestion du dossier cree
@@ -145,6 +148,71 @@ public class EmployeService {
         document.setDateEmission(dateEmission);
         document.setDateValidite(dateValidite);
         return DocumentEmbaucheDto.de(documentRepository.save(document));
+    }
+
+    /**
+     * Attribue le matricule au salarie une seule fois (RG-B4-06). Un matricule
+     * deja present (reembauche) n'est jamais remplace.
+     */
+    @Transactional
+    public String attribuerMatricule(Long idEmploye, java.util.function.Supplier<String> generateur) {
+        Employe employe = employeRepository.findById(idEmploye)
+                .orElseThrow(() -> BusinessException.notFound(
+                        "L'employe " + idEmploye + " n'existe pas."));
+        if (employe.getMatricule() == null || employe.getMatricule().isBlank()) {
+            employe.setMatricule(generateur.get());
+            employeRepository.save(employe);
+        }
+        return employe.getMatricule();
+    }
+
+    /** Met a jour le statut administratif du salarie (activation, depart...). */
+    @Transactional
+    public EmployeEmbaucheDto changerStatut(Long idEmploye, StatutEmploye statut) {
+        Employe employe = employeRepository.findById(idEmploye)
+                .orElseThrow(() -> BusinessException.notFound(
+                        "L'employe " + idEmploye + " n'existe pas."));
+        employe.setStatut(statut);
+        return EmployeEmbaucheDto.de(employeRepository.save(employe));
+    }
+
+    /** Active le salarie sans exposer l'enumeration de statut aux autres modules. */
+    @Transactional
+    public void activer(Long idEmploye) {
+        changerStatut(idEmploye, StatutEmploye.ACTIF);
+    }
+
+    /** Desactive le salarie sans exposer l'enumeration de statut aux autres modules. */
+    @Transactional
+    public void desactiver(Long idEmploye) {
+        changerStatut(idEmploye, StatutEmploye.INACTIF);
+    }
+
+    /** Marque une non-presentation a la prise de poste (RG-B4-17). */
+    @Transactional
+    public void marquerNonPrisPoste(Long idEmploye) {
+        changerStatut(idEmploye, StatutEmploye.NON_PRIS_POSTE);
+    }
+
+    /** Identifiants des salaries encore en pre-embauche, en une seule requete. */
+    @Transactional(readOnly = true)
+    public Set<Long> idsEnPreEmbauche(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Set.of();
+        }
+        return employeRepository.findByIdInAndStatut(ids, StatutEmploye.PRE_EMBAUCHE).stream()
+                .map(Employe::getId)
+                .collect(Collectors.toSet());
+    }
+
+    /** Enregistre le PDF contractuel sans faire dependre le module contrat de l'enumeration. */
+    @Transactional
+    public DocumentEmbaucheDto enregistrerDocumentContrat(Long idEmploye, String titre,
+                                                          String nomFichier, String typeMime,
+                                                          byte[] contenu, Long idContrat,
+                                                          LocalDate dateEmission) {
+        return enregistrerDocument(idEmploye, TypeDocumentEmploye.CONTRAT, titre,
+                nomFichier, typeMime, contenu, idContrat, dateEmission, null);
     }
 
     @Transactional(readOnly = true)

@@ -45,6 +45,13 @@ public class CandidatureController {
         return candidatures.listerParEmailPublic(email);
     }
 
+    @GetMapping("/mes-candidatures")
+    public List<CandidatureDto> mesCandidatures() {
+        utilisateurCourant.exigerRole(RoleNom.CANDIDAT);
+        var utilisateur = utilisateurCourant.exiger();
+        return candidatures.listerParUtilisateurConnecte(utilisateur.getId(), utilisateur.getEmail());
+    }
+
     @GetMapping
     public List<CandidatureDto> lister(@RequestParam(required = false) CandidatureStatut statut) {
         utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);

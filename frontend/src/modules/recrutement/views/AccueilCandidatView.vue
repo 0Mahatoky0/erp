@@ -88,9 +88,6 @@ onMounted(async () => {
         <RouterLink class="shrink-0 rounded-md border border-surface bg-surface-0 px-4 py-2 font-semibold text-primary transition-colors hover:bg-surface-100" :to="{ name: 'connexion-candidat' }">Se connecter en tant que candidat</RouterLink>
         <RouterLink class="shrink-0 rounded-md border border-surface bg-surface-0 px-4 py-2 font-semibold text-primary transition-colors hover:bg-surface-100" :to="{ name: 'connexion' }">Espace administrateur</RouterLink>
       </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <RouterLink class="shrink-0 rounded-md border border-surface bg-surface-0 px-4 py-2 font-semibold text-primary transition-colors hover:bg-surface-100" :to="{ name: 'candidature-suivi-public' }">Suivre ma candidature</RouterLink>
-      </div>
     </header>
 
     <section v-if="offreSelectionnee" class="mx-auto w-full max-w-6xl rounded-xl border border-surface bg-surface-0 p-6 shadow-sm dark:bg-surface-900">

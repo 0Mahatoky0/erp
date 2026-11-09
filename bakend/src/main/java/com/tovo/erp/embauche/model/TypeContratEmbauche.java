@@ -1,11 +1,12 @@
 package com.tovo.erp.embauche.model;
 
-/** Type de contrat propose au candidat. */
+/** Type de contrat propose au candidat (aligne sur le bloc 4). */
 public enum TypeContratEmbauche {
     CDI,
     CDD,
-    INTERIM,
+    CDD_RENOUVELLEMENT,
     STAGE,
     APPRENTISSAGE,
-    FREELANCE
+    TEMPS_PARTIEL,
+    CONSULTANT
 }

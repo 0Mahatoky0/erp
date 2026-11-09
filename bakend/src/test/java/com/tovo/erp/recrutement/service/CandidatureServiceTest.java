@@ -167,4 +167,48 @@ class CandidatureServiceTest {
         assertNull(resultats.get(0).offre());
         assertEquals(CandidatureStatut.RECUE, resultats.get(0).statut());
     }
+
+    @Test
+    void retrouveLesCandidaturesDuCompteCandidatConnecte() {
+        Candidat candidat = new Candidat();
+        candidat.setIdCandidat(42L);
+        candidat.setIdUtilisateur(99L);
+        candidat.setEmail("connecte@example.com");
+        Candidature candidature = new Candidature();
+        candidature.setIdCandidature(21L);
+        candidature.setCandidat(candidat);
+        candidature.setStatut(CandidatureStatut.RETENUE);
+
+        when(candidats.findByIdUtilisateur(99L)).thenReturn(Optional.of(candidat));
+        when(candidatures.findByCandidatIdCandidatOrderByDateCandidatureDesc(42L))
+                .thenReturn(java.util.List.of(candidature));
+
+        var resultats = service.listerParUtilisateurConnecte(99L);
+
+        assertEquals(1, resultats.size());
+        assertEquals(21L, resultats.get(0).idCandidature());
+        assertEquals(CandidatureStatut.RETENUE, resultats.get(0).statut());
+    }
+
+    @Test
+    void retrouveLesCandidaturesParEmailQuandLeLienIdUtilisateurEstAbsent() {
+        Candidat candidat = new Candidat();
+        candidat.setIdCandidat(55L);
+        candidat.setIdUtilisateur(null);
+        candidat.setEmail("iharilala@example.com");
+        Candidature candidature = new Candidature();
+        candidature.setIdCandidature(31L);
+        candidature.setCandidat(candidat);
+        candidature.setStatut(CandidatureStatut.RECUE);
+
+        when(candidats.findByIdUtilisateur(123L)).thenReturn(Optional.empty());
+        when(candidats.findByEmailIgnoreCase("iharilala@example.com")).thenReturn(Optional.of(candidat));
+        when(candidatures.findByCandidatIdCandidatOrderByDateCandidatureDesc(55L))
+                .thenReturn(java.util.List.of(candidature));
+
+        var resultats = service.listerParUtilisateurConnecte(123L, "iharilala@example.com");
+
+        assertEquals(1, resultats.size());
+        assertEquals(31L, resultats.get(0).idCandidature());
+    }
 }

@@ -250,6 +250,8 @@ public class Bloc3DemoDataInitializer implements CommandLineRunner {
                 manager.getId(),
                 scenario.type(),
                 scenario.type() == TypeContratEmbauche.CDD ? 12 : null,
+                scenario.type() == TypeContratEmbauche.CDD
+                        ? "Accroissement temporaire d'activite" : null,
                 DATE_DEBUT,
                 3,
                 scenario.salaire(),

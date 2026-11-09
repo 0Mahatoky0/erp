@@ -77,7 +77,14 @@ public class ContratPdfService {
         lignes.add("");
         lignes.add("____________________________                  ____________________________");
         lignes.add("");
-        lignes.add("Document genere automatiquement - en attente de signature.");
+        if (contrat.getDateSignatureSalarie() != null
+                && contrat.getDateSignatureEmployeur() != null) {
+            lignes.add("Document signe par les deux parties le "
+                    + DATE.format(contrat.getDateSignatureEmployeur().toLocalDate())
+                    + " - version figee.");
+        } else {
+            lignes.add("Document genere automatiquement - en attente de signature.");
+        }
         return ecrire(lignes);
     }
 

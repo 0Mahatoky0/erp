@@ -240,6 +240,44 @@ public class CandidatureService {
                 .toList();
     }
 
+    /** Identifiant du candidat rattache au compte, sans exposer l'entite. */
+    @Transactional
+    public Long idCandidatParUtilisateur(Long idUtilisateur) {
+        if (idUtilisateur == null) {
+            return null;
+        }
+        return candidats.findByIdUtilisateur(idUtilisateur)
+                .map(Candidat::getIdCandidat)
+                .orElse(null);
+    }
+
+    @Transactional
+    public List<CandidatureDto> listerParUtilisateurConnecte(Long idUtilisateur) {
+        return listerParUtilisateurConnecte(idUtilisateur, null);
+    }
+
+    @Transactional
+    public List<CandidatureDto> listerParUtilisateurConnecte(Long idUtilisateur, String email) {
+        if (idUtilisateur == null && (email == null || email.isBlank())) {
+            return List.of();
+        }
+
+        Candidat candidat = null;
+        if (idUtilisateur != null) {
+            candidat = candidats.findByIdUtilisateur(idUtilisateur).orElse(null);
+        }
+        if (candidat == null && email != null && !email.isBlank()) {
+            candidat = candidats.findByEmailIgnoreCase(email.trim()).orElse(null);
+        }
+        if (candidat == null) {
+            return List.of();
+        }
+        return candidatures.findByCandidatIdCandidatOrderByDateCandidatureDesc(candidat.getIdCandidat())
+                .stream()
+                .map(CandidatureDto::de)
+                .toList();
+    }
+
     private Candidature charger(Long id) {
         return candidatures.findById(id).orElseThrow(() -> new IllegalArgumentException("Candidature introuvable"));
     }

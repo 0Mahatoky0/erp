@@ -43,6 +43,7 @@ const form = ref({
   idManager: null,
   typeContrat: 'CDI',
   dureeMois: null,
+  motifCdd: '',
   dateDebutPrevue: null,
   periodeEssaiMois: 1,
   salaireBrutMensuel: null,
@@ -119,6 +120,7 @@ async function chargerDetail(id) {
     idManager: detail.idManager,
     typeContrat: detail.typeContrat || 'CDI',
     dureeMois: detail.dureeMois,
+    motifCdd: detail.motifCdd || '',
     dateDebutPrevue: versDate(detail.dateDebutPrevue),
     periodeEssaiMois: detail.periodeEssaiMois ?? 1,
     salaireBrutMensuel: detail.salaireBrutMensuel === null ? null : Number(detail.salaireBrutMensuel),
@@ -192,6 +194,7 @@ async function enregistrer() {
       idManager: form.value.idManager ? Number(form.value.idManager) : null,
       typeContrat: form.value.typeContrat,
       dureeMois: estCdd.value && form.value.dureeMois ? Number(form.value.dureeMois) : null,
+      motifCdd: estCdd.value ? (form.value.motifCdd || null) : null,
       dateDebutPrevue: isoDate(form.value.dateDebutPrevue),
       periodeEssaiMois: form.value.periodeEssaiMois === null ? null : Number(form.value.periodeEssaiMois),
       salaireBrutMensuel: form.value.salaireBrutMensuel === null ? null : Number(form.value.salaireBrutMensuel),
@@ -284,6 +287,11 @@ onMounted(charger)
           <div v-if="estCdd" class="flex flex-col gap-2">
             <label class="text-sm font-semibold" for="duree">Durée du CDD (mois) *</label>
             <InputNumber id="duree" v-model="form.dureeMois" :min="1" show-buttons />
+          </div>
+
+          <div v-if="estCdd" class="sm:col-span-2 flex flex-col gap-2">
+            <label class="text-sm font-semibold" for="motif-cdd">Motif du recours au CDD *</label>
+            <InputText id="motif-cdd" v-model="form.motifCdd" />
           </div>
 
           <div class="flex flex-col gap-2">
