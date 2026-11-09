@@ -27,12 +27,22 @@ l'exécution est `EN_COURS` (RG-B4-03). Les états d'exécution sont `A_VENIR`,
 
 ## 2. Signature et onboarding
 
-La signature est matérialisée par les deux dates `date_signature_salarie` et
-`date_signature_employeur`. Elle déclenche :
+La signature est **séparée** : le salarié signe depuis son compte candidat
+(`POST /api/contrats/mes-contrats/{id}/signer`) et l'employeur depuis le module
+RH (`POST /api/contrats/{id}/signer-employeur`). Chaque partie produit une date,
+une empreinte SHA-256 horodatée et l'adresse IP de la demande. Le contrat ne
+passe `SIGNE` que lorsque les **deux** signatures sont présentes. Cette
+transition déclenche :
 
-1. l'attribution du matricule (`MAT` + année + séquence) ;
-2. la création de l'onboarding et de sa checklist standard ;
+1. l'attribution du matricule au format `M` + année + séquence sur 4 chiffres
+   (les séparateurs sont retirés, ex. `M20260042`) ;
+2. la création de l'onboarding et de sa checklist (modèle choisi par type de
+   contrat, catégorie de poste et site, avec repli `STANDARD`) ;
 3. la génération du PDF signé.
+
+Le contrat ne met volontairement pas à jour `proposition_embauche.id_onboarding_cree`
+afin de ne pas créer de dépendance d'écriture `contrat` → `embauche`. Le lien
+reste consultable dans l'autre sens via `contrat.id_proposition`.
 
 La tâche `ADMIN_CONTRAT_SIGNE` est automatiquement marquée faite, puisque la
 signature est précisément l'événement qui la réalise. Les autres tâches
@@ -72,10 +82,17 @@ applicables, `BLOQUE` si une tâche est bloquée, `EN_COURS` s'il a démarré.
 ## 4. Avenants
 
 Un avenant ne modifie jamais le contrat d'origine. Il naît `CREE`, devient
-`SIGNE` (application des changements) puis `VALIDE`. Les valeurs avant/après
-sont conservées dans `anciennes_valeurs` et `nouvelles_valeurs`, ainsi que dans
-les colonnes typées (`nouveau_salaire`, `nouvelle_date_fin`, etc.).
+`SIGNE` puis `VALIDE`. Les changements ne sont appliqués qu'à la **date
+d'effet** : `date_application` est renseignée par le planificateur
+(`AvenantService.appliquerEcheances`) lorsque cette date est atteinte. Les
+valeurs avant/après sont conservées dans `anciennes_valeurs` et
+`nouvelles_valeurs`, ainsi que dans les colonnes typées (`nouveau_salaire`,
+`nouvelle_date_fin`, etc.).
 Types supportés : `SALAIRE`, `POSTE`, `HORAIRES`, `LIEU`, `DUREE`, `AUTRE`.
+Un avenant de type `POSTE` remplace l'affectation principale : l'ancienne est
+close la veille de la date d'effet et une nouvelle affectation est créée avec
+`nouveau_poste_id`, `nouveau_departement_id`, `nouveau_service_id` et
+`nouveau_manager_id`.
 
 ## 5. Échéances et alertes
 
@@ -91,8 +108,18 @@ Types supportés : `SALAIRE`, `POSTE`, `HORAIRES`, `LIEU`, `DUREE`, `AUTRE`.
 - contrats non signés à l'approche ou après la date de début ;
 - contrats signés mais non validés alors qu'ils devraient démarrer ;
 - fins de CDD à J-30 / J-15 / J-7 et CDD expirés ;
-- fins de période d'essai à J-15 / J-7 ;
+- fins de période d'essai à J-15 / J-7 (ou dépassées sans décision tracée) ;
 - onboardings en retard par rapport à leur date cible.
+
+Les alertes sont transformées en notifications internes idempotentes
+(`GET /api/contrats/notifications`). Le planificateur génère aussi les relances
+de tâches en retard, les escalades à J+3 et les alertes de tâches bloquantes.
+Aucun envoi externe n'est réalisé : la table `notification` sert de boîte
+d'envoi consultable et pourra être lue par un connecteur email/SMS.
+
+La décision de fin de période d'essai (`POST /api/contrats/{id}/decision-fin-essai`)
+est tracée sur le contrat (`CONFIRMATION` ou `RUPTURE`). Une rupture clôture le
+contrat et l'affectation, puis désactive le salarié.
 
 ## 6. API REST
 
@@ -108,7 +135,15 @@ Types supportés : `SALAIRE`, `POSTE`, `HORAIRES`, `LIEU`, `DUREE`, `AUTRE`.
 | GET | `/api/contrats/employe/{id}/onboarding` | RH, Direction, Manager | Parcours (null si absent) |
 | GET | `/api/contrats/onboarding` | RH, Direction, Manager | Tous les parcours |
 | PATCH | `/api/contrats/taches/{id}` | RH, Direction, Manager | Mise à jour d'une tâche |
-| POST | `/api/contrats/{id}/signer` | RH, Direction | Signature |
+| POST | `/api/contrats/{id}/signer` | RH, Direction | Signature employeur (compatibilité) |
+| POST | `/api/contrats/{id}/signer-employeur` | RH, Direction | Signature employeur |
+| POST | `/api/contrats/{id}/signer-salarie` | Candidat | Signature salarié (contrôle de propriété) |
+| GET | `/api/contrats/mes-contrats` | Candidat | Contrats du candidat connecté |
+| GET | `/api/contrats/mes-contrats/{id}` | Candidat | Détail d'un contrat du candidat |
+| POST | `/api/contrats/mes-contrats/{id}/signer` | Candidat | Signature depuis l'espace candidat |
+| POST | `/api/contrats/{id}/decision-fin-essai` | RH, Direction | Décision de fin d'essai |
+| GET | `/api/contrats/notifications` | RH, Direction, Manager | Notifications internes |
+| PATCH | `/api/contrats/notifications/{id}/lire` | RH, Direction, Manager | Marquer une notification lue |
 | POST | `/api/contrats/{id}/valider` | RH, Direction | Validation RH |
 | POST | `/api/contrats/{id}/annuler` | RH, Direction | Annulation / rétractation |
 | POST | `/api/contrats/{id}/renouveler` | RH, Direction | Renouvellement CDD |
@@ -126,13 +161,33 @@ Nouveau module `frontend/src/modules/contrat` :
 
 - `/admin/contrats` : liste, filtre par état, alertes graves ;
 - `/admin/contrats/onboarding` : suivi des parcours et retards ;
-- `/admin/contrats/:id` : détail, signature, validation, annulation,
-  avenants, renouvellement, transformation CDI et checklist d'intégration.
+- `/admin/contrats/:id` : détail, signature employeur, validation, annulation,
+  décision de fin d'essai, avenants, notifications, renouvellement,
+  transformation CDI et checklist d'intégration.
 
-Le dossier d'embauche existant reste accessible et tolère désormais l'absence
-d'onboarding (il apparaît à la signature).
+L'espace candidat (`EspaceCandidatView`) expose « Mes contrats » et permet au
+salarié de signer son contrat avec son nom de signataire. Le dossier d'embauche
+existant reste accessible et tolère désormais l'absence d'onboarding (il
+apparaît à la signature).
 
-## 8. Vérifications
+## 8. Conformité architecture
+
+Le module `contrat` n'accède plus aux repositories ou modèles des modules
+`recrutement`, `embauche` et `employe` :
+
+- `ContratService` utilise `PosteService`/`PosteDto` et les méthodes DTO de
+  `EmployeService` ;
+- les contrats du candidat sont orchestrés par
+  `embauche.service.ContratCandidatService` ;
+- les vérifications de rôle sont portées par `@PreAuthorize` ;
+- les listes sont chargées par requêtes batch (`findByIdContratIn`,
+  `findByIdInAndStatut`) pour éviter les N+1 inter-modules.
+
+Points restants hors périmètre Bloc 4 : les relations JPA inter-modules
+existantes (ex. `Employe.poste`) et l'accès à `iam.model.Utilisateur` pour
+l'identité de l'utilisateur connecté.
+
+## 9. Vérifications
 
 ```bash
 cd bakend && ./mvnw test
