@@ -90,6 +90,36 @@ class ContratServiceTest {
     }
 
     @Test
+    void laSignatureDuSalarieNePeutPasEtreRefaite() {
+        Contrat contrat = contrat(5L, TypeContrat.CDI, ContratEtat.CREE,
+                LocalDate.now().plusDays(7), null);
+        contrat.setDateSignatureSalarie(LocalDateTime.now());
+        when(contrats.findById(5L)).thenReturn(Optional.of(contrat));
+
+        BusinessException erreur = assertThrows(BusinessException.class,
+                () -> service.signerSalarie(5L, 2L,
+                        new ContratDtos.SignatureSalarieRequest("Anja Rakoto"), "127.0.0.1"));
+
+        assertEquals("SIGNATURE_SALARIE_DEJA_FAITE", erreur.getCode());
+        verify(contrats, never()).save(contrat);
+    }
+
+    @Test
+    void laSignatureEmployeurNePeutPasEtreRefaite() {
+        Contrat contrat = contrat(5L, TypeContrat.CDI, ContratEtat.CREE,
+                LocalDate.now().plusDays(7), null);
+        contrat.setDateSignatureEmployeur(LocalDateTime.now());
+        when(contrats.findById(5L)).thenReturn(Optional.of(contrat));
+
+        BusinessException erreur = assertThrows(BusinessException.class,
+                () -> service.signerEmployeur(5L, rh(),
+                        new ContratDtos.SignatureEmployeurRequest(9L, "Rakoto RH"), "10.0.0.1"));
+
+        assertEquals("SIGNATURE_EMPLOYEUR_DEJA_FAITE", erreur.getCode());
+        verify(contrats, never()).save(contrat);
+    }
+
+    @Test
     void laDoubleSignaturePasseLeContratASigneEtCreeLOnboarding() {
         Contrat contrat = contrat(5L, TypeContrat.CDI, ContratEtat.CREE,
                 LocalDate.now().plusDays(7), null);

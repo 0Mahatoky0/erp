@@ -22,6 +22,7 @@ import com.tovo.erp.employe.service.EmployeService;
 import com.tovo.erp.iam.model.Utilisateur;
 import com.tovo.erp.shared.BusinessException;
 import com.tovo.erp.shared.reference.ReferenceService;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -275,7 +276,8 @@ public class ContratService {
                     "Le nom du signataire est obligatoire.");
         }
         if (contrat.getDateSignatureSalarie() != null) {
-            return ContratDtos.ContratDto.de(contrat);
+            throw new BusinessException("SIGNATURE_SALARIE_DEJA_FAITE",
+                    "Ce contrat a deja ete signe par le salarie.", HttpStatus.CONFLICT);
         }
         LocalDateTime maintenant = LocalDateTime.now();
         contrat.setDateSignatureSalarie(maintenant);
@@ -303,7 +305,8 @@ public class ContratService {
                     "Le signataire employeur est obligatoire pour signer le contrat.");
         }
         if (contrat.getDateSignatureEmployeur() != null) {
-            return ContratDtos.ContratDto.de(contrat);
+            throw new BusinessException("SIGNATURE_EMPLOYEUR_DEJA_FAITE",
+                    "Ce contrat a deja ete signe par l'employeur.", HttpStatus.CONFLICT);
         }
         LocalDateTime maintenant = LocalDateTime.now();
         String nom = demande == null || demande.nomSignataire() == null

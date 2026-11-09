@@ -63,7 +63,9 @@ const STATUTS_TACHE = [
 ]
 
 const peutAgir = computed(() => auth.estRh || auth.estDirection)
-const peutSigner = computed(() => peutAgir.value && contrat.value?.etat === 'CREE')
+const peutSigner = computed(() =>
+  peutAgir.value && contrat.value?.etat === 'CREE' && !contrat.value?.dateSignatureEmployeur,
+)
 const peutValider = computed(() => peutAgir.value && contrat.value?.etat === 'SIGNE')
 const peutAnnuler = computed(() =>
   peutAgir.value && (contrat.value?.etat === 'CREE'
