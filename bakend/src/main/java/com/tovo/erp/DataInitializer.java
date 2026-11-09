@@ -140,7 +140,7 @@ public class DataInitializer implements CommandLineRunner {
         utilisateur.setEmail(email);
         utilisateur.setMotDePasse(passwordEncoder.encode(motDePasse));
         utilisateur.setRole(role);
-        utilisateur.setDepartement(departement);
+        utilisateur.setIdDepartement(departement.getId());
         utilisateur.setActif(true);
         return utilisateurRepository.save(utilisateur);
     }
@@ -164,7 +164,7 @@ public class DataInitializer implements CommandLineRunner {
         employe.setNom(nom);
         employe.setPrenom(prenom);
         employe.setEmail(email);
-        employe.setPoste(poste);
+        employe.setIdPoste(poste.getId());
         employe.setStatut(statut);
         employe.setDateEmbauche(LocalDate.now().minusYears(2));
         employeRepository.save(employe);

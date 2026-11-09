@@ -1,6 +1,5 @@
 package com.tovo.erp.besoin.model;
 
-import com.tovo.erp.iam.model.Utilisateur;
 import com.tovo.erp.besoin.model.Decision;
 import com.tovo.erp.besoin.model.EtapeValidation;
 import jakarta.persistence.Column;
@@ -40,9 +39,8 @@ public class Validation {
     @JoinColumn(name = "id_demande_poste", nullable = false)
     private DemandeRecrutementPoste demandePoste;
 
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "id_utilisateur", nullable = false)
-    private Utilisateur utilisateur;
+    @Column(name = "id_utilisateur", nullable = false)
+    private Long idUtilisateur;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "etape", nullable = false)

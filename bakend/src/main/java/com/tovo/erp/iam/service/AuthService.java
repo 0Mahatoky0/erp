@@ -1,6 +1,7 @@
 package com.tovo.erp.iam.service;
 
 import com.tovo.erp.shared.BusinessException;
+import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.iam.model.Utilisateur;
 import com.tovo.erp.iam.model.Role;
 import com.tovo.erp.iam.model.RoleNom;
@@ -49,9 +50,7 @@ public class AuthService {
             throw BusinessException.identifiantsInvalides();
         }
 
-        return new AuthDto.Reponse(jwtService.genererJeton(utilisateur),
-                jwtService.expiration(),
-                AuthDto.Profil.de(utilisateur));
+        return reponse(utilisateur);
     }
 
     @Transactional
@@ -66,8 +65,7 @@ public class AuthService {
             existant.setMotDePasse(passwordEncoder.encode(demande.motDePasse()));
             existant.setActif(true);
             utilisateurRepository.save(existant);
-            return new AuthDto.Reponse(jwtService.genererJeton(existant),
-                    jwtService.expiration(), AuthDto.Profil.de(existant));
+            return reponse(existant);
         }
         Role role = roleRepository.findByNom(RoleNom.CANDIDAT.name())
                 .orElseThrow(() -> new BusinessException("ROLE_CANDIDAT_ABSENT",
@@ -79,12 +77,29 @@ public class AuthService {
         utilisateur.setRole(role);
         utilisateur.setActif(true);
         utilisateurRepository.save(utilisateur);
-        return new AuthDto.Reponse(jwtService.genererJeton(utilisateur),
-                jwtService.expiration(), AuthDto.Profil.de(utilisateur));
+        return reponse(utilisateur);
     }
 
-    /** Profil de l'utilisateur connecte (RM-003). */
-    public AuthDto.Profil profil(Utilisateur utilisateur) {
-        return AuthDto.Profil.de(utilisateur);
+    /** Profil de l'utilisateur connecte (RM-003), sans recharger l'entite. */
+    public AuthDto.Profil profil(UtilisateurConnecte utilisateur) {
+        return new AuthDto.Profil(
+                utilisateur.getId(),
+                utilisateur.getNom(),
+                utilisateur.getEmail(),
+                RoleNom.valueOf(utilisateur.getRoleNom()),
+                utilisateur.getDepartement() == null ? null : utilisateur.getDepartement().getId(),
+                utilisateur.getDepartement() == null ? null : utilisateur.getDepartement().getNom(),
+                true);
+    }
+
+    private AuthDto.Reponse reponse(Utilisateur utilisateur) {
+        String departementNom = utilisateur.getIdDepartement() == null
+                ? null
+                : utilisateurRepository.trouverNomDepartement(utilisateur.getIdDepartement());
+        return new AuthDto.Reponse(
+                jwtService.genererJeton(utilisateur.getId(), utilisateur.getEmail(), utilisateur.getNom(),
+                        utilisateur.getRole().getNom(), utilisateur.getIdDepartement(), departementNom),
+                jwtService.expiration(),
+                AuthDto.Profil.de(utilisateur, departementNom));
     }
 }

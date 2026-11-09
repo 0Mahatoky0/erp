@@ -1,6 +1,6 @@
 package com.tovo.erp.recrutement.controller;
 
-import com.tovo.erp.iam.model.RoleNom;
+import com.tovo.erp.shared.Roles;
 import com.tovo.erp.recrutement.dto.CandidatureDto;
 import com.tovo.erp.recrutement.dto.OffreEmploiDto;
 import com.tovo.erp.recrutement.dto.OffreIndicateursDto;
@@ -87,7 +87,7 @@ public class OffreEmploiController {
 
     @GetMapping("/{idOffre}/indicateurs")
     public OffreIndicateursDto indicateurs(@PathVariable Long idOffre) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION, RoleNom.MANAGER);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION, Roles.MANAGER);
         return offres.indicateurs(idOffre);
     }
 
@@ -95,12 +95,12 @@ public class OffreEmploiController {
     @GetMapping("/{idOffre}/candidatures")
     public List<CandidatureDto> candidaturesDeLOffre(@PathVariable Long idOffre,
                                                      @RequestParam(required = false) CandidatureStatut statut) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION, RoleNom.MANAGER);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION, Roles.MANAGER);
         return candidatures.parOffre(idOffre, statut).stream()
                 .map(CandidatureDto::de).collect(Collectors.toList());
     }
 
     private void exigerRh() {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
     }
 }

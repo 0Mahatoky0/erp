@@ -1,6 +1,6 @@
 package com.tovo.erp.recrutement.controller;
 
-import com.tovo.erp.iam.model.RoleNom;
+import com.tovo.erp.shared.Roles;
 import com.tovo.erp.recrutement.dto.EvaluationCandidatDto;
 import com.tovo.erp.recrutement.dto.RecrutementRequests;
 import com.tovo.erp.recrutement.model.EvaluationCandidat;
@@ -45,7 +45,7 @@ public class EvaluationCandidatController {
     @PostMapping("/evaluations")
     public ResponseEntity<EvaluationCandidatDto> evaluer(
             @Valid @RequestBody RecrutementRequests.EvaluationRequest request) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         EvaluationCandidat evaluation = new EvaluationCandidat();
         evaluation.setCandidature(candidatureRepository.getReferenceById(request.idCandidature()));
         evaluation.setIdUtilisateurEvaluateur(utilisateurCourant.exiger().getId());

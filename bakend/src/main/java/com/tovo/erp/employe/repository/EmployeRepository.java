@@ -28,7 +28,8 @@ public interface EmployeRepository extends JpaRepository<Employe, Long> {
     @Query("""
             select e from Employe e
             where (:statut is null or e.statut = :statut)
-              and (:idService is null or e.poste.service.id = :idService)
+              and (:idService is null or e.idPoste in (
+                   select p.id from PosteDetailVue p where p.idService = :idService))
               and (:motif is null
                    or lower(e.nom) like :motif
                    or lower(e.prenom) like :motif

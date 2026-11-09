@@ -1,6 +1,6 @@
 package com.tovo.erp.recrutement.controller;
 
-import com.tovo.erp.iam.model.RoleNom;
+import com.tovo.erp.shared.Roles;
 import com.tovo.erp.recrutement.dto.DocumentCandidatureDto;
 import com.tovo.erp.recrutement.model.TypeDocument;
 import com.tovo.erp.recrutement.service.DocumentCandidatureService;
@@ -30,7 +30,7 @@ public class DocumentCandidatureController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DocumentCandidatureDto> deposer(@PathVariable Long id, @RequestParam TypeDocument type,
                                                           @RequestPart MultipartFile fichier) throws IOException {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(DocumentCandidatureDto.de(documents.deposer(id, type, fichier)));
     }

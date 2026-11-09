@@ -16,8 +16,8 @@ import com.tovo.erp.embauche.repository.HistoriquePropositionRepository;
 import com.tovo.erp.embauche.repository.PropositionEmbaucheRepository;
 import com.tovo.erp.embauche.repository.ReponseCandidatRepository;
 import com.tovo.erp.embauche.repository.VersionPropositionRepository;
-import com.tovo.erp.iam.model.RoleNom;
-import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.shared.Roles;
+import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.recrutement.dto.CandidatureEmbaucheDto;
 import com.tovo.erp.recrutement.service.CandidatureService;
 import com.tovo.erp.shared.BusinessException;
@@ -82,7 +82,7 @@ public class PropositionService {
     }
 
     @Transactional
-    public PropositionDtos.Detail creer(Utilisateur auteur, PropositionDtos.Creation demande) {
+    public PropositionDtos.Detail creer(UtilisateurConnecte auteur, PropositionDtos.Creation demande) {
         CandidatureEmbaucheDto candidature = candidatures.detailsPourEmbauche(demande.idCandidature());
         if (!candidature.estRetenue()) {
             throw new BusinessException("CANDIDATURE_NON_RETENUE",
@@ -114,7 +114,7 @@ public class PropositionService {
     }
 
     @Transactional
-    public PropositionDtos.Detail modifier(Long id, Utilisateur auteur, PropositionDtos.Creation demande) {
+    public PropositionDtos.Detail modifier(Long id, UtilisateurConnecte auteur, PropositionDtos.Creation demande) {
         PropositionEmbauche proposition = charger(id);
         controlerBrouillon(proposition);
         CandidatureEmbaucheDto candidature = candidatures.detailsPourEmbauche(proposition.getIdCandidature());
@@ -129,11 +129,11 @@ public class PropositionService {
     }
 
     @Transactional
-    public PropositionDtos.Detail valider(Long id, Utilisateur auteur) {
+    public PropositionDtos.Detail valider(Long id, UtilisateurConnecte auteur) {
         PropositionEmbauche proposition = charger(id);
         controlerBrouillon(proposition);
         if (proposition.isDerogationFinanceDirection()
-                && !aLeRole(auteur, RoleNom.FINANCE, RoleNom.DIRECTION)) {
+                && !aLeRole(auteur, Roles.FINANCE, Roles.DIRECTION)) {
             throw BusinessException.forbidden(
                     "Une derogation salariale doit etre validee par la Finance ou la Direction.");
         }
@@ -145,7 +145,7 @@ public class PropositionService {
     }
 
     @Transactional
-    public PropositionDtos.Detail envoyer(Long id, Utilisateur auteur) {
+    public PropositionDtos.Detail envoyer(Long id, UtilisateurConnecte auteur) {
         PropositionEmbauche proposition = charger(id);
         if (proposition.getStatut() != PropositionStatut.VALIDEE_INTERNE) {
             throw new BusinessException("PROPOSITION_NON_VALIDEE",
@@ -163,7 +163,7 @@ public class PropositionService {
     }
 
     @Transactional
-    public PropositionDtos.Detail retirer(Long id, Utilisateur auteur, String motif) {
+    public PropositionDtos.Detail retirer(Long id, UtilisateurConnecte auteur, String motif) {
         PropositionEmbauche proposition = charger(id);
         Set<PropositionStatut> retirables = Set.of(PropositionStatut.BROUILLON,
                 PropositionStatut.VALIDEE_INTERNE, PropositionStatut.ENVOYEE);
@@ -180,7 +180,7 @@ public class PropositionService {
     }
 
     @Transactional
-    public PropositionDtos.Detail prolonger(Long id, Utilisateur auteur, int jours) {
+    public PropositionDtos.Detail prolonger(Long id, UtilisateurConnecte auteur, int jours) {
         PropositionEmbauche proposition = charger(id);
         if (proposition.getStatut() != PropositionStatut.ENVOYEE) {
             throw new BusinessException("PROPOSITION_NON_ENVOYEE",
@@ -197,7 +197,7 @@ public class PropositionService {
 
     /** Reponse saisie par un RH pour le compte du candidat (canal papier / email). */
     @Transactional
-    public PropositionDtos.Detail repondrePourCandidat(Long id, Utilisateur auteur,
+    public PropositionDtos.Detail repondrePourCandidat(Long id, UtilisateurConnecte auteur,
                                                         PropositionDtos.ReponseInterne reponse) {
         PropositionEmbauche proposition = charger(id);
         if (reponse.typeReponse() == TypeReponseCandidat.ACCEPTATION) {
@@ -621,9 +621,9 @@ public class PropositionService {
                 + "\nderogation=" + p.isDerogationFinanceDirection();
     }
 
-    private boolean aLeRole(Utilisateur utilisateur, RoleNom... roles) {
-        for (RoleNom role : roles) {
-            if (role.name().equals(utilisateur.getRole().getNom())) {
+    private boolean aLeRole(UtilisateurConnecte utilisateur, String... roles) {
+        for (String role : roles) {
+            if (role.equals(utilisateur.getRoleNom())) {
                 return true;
             }
         }

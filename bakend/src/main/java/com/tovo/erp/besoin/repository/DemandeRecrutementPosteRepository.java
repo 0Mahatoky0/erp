@@ -53,8 +53,6 @@ public interface DemandeRecrutementPosteRepository extends JpaRepository<Demande
             join fetch l.service s
             join fetch s.departement
             left join fetch l.poste
-            left join fetch l.employeRemplace e
-            left join fetch e.poste
             where l.demande.id = :idDemande
             order by l.id
             """)

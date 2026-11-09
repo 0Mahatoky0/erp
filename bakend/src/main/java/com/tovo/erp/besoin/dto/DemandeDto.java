@@ -108,7 +108,8 @@ public final class DemandeDto {
     }
 
     /** Transformation d'une demande en resume. */
-    public static Resume versResume(DemandeRecrutement demande, List<DemandeRecrutementPoste> lignes) {
+    public static Resume versResume(DemandeRecrutement demande, List<DemandeRecrutementPoste> lignes,
+                                    String demandeur, Long idDemandeur) {
         return new Resume(
                 demande.getId(),
                 demande.getMotif(),
@@ -116,8 +117,8 @@ public final class DemandeDto {
                 demande.getStatut(),
                 demande.getDateCreation(),
                 demande.getDateSoumission(),
-                demande.getUtilisateur().getNom(),
-                demande.getUtilisateur().getId(),
+                demandeur,
+                idDemandeur,
                 lignes.size(),
                 (int) lignes.stream().filter(l -> l.getStatut() == StatutLigne.ACCEPTEE).count(),
                 (int) lignes.stream().filter(l -> l.getStatut().estEnValidation()).count(),

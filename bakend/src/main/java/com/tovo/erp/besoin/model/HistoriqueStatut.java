@@ -1,6 +1,5 @@
 package com.tovo.erp.besoin.model;
 
-import com.tovo.erp.iam.model.Utilisateur;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -47,9 +46,8 @@ public class HistoriqueStatut {
     @Column(name = "nouveau_statut", nullable = false)
     private String nouveauStatut;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_utilisateur")
-    private Utilisateur utilisateur;
+    @Column(name = "id_utilisateur")
+    private Long idUtilisateur;
 
     @Column(name = "commentaire")
     private String commentaire;

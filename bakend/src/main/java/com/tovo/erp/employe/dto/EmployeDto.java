@@ -1,7 +1,7 @@
-package com.tovo.erp.iam.dto;
+package com.tovo.erp.employe.dto;
 
 import com.tovo.erp.employe.model.Employe;
-import com.tovo.erp.employe.model.StatutEmploye;
+import com.tovo.erp.employe.model.PosteDetailVue;
 
 import java.time.LocalDate;
 
@@ -15,9 +15,9 @@ public final class EmployeDto {
     public record Liste(Long id, String matricule, String nom, String prenom, String email,
                         String telephone, LocalDate dateEmbauche,
                         Long idPoste, String poste, Long idService, String service,
-                        StatutEmploye statut) {
+                        String statut) {
 
-        public static Liste de(Employe employe) {
+        public static Liste de(Employe employe, PosteDetailVue poste) {
             return new Liste(
                     employe.getId(),
                     employe.getMatricule(),
@@ -26,13 +26,11 @@ public final class EmployeDto {
                     employe.getEmail(),
                     employe.getTelephone(),
                     employe.getDateEmbauche(),
-                    employe.getPoste() == null ? null : employe.getPoste().getId(),
-                    employe.getPoste() == null ? null : employe.getPoste().getIntitule(),
-                    employe.getPoste() == null || employe.getPoste().getService() == null
-                            ? null : employe.getPoste().getService().getId(),
-                    employe.getPoste() == null || employe.getPoste().getService() == null
-                            ? null : employe.getPoste().getService().getNom(),
-                    employe.getStatut());
+                    employe.getIdPoste(),
+                    poste == null ? null : poste.getIntitule(),
+                    poste == null ? null : poste.getIdService(),
+                    poste == null ? null : poste.getServiceNom(),
+                    employe.getStatut().name());
         }
     }
 }

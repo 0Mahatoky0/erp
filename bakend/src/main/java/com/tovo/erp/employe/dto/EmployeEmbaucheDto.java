@@ -1,7 +1,7 @@
 package com.tovo.erp.employe.dto;
 
 import com.tovo.erp.employe.model.Employe;
-import com.tovo.erp.employe.model.StatutEmploye;
+import com.tovo.erp.employe.model.PosteDetailVue;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -22,12 +22,12 @@ public record EmployeEmbaucheDto(
         String service,
         Long idDepartement,
         String departement,
-        StatutEmploye statut,
+        String statut,
         LocalDate dateEmbauche,
         LocalDate datePremiereEmbauche,
         LocalDateTime dateCreation) {
 
-    public static EmployeEmbaucheDto de(Employe employe) {
+    public static EmployeEmbaucheDto de(Employe employe, PosteDetailVue poste) {
         return new EmployeEmbaucheDto(
                 employe.getId(),
                 employe.getMatricule(),
@@ -37,19 +37,13 @@ public record EmployeEmbaucheDto(
                 employe.getTelephone(),
                 employe.getCin(),
                 employe.getDateNaissance(),
-                employe.getPoste() == null ? null : employe.getPoste().getId(),
-                employe.getPoste() == null ? null : employe.getPoste().getIntitule(),
-                employe.getPoste() == null || employe.getPoste().getService() == null
-                        ? null : employe.getPoste().getService().getId(),
-                employe.getPoste() == null || employe.getPoste().getService() == null
-                        ? null : employe.getPoste().getService().getNom(),
-                employe.getPoste() == null || employe.getPoste().getService() == null
-                        || employe.getPoste().getService().getDepartement() == null
-                        ? null : employe.getPoste().getService().getDepartement().getId(),
-                employe.getPoste() == null || employe.getPoste().getService() == null
-                        || employe.getPoste().getService().getDepartement() == null
-                        ? null : employe.getPoste().getService().getDepartement().getNom(),
-                employe.getStatut(),
+                employe.getIdPoste(),
+                poste == null ? null : poste.getIntitule(),
+                poste == null ? null : poste.getIdService(),
+                poste == null ? null : poste.getServiceNom(),
+                poste == null ? null : poste.getIdDepartement(),
+                poste == null ? null : poste.getDepartementNom(),
+                employe.getStatut().name(),
                 employe.getDateEmbauche(),
                 employe.getDatePremiereEmbauche(),
                 employe.getDateCreation());

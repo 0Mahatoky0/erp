@@ -18,7 +18,7 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur, Long> 
             select u from Utilisateur u
             where (:actif is null or u.actif = :actif)
               and (:role is null or u.role.nom = :role)
-              and (:departementId is null or u.departement.id = :departementId)
+              and (:departementId is null or u.idDepartement = :departementId)
               and (:motif is null
                    or lower(u.nom) like :motif
                    or lower(u.email) like :motif)
@@ -28,4 +28,13 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur, Long> 
                                  @Param("departementId") Long departementId,
                                  @Param("motif") String motif,
                                  @Param("actif") Boolean actif);
+
+    @Query("select u.id from Utilisateur u where lower(u.nom) like :motif")
+    List<Long> idsParNom(@Param("motif") String motif);
+
+    @Query(value = "select d.nom from departement d where d.id_departement = :id", nativeQuery = true)
+    String trouverNomDepartement(@Param("id") Long id);
+
+    @Query(value = "select id_departement, nom from departement", nativeQuery = true)
+    List<Object[]> trouverDepartements();
 }

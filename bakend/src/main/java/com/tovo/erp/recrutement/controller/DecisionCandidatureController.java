@@ -1,6 +1,6 @@
 package com.tovo.erp.recrutement.controller;
 
-import com.tovo.erp.iam.model.RoleNom;
+import com.tovo.erp.shared.Roles;
 import com.tovo.erp.recrutement.dto.DecisionCandidatureDto;
 import com.tovo.erp.recrutement.dto.RecrutementRequests;
 import com.tovo.erp.recrutement.model.DecisionCandidature;
@@ -30,7 +30,7 @@ public class DecisionCandidatureController {
 
     @PostMapping
     public ResponseEntity<DecisionCandidatureDto> decider(@Valid @RequestBody RecrutementRequests.DecisionRequest r) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         DecisionCandidature d = new DecisionCandidature();
         d.setCandidature(candidatureRepository.getReferenceById(r.idCandidature()));
         d.setIdUtilisateur(utilisateurCourant.exiger().getId());

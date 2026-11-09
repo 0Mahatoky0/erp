@@ -34,14 +34,14 @@ public final class AuthDto {
     public record Profil(Long id, String nom, String email, RoleNom role,
                          Long departementId, String departementNom, boolean actif) {
 
-        public static Profil de(Utilisateur utilisateur) {
+        public static Profil de(Utilisateur utilisateur, String departementNom) {
             return new Profil(
                     utilisateur.getId(),
                     utilisateur.getNom(),
                     utilisateur.getEmail(),
                     RoleNom.valueOf(utilisateur.getRole().getNom()),
-                    utilisateur.getDepartement() == null ? null : utilisateur.getDepartement().getId(),
-                    utilisateur.getDepartement() == null ? null : utilisateur.getDepartement().getNom(),
+                    utilisateur.getIdDepartement(),
+                    departementNom,
                     utilisateur.isActif());
         }
     }

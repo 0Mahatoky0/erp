@@ -1,6 +1,6 @@
 package com.tovo.erp.iam.controller;
 
-import com.tovo.erp.iam.model.RoleNom;
+import com.tovo.erp.shared.Roles;
 import com.tovo.erp.shared.UtilisateurCourant;
 import com.tovo.erp.iam.service.UtilisateurService;
 import com.tovo.erp.iam.dto.AuthDto;
@@ -35,7 +35,7 @@ public class UtilisateurController {
             @RequestParam(required = false) Long idDepartement,
             @RequestParam(required = false) String recherche,
             @RequestParam(required = false) Boolean actif) {
-        utilisateurCourant.exigerRole(RoleNom.RH);
+        utilisateurCourant.exigerRole(Roles.RH);
         return ResponseEntity.ok(utilisateurService.lister(role, idDepartement, recherche, actif));
     }
 
@@ -46,7 +46,7 @@ public class UtilisateurController {
 
     @PostMapping
     public ResponseEntity<AuthDto.Profil> creer(@RequestBody Map<String, Object> demande) {
-        utilisateurCourant.exigerRole(RoleNom.RH);
+        utilisateurCourant.exigerRole(Roles.RH);
         return ResponseEntity.ok(utilisateurService.creer(
                 (String) demande.get("nom"),
                 (String) demande.get("email"),
@@ -58,7 +58,7 @@ public class UtilisateurController {
     @PostMapping("/{id}/activation")
     public ResponseEntity<AuthDto.Profil> changerActivation(@PathVariable Long id,
                                                             @RequestParam boolean actif) {
-        utilisateurCourant.exigerRole(RoleNom.RH);
+        utilisateurCourant.exigerRole(Roles.RH);
         return ResponseEntity.ok(utilisateurService.changerActivation(id, actif));
     }
 }

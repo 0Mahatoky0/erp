@@ -1,7 +1,5 @@
 package com.tovo.erp.shared;
 
-import com.tovo.erp.iam.model.Utilisateur;
-import com.tovo.erp.iam.repository.UtilisateurRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,6 +8,9 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -25,18 +26,19 @@ import java.util.List;
  * depuis la base : un compte desactive ne peut plus agir meme si son jeton est
  * encore valide (RM-003).
  *
- * <p>Le filtre est instancie par SecurityConfig pour eviter une dependance circulaire.
+ * <p>Le filtre ne connait que l'interface Spring {@link UserDetailsService} :
+ * l'implementation metier reste dans le module iam.
  */
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String PREFIXE = "Bearer ";
 
     private final JwtDecoder jwtDecoder;
-    private final UtilisateurRepository utilisateurRepository;
+    private final UserDetailsService utilisateurDetailsService;
 
-    public JwtAuthenticationFilter(JwtDecoder jwtDecoder, UtilisateurRepository utilisateurRepository) {
+    public JwtAuthenticationFilter(JwtDecoder jwtDecoder, UserDetailsService utilisateurDetailsService) {
         this.jwtDecoder = jwtDecoder;
-        this.utilisateurRepository = utilisateurRepository;
+        this.utilisateurDetailsService = utilisateurDetailsService;
     }
 
     @Override
@@ -67,18 +69,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        Utilisateur utilisateur = utilisateurRepository.findById(idUtilisateur).orElse(null);
-        if (utilisateur == null || !utilisateur.isActif()) {
+        UserDetails details;
+        try {
+            details = utilisateurDetailsService.loadUserByUsername(String.valueOf(idUtilisateur));
+        } catch (UsernameNotFoundException ex) {
+            return;
+        }
+        if (!details.isEnabled()) {
             return;
         }
 
         String role = jwt.getClaimAsString("role");
+        if (role == null && !details.getAuthorities().isEmpty()) {
+            role = details.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "");
+        }
         if (role == null) {
-            role = utilisateur.getRole().getNom();
+            return;
         }
 
+        UtilisateurConnecte principal = new UtilisateurConnecte(
+                idUtilisateur,
+                jwt.getClaimAsString("nom"),
+                jwt.getClaimAsString("email"),
+                role,
+                jwt.getClaim("departementId") == null ? null : ((Number) jwt.getClaim("departementId")).longValue(),
+                jwt.getClaimAsString("departement"));
+
         UsernamePasswordAuthenticationToken authentification =
-                new UsernamePasswordAuthenticationToken(utilisateur, null,
+                new UsernamePasswordAuthenticationToken(principal, null,
                         List.of(new SimpleGrantedAuthority("ROLE_" + role)));
         authentification.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authentification);

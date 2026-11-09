@@ -3,7 +3,7 @@ package com.tovo.erp.embauche.controller;
 import com.tovo.erp.embauche.dto.PropositionDtos;
 import com.tovo.erp.embauche.model.PropositionStatut;
 import com.tovo.erp.embauche.service.PropositionService;
-import com.tovo.erp.iam.model.RoleNom;
+import com.tovo.erp.shared.Roles;
 import com.tovo.erp.shared.UtilisateurCourant;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,45 +33,45 @@ public class PropositionController {
 
     @PostMapping
     public PropositionDtos.Detail creer(@Valid @RequestBody PropositionDtos.Creation demande) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         return propositions.creer(utilisateurCourant.exiger(), demande);
     }
 
     @GetMapping
     public List<PropositionDtos.Resume> lister(@RequestParam(required = false) PropositionStatut statut) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION, RoleNom.MANAGER);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION, Roles.MANAGER);
         return propositions.lister(statut);
     }
 
     @GetMapping("/{id}")
     public PropositionDtos.Detail detail(@PathVariable Long id) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION, RoleNom.MANAGER);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION, Roles.MANAGER);
         return propositions.detail(id);
     }
 
     @PutMapping("/{id}")
     public PropositionDtos.Detail modifier(@PathVariable Long id,
                                            @Valid @RequestBody PropositionDtos.Creation demande) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         return propositions.modifier(id, utilisateurCourant.exiger(), demande);
     }
 
     @PostMapping("/{id}/valider")
     public PropositionDtos.Detail valider(@PathVariable Long id) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.FINANCE, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.FINANCE, Roles.DIRECTION);
         return propositions.valider(id, utilisateurCourant.exiger());
     }
 
     @PostMapping("/{id}/envoyer")
     public PropositionDtos.Detail envoyer(@PathVariable Long id) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         return propositions.envoyer(id, utilisateurCourant.exiger());
     }
 
     @PostMapping("/{id}/retirer")
     public PropositionDtos.Detail retirer(@PathVariable Long id,
                                           @RequestBody(required = false) PropositionDtos.Retrait demande) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         String motif = demande == null ? null : demande.motif();
         return propositions.retirer(id, utilisateurCourant.exiger(), motif);
     }
@@ -79,14 +79,14 @@ public class PropositionController {
     @PostMapping("/{id}/prolonger")
     public PropositionDtos.Detail prolonger(@PathVariable Long id,
                                             @Valid @RequestBody PropositionDtos.Prolongation demande) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         return propositions.prolonger(id, utilisateurCourant.exiger(), demande.jours());
     }
 
     @PostMapping("/{id}/repondre")
     public PropositionDtos.Detail repondre(@PathVariable Long id,
                                            @Valid @RequestBody PropositionDtos.ReponseInterne demande) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         return propositions.repondrePourCandidat(id, utilisateurCourant.exiger(), demande);
     }
 }
