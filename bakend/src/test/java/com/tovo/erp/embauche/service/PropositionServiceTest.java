@@ -116,7 +116,7 @@ class PropositionServiceTest {
         when(postes.trouver(5L)).thenReturn(poste(5L, "500000", "900000"));
 
         PropositionDtos.Creation demande = new PropositionDtos.Creation(
-                1L, 5L, null, null, null, TypeContratEmbauche.CDD, null,
+                1L, 5L, null, null, null, TypeContratEmbauche.CDD, null, null,
                 LocalDate.now().plusDays(10), 1, new BigDecimal("600000"), "MGA",
                 null, null, null, false);
 
@@ -205,7 +205,7 @@ class PropositionServiceTest {
 
     private PropositionDtos.Creation creation(Long idCandidature, BigDecimal salaire) {
         return new PropositionDtos.Creation(
-                idCandidature, 5L, null, null, null, TypeContratEmbauche.CDI, null,
+                idCandidature, 5L, null, null, null, TypeContratEmbauche.CDI, null, null,
                 LocalDate.now().plusDays(10), 1, salaire, "MGA",
                 null, null, null, false);
     }
@@ -232,7 +232,8 @@ class PropositionServiceTest {
     private PosteDto.Liste poste(Long id, String salaireMin, String salaireMax) {
         return new PosteDto.Liste(
                 id, 2L, "Informatique", 3L, "Technique", "Developpeur", "Developpement",
-                new BigDecimal(salaireMin), new BigDecimal(salaireMax), true, 0);
+                new BigDecimal(salaireMin), new BigDecimal(salaireMax), null, null, null,
+                true, 0);
     }
 
     private Utilisateur utilisateur(Long id, RoleNom roleNom) {
