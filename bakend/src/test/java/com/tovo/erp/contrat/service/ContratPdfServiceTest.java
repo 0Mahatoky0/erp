@@ -3,7 +3,6 @@ package com.tovo.erp.contrat.service;
 import com.tovo.erp.contrat.model.Contrat;
 import com.tovo.erp.contrat.model.TypeContrat;
 import com.tovo.erp.employe.dto.EmployeEmbaucheDto;
-import com.tovo.erp.employe.model.StatutEmploye;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -31,7 +30,7 @@ class ContratPdfServiceTest {
                 6L, null, "Rakoto", "Anja", "anja@example.com", "0340000000",
                 "1234567890", LocalDate.of(1995, 5, 12),
                 5L, "Developpeur", 2L, "Informatique", 3L, "Technique",
-                StatutEmploye.PRE_EMBAUCHE, LocalDate.of(2026, 12, 1), null,
+                "PRE_EMBAUCHE", LocalDate.of(2026, 12, 1), null,
                 LocalDateTime.now());
 
         byte[] pdf = service.generer(contrat, salarie, "Developpeur", "Informatique",

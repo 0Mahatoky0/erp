@@ -12,9 +12,8 @@ import com.tovo.erp.embauche.repository.HistoriquePropositionRepository;
 import com.tovo.erp.embauche.repository.PropositionEmbaucheRepository;
 import com.tovo.erp.embauche.repository.ReponseCandidatRepository;
 import com.tovo.erp.embauche.repository.VersionPropositionRepository;
-import com.tovo.erp.iam.model.Role;
-import com.tovo.erp.iam.model.RoleNom;
-import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.shared.Roles;
+import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.recrutement.dto.CandidatureEmbaucheDto;
 import com.tovo.erp.recrutement.model.CandidatureStatut;
 import com.tovo.erp.recrutement.service.CandidatureService;
@@ -55,7 +54,7 @@ class PropositionServiceTest {
     @Mock private EmbaucheService embauche;
 
     private PropositionService service;
-    private Utilisateur rh;
+    private UtilisateurConnecte rh;
 
     @BeforeEach
     void setUp() {
@@ -63,7 +62,7 @@ class PropositionServiceTest {
                 7, 3, 3, new BigDecimal("500000"), 3, 3_600_000L);
         service = new PropositionService(propositions, versions, reponses, historiques,
                 references, candidatures, demandes, postes, embauche, proprietes);
-        rh = utilisateur(9L, RoleNom.RH);
+        rh = utilisateur(9L, Roles.RH);
     }
 
     @Test
@@ -236,12 +235,7 @@ class PropositionServiceTest {
                 true, 0);
     }
 
-    private Utilisateur utilisateur(Long id, RoleNom roleNom) {
-        Role role = new Role();
-        role.setNom(roleNom.name());
-        Utilisateur utilisateur = new Utilisateur();
-        utilisateur.setId(id);
-        utilisateur.setRole(role);
-        return utilisateur;
+    private UtilisateurConnecte utilisateur(Long id, String role) {
+        return new UtilisateurConnecte(id, role, "test@example.com", role, null, null);
     }
 }

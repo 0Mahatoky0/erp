@@ -19,7 +19,7 @@ import com.tovo.erp.contrat.repository.OnboardingRepository;
 import com.tovo.erp.employe.dto.DocumentEmbaucheDto;
 import com.tovo.erp.employe.dto.EmployeEmbaucheDto;
 import com.tovo.erp.employe.service.EmployeService;
-import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.shared.BusinessException;
 import com.tovo.erp.shared.reference.ReferenceService;
 import org.springframework.http.HttpStatus;
@@ -292,7 +292,7 @@ public class ContratService {
     /** Signature de l'employeur (RH/Direction), eventuellement avant le salarie. */
     @Transactional
     public ContratDtos.ContratDto signerEmployeur(Long id,
-                                                  Utilisateur acteur,
+                                                  UtilisateurConnecte acteur,
                                                   ContratDtos.SignatureEmployeurRequest demande,
                                                   String ip) {
         Contrat contrat = contratEntite(id);
@@ -381,7 +381,7 @@ public class ContratService {
     @Transactional
     public ContratDtos.ContratDto deciderFinEssai(Long id,
                                                   ContratDtos.DecisionFinEssaiRequest demande,
-                                                  Utilisateur acteur) {
+                                                  UtilisateurConnecte acteur) {
         Contrat contrat = contratEntite(id);
         if (demande == null || demande.decision() == null) {
             throw new BusinessException("DECISION_ESSAI_MANQUANTE",
@@ -416,7 +416,7 @@ public class ContratService {
      */
     @Transactional
     public ContratDtos.ContratDto annuler(Long id, ContratDtos.AnnulationRequest demande,
-                                          Utilisateur acteur) {
+                                          UtilisateurConnecte acteur) {
         Contrat contrat = contratEntite(id);
         if (demande == null || demande.motif() == null || demande.motif().isBlank()) {
             throw new BusinessException("MOTIF_ANNULATION_MANQUANT",

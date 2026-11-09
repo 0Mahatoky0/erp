@@ -1,7 +1,7 @@
 package com.tovo.erp.besoin.service;
 
 import com.tovo.erp.besoin.model.DemandeRecrutement;
-import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.besoin.model.EtapeValidation;
 import com.tovo.erp.besoin.model.StatutDemande;
 import com.tovo.erp.besoin.model.StatutLigne;
@@ -35,10 +35,10 @@ public class DashboardService {
 
     /** Synthese des demandes, de la file de validation et des budgets. */
     @Transactional(readOnly = true)
-    public DashboardDto.Resume synthese(Utilisateur utilisateur, Integer exercice) {
-        boolean manager = "MANAGER".equals(utilisateur.getRole().getNom());
+    public DashboardDto.Resume synthese(UtilisateurConnecte utilisateur, Integer exercice) {
+        boolean manager = "MANAGER".equals(utilisateur.getRoleNom());
         List<DemandeRecrutement> demandes = demandeRepository.rechercher(
-                utilisateur.getId(), manager, null, null);
+                utilisateur.getId(), manager, null, null, List.of());
 
         long brouillons = demandes.stream().filter(d -> d.getStatut() == StatutDemande.BROUILLON).count();
         long enValidation = demandes.stream().filter(d -> d.getStatut() == StatutDemande.EN_VALIDATION).count();
@@ -53,7 +53,7 @@ public class DashboardService {
                 StatutLigne.EN_ATTENTE_FINANCE, StatutLigne.EN_ATTENTE_DIRECTION);
         long aValider = etape == null ? 0
                 : ligneRepository.findFileAttente(etape).stream()
-                .filter(ligne -> !ligne.getDemande().getUtilisateur().getId().equals(utilisateur.getId()))
+                .filter(ligne -> !ligne.getDemande().getIdUtilisateur().equals(utilisateur.getId()))
                 .count();
 
         long lignesAcceptees = ligneRepository.findByStatutOrderByDateCreationDesc(StatutLigne.ACCEPTEE).size();
@@ -79,9 +79,9 @@ public class DashboardService {
                 exerciceCourant, alloue, engage, disponible);
     }
 
-    private EtapeValidation etapeDuRole(Utilisateur utilisateur) {
+    private EtapeValidation etapeDuRole(UtilisateurConnecte utilisateur) {
         try {
-            return EtapeValidation.valueOf(utilisateur.getRole().getNom());
+            return EtapeValidation.valueOf(utilisateur.getRoleNom());
         } catch (IllegalArgumentException ex) {
             return null;
         }

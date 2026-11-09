@@ -1,7 +1,6 @@
 package com.tovo.erp.besoin.model;
 
 import com.tovo.erp.besoin.model.Budget;
-import com.tovo.erp.iam.model.Utilisateur;
 import com.tovo.erp.besoin.model.Decision;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -45,9 +44,8 @@ public class VerificationBudget {
     @JoinColumn(name = "id_budget_service", nullable = false)
     private Budget budgetService;
 
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "id_utilisateur", nullable = false)
-    private Utilisateur utilisateur;
+    @Column(name = "id_utilisateur", nullable = false)
+    private Long idUtilisateur;
 
     /** Budget alloue au service pour l'exercice concerne. */
     @Column(name = "budget_demande", nullable = false, precision = 15, scale = 2)

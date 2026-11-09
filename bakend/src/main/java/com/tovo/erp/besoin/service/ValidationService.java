@@ -6,7 +6,7 @@ import com.tovo.erp.besoin.model.DemandeRecrutement;
 import com.tovo.erp.besoin.model.DemandeRecrutementPoste;
 import com.tovo.erp.besoin.model.HistoriqueStatut;
 import com.tovo.erp.besoin.model.Poste;
-import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.besoin.model.Validation;
 import com.tovo.erp.besoin.model.Decision;
 import com.tovo.erp.besoin.model.EtapeValidation;
@@ -71,7 +71,7 @@ public class ValidationService {
      */
     @Transactional
     public DemandeDto.LigneResume decider(Long idLigne, ValidationDto.DecisionRequest decision,
-                                          Utilisateur validateur) {
+                                          UtilisateurConnecte validateur) {
         DemandeRecrutementPoste ligne = ligneRepository.findById(idLigne)
                 .orElseThrow(() -> BusinessException.notFound("La ligne " + idLigne + " n'existe pas."));
         DemandeRecrutement demande = ligne.getDemande();
@@ -107,7 +107,7 @@ public class ValidationService {
 
     /** File de travail du validateur : les lignes qui attendent sa decision. */
     @Transactional(readOnly = true)
-    public List<DemandeDto.LigneResume> fileAttente(Utilisateur validateur) {
+    public List<DemandeDto.LigneResume> fileAttente(UtilisateurConnecte validateur) {
         EtapeValidation etape = etapeDuRole(validateur);
         if (etape == null) {
             return List.of();
@@ -205,7 +205,7 @@ public class ValidationService {
     // ------------------------------------------------------------------
 
     /** RM-039 : on ne peut pas valider une ligne a une etape qui ne lui est pas destinee. */
-    private void controlerEtape(DemandeRecrutementPoste ligne, Utilisateur validateur) {
+    private void controlerEtape(DemandeRecrutementPoste ligne, UtilisateurConnecte validateur) {
         if (!ligne.getStatut().estEnValidation()) {
             throw new BusinessException("LIGNE_NON_VALIDABLE",
                     "La ligne n'est pas en attente de validation (statut : " + ligne.getStatut() + ").");
@@ -223,8 +223,8 @@ public class ValidationService {
     }
 
     /** RM-005 : un utilisateur ne peut pas valider sa propre demande. */
-    private void controlerSeparationDesResponsabilites(DemandeRecrutement demande, Utilisateur validateur) {
-        if (demande.getUtilisateur().getId().equals(validateur.getId())) {
+    private void controlerSeparationDesResponsabilites(DemandeRecrutement demande, UtilisateurConnecte validateur) {
+        if (demande.getIdUtilisateur().equals(validateur.getId())) {
             throw BusinessException.forbidden(
                     "Vous ne pouvez pas valider une demande dont vous etes le createur.");
         }
@@ -255,19 +255,19 @@ public class ValidationService {
     }
 
     /** Etape du circuit correspondant au role de l'utilisateur. */
-    private EtapeValidation etapeDuRole(Utilisateur utilisateur) {
+    private EtapeValidation etapeDuRole(UtilisateurConnecte utilisateur) {
         try {
-            return EtapeValidation.valueOf(utilisateur.getRole().getNom());
+            return EtapeValidation.valueOf(utilisateur.getRoleNom());
         } catch (IllegalArgumentException ex) {
             return null;
         }
     }
 
-    private Validation construireDecision(DemandeRecrutementPoste ligne, Utilisateur validateur,
+    private Validation construireDecision(DemandeRecrutementPoste ligne, UtilisateurConnecte validateur,
                                          EtapeValidation etape, ValidationDto.DecisionRequest decision) {
         Validation validation = new Validation();
         validation.setDemandePoste(ligne);
-        validation.setUtilisateur(validateur);
+        validation.setIdUtilisateur(validateur.getId());
         validation.setEtape(etape);
         validation.setDecision(decision.decision());
         validation.setCommentaire(decision.commentaire());
@@ -276,13 +276,13 @@ public class ValidationService {
     }
 
     private void journaliser(DemandeRecrutement demande, DemandeRecrutementPoste ligne,
-                              StatutLigne ancien, StatutLigne nouveau, Utilisateur auteur, String commentaire) {
+                              StatutLigne ancien, StatutLigne nouveau, UtilisateurConnecte auteur, String commentaire) {
         HistoriqueStatut journal = new HistoriqueStatut();
         journal.setDemande(demande);
         journal.setDemandePoste(ligne);
         journal.setAncienStatut(ancien.name());
         journal.setNouveauStatut(nouveau.name());
-        journal.setUtilisateur(auteur);
+        journal.setIdUtilisateur(auteur.getId());
         journal.setCommentaire(commentaire);
         historiqueStatutRepository.save(journal);
     }

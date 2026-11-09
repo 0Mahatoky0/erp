@@ -3,7 +3,7 @@ package com.tovo.erp.besoin.service;
 import com.tovo.erp.shared.BusinessException;
 import com.tovo.erp.besoin.model.Budget;
 import com.tovo.erp.besoin.model.DemandeRecrutementPoste;
-import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.besoin.model.VerificationBudget;
 import com.tovo.erp.besoin.model.Decision;
 import com.tovo.erp.besoin.repository.BudgetRepository;
@@ -86,7 +86,7 @@ public class BudgetService {
      */
     @Transactional
     public BigDecimal verifierLigne(DemandeRecrutementPoste ligne, Decision decision,
-                                    Utilisateur validateur, String commentaire) {
+                                    UtilisateurConnecte validateur, String commentaire) {
         Integer exercice = exerciceDe(ligne);
         Budget budget = budgetRepository.findForMiseAJour(ligne.getService().getId(), exercice)
                 .orElseThrow(() -> new BusinessException("BUDGET_ABSENT",
@@ -106,7 +106,7 @@ public class BudgetService {
         VerificationBudget verification = new VerificationBudget();
         verification.setDemandePoste(ligne);
         verification.setBudgetService(budget);
-        verification.setUtilisateur(validateur);
+        verification.setIdUtilisateur(validateur.getId());
         verification.setBudgetDemande(budget.getMontantAlloue());
         verification.setBudgetDisponible(disponible);
         verification.setMontantEstime(montant);

@@ -1,6 +1,5 @@
 package com.tovo.erp.employe.model;
 
-import com.tovo.erp.besoin.model.Poste;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -81,9 +80,8 @@ public class Employe {
     @Column(name = "date_premiere_embauche")
     private LocalDate datePremiereEmbauche;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_poste")
-    private Poste poste;
+    @Column(name = "id_poste")
+    private Long idPoste;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "statut", nullable = false)

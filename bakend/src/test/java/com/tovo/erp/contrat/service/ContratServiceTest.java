@@ -17,10 +17,9 @@ import com.tovo.erp.contrat.repository.ContratRepository;
 import com.tovo.erp.contrat.repository.OnboardingRepository;
 import com.tovo.erp.employe.dto.DocumentEmbaucheDto;
 import com.tovo.erp.employe.dto.EmployeEmbaucheDto;
-import com.tovo.erp.employe.model.StatutEmploye;
 import com.tovo.erp.employe.model.TypeDocumentEmploye;
 import com.tovo.erp.employe.service.EmployeService;
-import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.shared.BusinessException;
 import com.tovo.erp.shared.reference.ReferenceService;
 import org.junit.jupiter.api.BeforeEach;
@@ -433,11 +432,8 @@ class ContratServiceTest {
         assertEquals(5L, resultat.id());
     }
 
-    private Utilisateur rh() {
-        Utilisateur utilisateur = new Utilisateur();
-        utilisateur.setId(9L);
-        utilisateur.setNom("Rakoto RH");
-        return utilisateur;
+    private UtilisateurConnecte rh() {
+        return new UtilisateurConnecte(9L, "Rakoto RH", "rh@example.com", "RH", null, null);
     }
 
     private ContratDtos.CreationContratRequest demandeCdd(String motif, LocalDate fin) {
@@ -467,7 +463,7 @@ class ContratServiceTest {
         return new EmployeEmbaucheDto(2L, "MAT2026000042", "Rakoto", "Anja",
                 "anja@example.com", "0340000000", "1234567890",
                 LocalDate.of(1995, 5, 12), 5L, "Developpeur", 2L, "Informatique",
-                3L, "Technique", StatutEmploye.PRE_EMBAUCHE, LocalDate.now(), null,
+                3L, "Technique", "PRE_EMBAUCHE", LocalDate.now(), null,
                 LocalDateTime.now());
     }
 

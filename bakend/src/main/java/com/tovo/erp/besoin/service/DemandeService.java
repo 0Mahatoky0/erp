@@ -7,7 +7,11 @@ import com.tovo.erp.besoin.service.DemandeProperties;
 import com.tovo.erp.besoin.model.DemandeRecrutement;
 import com.tovo.erp.besoin.model.DemandeRecrutementPoste;
 import com.tovo.erp.besoin.model.HistoriqueStatut;
-import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.shared.UtilisateurConnecte;
+import com.tovo.erp.iam.dto.AuthDto;
+import com.tovo.erp.iam.service.UtilisateurService;
+import com.tovo.erp.employe.dto.EmployeEmbaucheDto;
+import com.tovo.erp.employe.service.EmployeService;
 import com.tovo.erp.besoin.model.EtapeValidation;
 import com.tovo.erp.besoin.model.Decision;
 import com.tovo.erp.besoin.model.StatutDemande;
@@ -25,7 +29,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Cycle de vie des demandes de recrutement et de leurs lignes (RM-012 a RM-031, RM-041 a RM-047).
@@ -45,6 +54,8 @@ public class DemandeService {
     private final StatutService statutService;
     private final CircuitValidationProperties circuitProperties;
     private final DemandeProperties demandeProperties;
+    private final UtilisateurService utilisateurService;
+    private final EmployeService employeService;
 
     public DemandeService(DemandeRecrutementRepository demandeRepository,
                           DemandeRecrutementPosteRepository ligneRepository,
@@ -54,7 +65,9 @@ public class DemandeService {
                           LigneRegles ligneRegles,
                           StatutService statutService,
                           CircuitValidationProperties circuitProperties,
-                          DemandeProperties demandeProperties) {
+                          DemandeProperties demandeProperties,
+                          UtilisateurService utilisateurService,
+                          EmployeService employeService) {
         this.demandeRepository = demandeRepository;
         this.ligneRepository = ligneRepository;
         this.validationRepository = validationRepository;
@@ -64,6 +77,8 @@ public class DemandeService {
         this.statutService = statutService;
         this.circuitProperties = circuitProperties;
         this.demandeProperties = demandeProperties;
+        this.utilisateurService = utilisateurService;
+        this.employeService = employeService;
     }
 
     // ------------------------------------------------------------------
@@ -75,14 +90,21 @@ public class DemandeService {
      * Un MANAGER ne voit que ses propres demandes, les autres roles voient le perimetre complet.
      */
     @Transactional(readOnly = true)
-    public List<DemandeDto.Resume> lister(Utilisateur lecteur, StatutDemande statut, String recherche,
+    public List<DemandeDto.Resume> lister(UtilisateurConnecte lecteur, StatutDemande statut, String recherche,
                                           Boolean mesDemandes) {
         boolean uniquementLesMiennes = Boolean.TRUE.equals(mesDemandes)
                 || "MANAGER".equals(lecteur.getRole().getNom());
         List<DemandeRecrutement> demandes = demandeRepository.rechercher(
-                lecteur.getId(), uniquementLesMiennes, statut, Recherche.motif(recherche));
+                lecteur.getId(), uniquementLesMiennes, statut, Recherche.motif(recherche),
+                utilisateurService.idsParNom(recherche));
+        Set<Long> idsDemandeurs = demandes.stream()
+                .map(DemandeRecrutement::getIdUtilisateur)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, AuthDto.Profil> profils = utilisateurService.profilsParIds(idsDemandeurs);
         return demandes.stream()
-                .map(demande -> DemandeDto.versResume(demande, ligneRepository.findByDemandeIdOrderById(demande.getId())))
+                .map(demande -> resume(demande,
+                        ligneRepository.findByDemandeIdOrderById(demande.getId()), profils))
                 .toList();
     }
 
@@ -93,18 +115,26 @@ public class DemandeService {
         if (lignesApprouvees.isEmpty()) {
             return List.of();
         }
-        return ligneRepository.findDejaApprouvees(lignesApprouvees)
-                .stream()
-                .map(this::versLigneDetail)
-                .toList();
+        List<DemandeRecrutementPoste> lignes = ligneRepository.findDejaApprouvees(lignesApprouvees);
+        return versLignesDetail(lignes);
     }
 
     /** Detail complet d'une demande : lignes, historique de decisions et journal des statuts. */
     @Transactional(readOnly = true)
-    public DemandeDto.Detail detail(Long idDemande, Utilisateur lecteur) {
+    public DemandeDto.Detail detail(Long idDemande, UtilisateurConnecte lecteur) {
         DemandeRecrutement demande = demandeExistant(idDemande);
         controlerAccesLecture(demande, lecteur);
         List<DemandeRecrutementPoste> lignes = ligneRepository.findParDemande(idDemande);
+        List<com.tovo.erp.besoin.model.HistoriqueStatut> historique =
+                historiqueStatutRepository.findByDemandeIdOrderByDateActionAsc(idDemande);
+        Set<Long> idsUtilisateurs = new java.util.HashSet<>();
+        idsUtilisateurs.add(demande.getIdUtilisateur());
+        lignes.forEach(l -> {
+            idsUtilisateurs.addAll(idsUtilisateurs(l));
+        });
+        historique.forEach(h -> idsUtilisateurs.add(h.getIdUtilisateur()));
+        Map<Long, AuthDto.Profil> profils = utilisateurService.profilsParIds(idsUtilisateurs);
+        AuthDto.Profil demandeur = profils.get(demande.getIdUtilisateur());
         return new DemandeDto.Detail(
                 demande.getId(),
                 demande.getMotif(),
@@ -113,11 +143,11 @@ public class DemandeService {
                 demande.getDateCreation(),
                 demande.getDateModification(),
                 demande.getDateSoumission(),
-                demande.getUtilisateur().getNom(),
-                demande.getUtilisateur().getId(),
-                lignes.stream().map(this::versLigneDetail).toList(),
-                historiqueStatutRepository.findByDemandeIdOrderByDateActionAsc(idDemande).stream()
-                        .map(ValidationDto.ChangementStatut::de)
+                demandeur == null ? null : demandeur.nom(),
+                demande.getIdUtilisateur(),
+                versLignesDetail(lignes, profils),
+                historique.stream()
+                        .map(h -> ValidationDto.ChangementStatut.de(h, nomUtilisateur(profils, h.getIdUtilisateur())))
                         .toList());
     }
 
@@ -127,7 +157,7 @@ public class DemandeService {
 
     /** Cree une demande a l'etat BROUILLON avec ses lignes (RM-012, RM-015). */
     @Transactional
-    public DemandeDto.Resume creer(Utilisateur auteur, DemandeDto.Creation demande) {
+    public DemandeDto.Resume creer(UtilisateurConnecte auteur, DemandeDto.Creation demande) {
         controlerDateSouhaitee(demande.dateSouhaitee());
         if (demande.lignes() == null || demande.lignes().isEmpty()) {
             throw new BusinessException("DEMANDE_SANS_LIGNE",
@@ -135,7 +165,7 @@ public class DemandeService {
         }
 
         DemandeRecrutement entite = new DemandeRecrutement();
-        entite.setUtilisateur(auteur);
+        entite.setIdUtilisateur(auteur.getId());
         entite.setMotif(demande.motif().trim());
         entite.setDateSouhaitee(demande.dateSouhaitee());
         entite.setStatut(StatutDemande.BROUILLON);
@@ -145,12 +175,12 @@ public class DemandeService {
             DemandeRecrutementPoste nouvelle = ligneRegles.construire(entite, ligne);
             ligneRepository.save(nouvelle);
         }
-        return DemandeDto.versResume(entite, lignesDe(entite));
+        return resume(entite, lignesDe(entite));
     }
 
     /** Modifie l'entete d'une demande tant qu'elle est en brouillon (RM-019). */
     @Transactional
-    public DemandeDto.Resume modifierEntete(Long idDemande, Utilisateur auteur, DemandeDto.Modification demande) {
+    public DemandeDto.Resume modifierEntete(Long idDemande, UtilisateurConnecte auteur, DemandeDto.Modification demande) {
         DemandeRecrutement entite = demandeExistant(idDemande);
         controlerProprietaire(entite, auteur);
         controlerBrouillon(entite);
@@ -160,12 +190,12 @@ public class DemandeService {
         entite.setDateSouhaitee(demande.dateSouhaitee());
         entite.setDateModification(LocalDateTime.now());
         demandeRepository.save(entite);
-        return DemandeDto.versResume(entite, lignesDe(entite));
+        return resume(entite, lignesDe(entite));
     }
 
     /** Ajoute une ligne a une demande encore en brouillon (RM-015, RM-019). */
     @Transactional
-    public DemandeDto.LigneResume ajouterLigne(Long idDemande, Utilisateur auteur,
+    public DemandeDto.LigneResume ajouterLigne(Long idDemande, UtilisateurConnecte auteur,
                                                DemandeDto.LigneCreation ligne) {
         DemandeRecrutement entite = demandeExistant(idDemande);
         controlerProprietaire(entite, auteur);
@@ -186,7 +216,7 @@ public class DemandeService {
      * en attente de correction (A_CORRIGER) peut etre corrigee par son demandeur.
      */
     @Transactional
-    public DemandeDto.LigneResume modifierLigne(Long idDemande, Long idLigne, Utilisateur auteur,
+    public DemandeDto.LigneResume modifierLigne(Long idDemande, Long idLigne, UtilisateurConnecte auteur,
                                                 DemandeDto.LigneModification modification) {
         DemandeRecrutement entite = demandeExistant(idDemande);
         controlerProprietaire(entite, auteur);
@@ -219,7 +249,7 @@ public class DemandeService {
 
     /** Supprime une ligne d'une demande en brouillon. */
     @Transactional
-    public void supprimerLigne(Long idDemande, Long idLigne, Utilisateur auteur) {
+    public void supprimerLigne(Long idDemande, Long idLigne, UtilisateurConnecte auteur) {
         DemandeRecrutement entite = demandeExistant(idDemande);
         controlerProprietaire(entite, auteur);
         controlerBrouillon(entite);
@@ -238,7 +268,7 @@ public class DemandeService {
      * La demande ne peut etre soumise que si elle contient au moins une ligne complete.
      */
     @Transactional
-    public DemandeDto.Resume soumettre(Long idDemande, Utilisateur auteur) {
+    public DemandeDto.Resume soumettre(Long idDemande, UtilisateurConnecte auteur) {
         DemandeRecrutement entite = demandeExistant(idDemande);
         controlerProprietaire(entite, auteur);
         controlerBrouillon(entite);
@@ -268,7 +298,7 @@ public class DemandeService {
         entite.setDateModification(maintenant);
         demandeRepository.save(entite);
         statutService.recalculer(entite, lignes, auteur, "Soumission de la demande.");
-        return DemandeDto.versResume(entite, lignes);
+        return resume(entite, lignes);
     }
 
     /**
@@ -277,7 +307,7 @@ public class DemandeService {
      * de validation est ouvert (RM-040).
      */
     @Transactional
-    public DemandeDto.Resume resoumettreLigne(Long idDemande, Long idLigne, Utilisateur auteur) {
+    public DemandeDto.Resume resoumettreLigne(Long idDemande, Long idLigne, UtilisateurConnecte auteur) {
         DemandeRecrutement entite = demandeExistant(idDemande);
         controlerProprietaire(entite, auteur);
         DemandeRecrutementPoste ligne = ligneExistant(idDemande, idLigne);
@@ -301,12 +331,12 @@ public class DemandeService {
 
         List<DemandeRecrutementPoste> lignes = lignesDe(entite);
         statutService.recalculer(entite, lignes, auteur, "Resoumission d'une ligne.");
-        return DemandeDto.versResume(entite, lignes);
+        return resume(entite, lignes);
     }
 
     /** Annule une ligne de la demande. */
     @Transactional
-    public DemandeDto.Resume annulerLigne(Long idDemande, Long idLigne, Utilisateur auteur) {
+    public DemandeDto.Resume annulerLigne(Long idDemande, Long idLigne, UtilisateurConnecte auteur) {
         DemandeRecrutement entite = demandeExistant(idDemande);
         controlerProprietaire(entite, auteur);
         DemandeRecrutementPoste ligne = ligneExistant(idDemande, idLigne);
@@ -325,7 +355,7 @@ public class DemandeService {
 
         List<DemandeRecrutementPoste> lignes = lignesDe(entite);
         statutService.recalculer(entite, lignes, auteur, "Annulation d'une ligne.");
-        return DemandeDto.versResume(entite, lignes);
+        return resume(entite, lignes);
     }
 
     /** Detail d'une ligne utilise par le module embauche (lecture seule). */
@@ -334,7 +364,7 @@ public class DemandeService {
         DemandeRecrutementPoste ligne = ligneRepository.findDetailParId(idLigne)
                 .orElseThrow(() -> BusinessException.notFound(
                         "La ligne de demande " + idLigne + " n'existe pas."));
-        return versLigneDetail(ligne);
+        return versLignesDetail(List.of(ligne)).get(0);
     }
 
     /**
@@ -388,8 +418,8 @@ public class DemandeService {
     }
 
     /** Le createur d'une demande peut seul la modifier (RM-067). */
-    private void controlerProprietaire(DemandeRecrutement demande, Utilisateur auteur) {
-        if (!demande.getUtilisateur().getId().equals(auteur.getId())) {
+    private void controlerProprietaire(DemandeRecrutement demande, UtilisateurConnecte auteur) {
+        if (!demande.getIdUtilisateur().equals(auteur.getId())) {
             throw BusinessException.forbidden(
                     "Seul le createur de la demande peut la modifier.");
         }
@@ -403,9 +433,9 @@ public class DemandeService {
     }
 
     /** RM-067 : un MANAGER ne consulte que ses propres demandes. */
-    private void controlerAccesLecture(DemandeRecrutement demande, Utilisateur lecteur) {
+    private void controlerAccesLecture(DemandeRecrutement demande, UtilisateurConnecte lecteur) {
         if ("MANAGER".equals(lecteur.getRole().getNom())
-                && !demande.getUtilisateur().getId().equals(lecteur.getId())) {
+                && !demande.getIdUtilisateur().equals(lecteur.getId())) {
             throw BusinessException.forbidden("Cette demande ne fait pas partie de votre perimetre.");
         }
     }
@@ -429,7 +459,7 @@ public class DemandeService {
                 throw new BusinessException("LIGNE_INCOMPLETE",
                         "La ligne '" + ligne.getIntituleDemande() + "' doit preciser le type de remplacement.");
             }
-            if (ligne.getEmployeRemplace() == null
+            if (ligne.getIdEmployeRemplace() == null
                     && (ligne.getMotifRemplacement() == null || ligne.getMotifRemplacement().isBlank())) {
                 throw new BusinessException("LIGNE_INCOMPLETE",
                         "La ligne '" + ligne.getIntituleDemande() + "' doit indiquer l'employe remplace "
@@ -447,14 +477,42 @@ public class DemandeService {
         }
     }
 
+    private DemandeDto.Resume resume(DemandeRecrutement demande, List<DemandeRecrutementPoste> lignes) {
+        Set<Long> ids = new java.util.HashSet<>();
+        ids.add(demande.getIdUtilisateur());
+        lignes.forEach(l -> ids.addAll(idsUtilisateurs(l)));
+        return resume(demande, lignes, utilisateurService.profilsParIds(ids));
+    }
+
+    private DemandeDto.Resume resume(DemandeRecrutement demande, List<DemandeRecrutementPoste> lignes,
+                                    Map<Long, AuthDto.Profil> profils) {
+        AuthDto.Profil demandeur = profils.get(demande.getIdUtilisateur());
+        return DemandeDto.versResume(demande, lignes,
+                demandeur == null ? null : demandeur.nom(), demande.getIdUtilisateur());
+    }
+
+    private Set<Long> idsUtilisateurs(DemandeRecrutementPoste ligne) {
+        Set<Long> ids = new java.util.HashSet<>();
+        validationRepository.findByDemandePosteIdOrderByDateActionAsc(ligne.getId())
+                .forEach(v -> ids.add(v.getIdUtilisateur()));
+        verificationBudgetRepository.findByDemandePosteIdOrderByDateVerificationAsc(ligne.getId())
+                .forEach(v -> ids.add(v.getIdUtilisateur()));
+        return ids;
+    }
+
+    private String nomUtilisateur(Map<Long, AuthDto.Profil> profils, Long id) {
+        AuthDto.Profil profil = id == null ? null : profils.get(id);
+        return profil == null ? null : profil.nom();
+    }
+
     private void journaliser(DemandeRecrutement demande, DemandeRecrutementPoste ligne,
-                              StatutLigne ancien, StatutLigne nouveau, Utilisateur auteur, String commentaire) {
+                              StatutLigne ancien, StatutLigne nouveau, UtilisateurConnecte auteur, String commentaire) {
         HistoriqueStatut journal = new HistoriqueStatut();
         journal.setDemande(demande);
         journal.setDemandePoste(ligne);
         journal.setAncienStatut(ancien.name());
         journal.setNouveauStatut(nouveau.name());
-        journal.setUtilisateur(auteur);
+        journal.setIdUtilisateur(auteur.getId());
         journal.setCommentaire(commentaire);
         historiqueStatutRepository.save(journal);
     }
@@ -478,7 +536,35 @@ public class DemandeService {
                 ligne.getDateModification());
     }
 
-    private DemandeDto.LigneDetail versLigneDetail(DemandeRecrutementPoste ligne) {
+    private List<DemandeDto.LigneDetail> versLignesDetail(List<DemandeRecrutementPoste> lignes) {
+        Set<Long> idsUtilisateurs = new java.util.HashSet<>();
+        Set<Long> idsEmployes = new java.util.HashSet<>();
+        lignes.forEach(l -> {
+            idsUtilisateurs.addAll(idsUtilisateurs(l));
+            if (l.getIdEmployeRemplace() != null) {
+                idsEmployes.add(l.getIdEmployeRemplace());
+            }
+        });
+        Map<Long, AuthDto.Profil> profils = utilisateurService.profilsParIds(idsUtilisateurs);
+        Map<Long, EmployeEmbaucheDto> employes = employeService.dossiersParIds(idsEmployes);
+        return lignes.stream().map(l -> versLigneDetail(l, profils, employes)).toList();
+    }
+
+    private List<DemandeDto.LigneDetail> versLignesDetail(List<DemandeRecrutementPoste> lignes,
+                                                          Map<Long, AuthDto.Profil> profils) {
+        Set<Long> idsEmployes = lignes.stream()
+                .map(DemandeRecrutementPoste::getIdEmployeRemplace)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, EmployeEmbaucheDto> employes = employeService.dossiersParIds(idsEmployes);
+        return lignes.stream().map(l -> versLigneDetail(l, profils, employes)).toList();
+    }
+
+    private DemandeDto.LigneDetail versLigneDetail(DemandeRecrutementPoste ligne,
+                                                   Map<Long, AuthDto.Profil> profils,
+                                                   Map<Long, EmployeEmbaucheDto> employes) {
+        EmployeEmbaucheDto employe = ligne.getIdEmployeRemplace() == null
+                ? null : employes.get(ligne.getIdEmployeRemplace());
         return new DemandeDto.LigneDetail(
                 ligne.getId(),
                 ligne.getDemande().getId(),
@@ -489,10 +575,9 @@ public class DemandeService {
                 ligne.getPoste() == null ? null : ligne.getPoste().getIntitule(),
                 ligne.getTypeBesoin(),
                 ligne.getTypeRemplacement(),
-                ligne.getEmployeRemplace() == null ? null : ligne.getEmployeRemplace().getId(),
-                ligne.getEmployeRemplace() == null ? null
-                        : ligne.getEmployeRemplace().getPrenom() + " " + ligne.getEmployeRemplace().getNom(),
-                ligne.getEmployeRemplace() == null ? null : ligne.getEmployeRemplace().getMatricule(),
+                ligne.getIdEmployeRemplace(),
+                employe == null ? null : employe.prenom() + " " + employe.nom(),
+                employe == null ? null : employe.matricule(),
                 ligne.getMotifRemplacement(),
                 ligne.getDateDebutRemplacement(),
                 ligne.getDateFinRemplacement(),
@@ -511,10 +596,12 @@ public class DemandeService {
                 ligne.getDateModification(),
                 ligne.getDateSoumission(),
                 validationRepository.findByDemandePosteIdOrderByDateActionAsc(ligne.getId()).stream()
-                        .map(ValidationDto.Historique::de)
+                        .map(v -> ValidationDto.Historique.de(v,
+                                nomUtilisateur(profils, v.getIdUtilisateur())))
                         .toList(),
                 verificationBudgetRepository.findByDemandePosteIdOrderByDateVerificationAsc(ligne.getId()).stream()
-                        .map(ValidationDto.VerificationBudgetaire::de)
+                        .map(v -> ValidationDto.VerificationBudgetaire.de(v,
+                                nomUtilisateur(profils, v.getIdUtilisateur())))
                         .toList());
     }
 }

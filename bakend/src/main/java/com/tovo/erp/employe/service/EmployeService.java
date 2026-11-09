@@ -1,21 +1,21 @@
 package com.tovo.erp.employe.service;
 
-import com.tovo.erp.besoin.model.Poste;
-import com.tovo.erp.besoin.repository.PosteRepository;
 import com.tovo.erp.employe.dto.DocumentEmbaucheDto;
 import com.tovo.erp.employe.dto.DocumentEmbaucheFichier;
 import com.tovo.erp.employe.dto.DocumentEmbaucheRequest;
 import com.tovo.erp.employe.dto.DossierEmbaucheRequest;
 import com.tovo.erp.employe.dto.EmployeEmbaucheDto;
+import com.tovo.erp.employe.dto.EmployeDto;
 import com.tovo.erp.employe.model.ConfidentialiteDocument;
 import com.tovo.erp.employe.model.DocumentEmploye;
 import com.tovo.erp.employe.model.Employe;
+import com.tovo.erp.employe.model.PosteDetailVue;
 import com.tovo.erp.employe.model.StatutDocument;
 import com.tovo.erp.employe.model.StatutEmploye;
 import com.tovo.erp.employe.model.TypeDocumentEmploye;
 import com.tovo.erp.employe.repository.DocumentEmployeRepository;
 import com.tovo.erp.employe.repository.EmployeRepository;
-import com.tovo.erp.iam.dto.EmployeDto;
+import com.tovo.erp.employe.repository.PosteDetailVueRepository;
 import com.tovo.erp.shared.BusinessException;
 import com.tovo.erp.shared.Recherche;
 import org.springframework.stereotype.Service;
@@ -26,8 +26,10 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -41,21 +43,25 @@ public class EmployeService {
 
     private final EmployeRepository employeRepository;
     private final DocumentEmployeRepository documentRepository;
-    private final PosteRepository posteRepository;
+    private final PosteDetailVueRepository postes;
 
     public EmployeService(EmployeRepository employeRepository,
                           DocumentEmployeRepository documentRepository,
-                          PosteRepository posteRepository) {
+                          PosteDetailVueRepository postes) {
         this.employeRepository = employeRepository;
         this.documentRepository = documentRepository;
-        this.posteRepository = posteRepository;
+        this.postes = postes;
     }
 
     /** Liste des employes filtres par statut, service et recherche textuelle. */
     @Transactional(readOnly = true)
-    public List<EmployeDto.Liste> lister(StatutEmploye statut, Long idService, String recherche) {
-        return employeRepository.rechercher(statut, idService, Recherche.motif(recherche)).stream()
-                .map(EmployeDto.Liste::de)
+    public List<EmployeDto.Liste> lister(String statut, Long idService, String recherche) {
+        StatutEmploye filtre = statut == null || statut.isBlank()
+                ? null : StatutEmploye.valueOf(statut.toUpperCase(java.util.Locale.ROOT));
+        List<Employe> employes = employeRepository.rechercher(filtre, idService, Recherche.motif(recherche));
+        Map<Long, PosteDetailVue> details = detailsPostes(employes);
+        return employes.stream()
+                .map(e -> EmployeDto.Liste.de(e, details.get(e.getIdPoste())))
                 .toList();
     }
 
@@ -96,12 +102,8 @@ public class EmployeService {
             employe.setDatePremiereEmbauche(dateEmbauche);
         }
         employe.setStatut(StatutEmploye.PRE_EMBAUCHE);
-        if (idPoste != null) {
-            Poste poste = posteRepository.findById(idPoste)
-                    .orElseThrow(() -> BusinessException.notFound("Le poste " + idPoste + " n'existe pas."));
-            employe.setPoste(poste);
-        }
-        return EmployeEmbaucheDto.de(employeRepository.save(employe));
+        employe.setIdPoste(idPoste);
+        return versDto(employeRepository.save(employe));
     }
 
     /** Depose une piece dans le dossier salarie a partir d'un contenu base64. */
@@ -173,7 +175,7 @@ public class EmployeService {
                 .orElseThrow(() -> BusinessException.notFound(
                         "L'employe " + idEmploye + " n'existe pas."));
         employe.setStatut(statut);
-        return EmployeEmbaucheDto.de(employeRepository.save(employe));
+        return versDto(employeRepository.save(employe));
     }
 
     /** Active le salarie sans exposer l'enumeration de statut aux autres modules. */
@@ -215,9 +217,23 @@ public class EmployeService {
                 nomFichier, typeMime, contenu, idContrat, dateEmission, null);
     }
 
+    /** Dossiers par identifiant, en une seule requete inter-modules. */
     @Transactional(readOnly = true)
+    public Map<Long, EmployeEmbaucheDto> dossiersParIds(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Map.of();
+        }
+        List<Employe> employes = employeRepository.findAllById(ids);
+        Map<Long, PosteDetailVue> postesParId = detailsPostes(employes);
+        Map<Long, EmployeEmbaucheDto> resultat = new HashMap<>();
+        for (Employe employe : employes) {
+            resultat.put(employe.getId(), EmployeEmbaucheDto.de(employe, postesParId.get(employe.getIdPoste())));
+        }
+        return resultat;
+    }
+
     public EmployeEmbaucheDto dossier(Long idEmploye) {
-        return EmployeEmbaucheDto.de(employeRepository.findById(idEmploye)
+        return versDto(employeRepository.findById(idEmploye)
                 .orElseThrow(() -> BusinessException.notFound(
                         "L'employe " + idEmploye + " n'existe pas.")));
     }
@@ -239,7 +255,7 @@ public class EmployeService {
 
     @Transactional(readOnly = true)
     public Optional<EmployeEmbaucheDto> parIdCandidat(Long idCandidat) {
-        return employeRepository.findFirstByIdCandidat(idCandidat).map(EmployeEmbaucheDto::de);
+        return employeRepository.findFirstByIdCandidat(idCandidat).map(this::versDto);
     }
 
     private Employe trouverDoublon(DossierEmbaucheRequest demande, String email, String cin) {
@@ -269,6 +285,24 @@ public class EmployeService {
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException("SHA-256 indisponible", ex);
         }
+    }
+
+    private EmployeEmbaucheDto versDto(Employe employe) {
+        PosteDetailVue poste = employe.getIdPoste() == null ? null
+                : postes.findById(employe.getIdPoste()).orElse(null);
+        return EmployeEmbaucheDto.de(employe, poste);
+    }
+
+    private Map<Long, PosteDetailVue> detailsPostes(Collection<Employe> employes) {
+        Set<Long> ids = employes.stream()
+                .map(Employe::getIdPoste)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, PosteDetailVue> details = new HashMap<>();
+        for (PosteDetailVue poste : postes.findAllById(ids)) {
+            details.put(poste.getId(), poste);
+        }
+        return details;
     }
 
     private static String normaliser(String valeur) {

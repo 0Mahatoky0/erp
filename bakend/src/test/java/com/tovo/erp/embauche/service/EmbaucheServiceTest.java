@@ -9,7 +9,7 @@ import com.tovo.erp.embauche.repository.HistoriquePropositionRepository;
 import com.tovo.erp.embauche.repository.PropositionEmbaucheRepository;
 import com.tovo.erp.embauche.repository.ReponseCandidatRepository;
 import com.tovo.erp.employe.service.EmployeService;
-import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.recrutement.service.CandidatureService;
 import com.tovo.erp.shared.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
@@ -90,10 +90,8 @@ class EmbaucheServiceTest {
         verify(contrats, never()).creerContratEmbauche(any());
     }
 
-    private Utilisateur auteur() {
-        Utilisateur utilisateur = new Utilisateur();
-        utilisateur.setId(9L);
-        return utilisateur;
+    private UtilisateurConnecte auteur() {
+        return new UtilisateurConnecte(9L, "Auteur", "auteur@example.com", "RH", null, null);
     }
 
     private PropositionEmbauche proposition(PropositionStatut statut) {

@@ -1,30 +1,21 @@
 package com.tovo.erp.iam.model;
 
 import jakarta.persistence.Column;
-import com.tovo.erp.besoin.model.Departement;
 import jakarta.persistence.Entity;
-import com.tovo.erp.besoin.model.Departement;
 import jakarta.persistence.FetchType;
-import com.tovo.erp.besoin.model.Departement;
 import jakarta.persistence.GeneratedValue;
-import com.tovo.erp.besoin.model.Departement;
 import jakarta.persistence.GenerationType;
-import com.tovo.erp.besoin.model.Departement;
 import jakarta.persistence.Id;
-import com.tovo.erp.besoin.model.Departement;
 import jakarta.persistence.JoinColumn;
-import com.tovo.erp.besoin.model.Departement;
 import jakarta.persistence.ManyToOne;
-import com.tovo.erp.besoin.model.Departement;
 import jakarta.persistence.Table;
-import com.tovo.erp.besoin.model.Departement;
 import lombok.Getter;
 import lombok.Setter;
 
 /**
  * Un compte applicatif (RM-001 a RM-005).
- * <p>Les liens vers les referentiels (service, role, poste...) sont charges en eager : ils sont
- * peu nombreux et toujours affiches, ce qui evite les erreurs de chargement tardif.
+ * <p>Le departement est reference par son identifiant : iam ne depend pas du
+ * module besoin et aucune relation JPA inter-modules n'est creee.
  */
 @Entity
 @Table(name = "utilisateur")
@@ -37,9 +28,8 @@ public class Utilisateur {
     @Column(name = "id_utilisateur")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_departement")
-    private Departement departement;
+    @Column(name = "id_departement")
+    private Long idDepartement;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "id_role", nullable = false)

@@ -5,7 +5,7 @@ import com.tovo.erp.employe.dto.DocumentEmbaucheFichier;
 import com.tovo.erp.employe.dto.DocumentEmbaucheRequest;
 import com.tovo.erp.employe.dto.EmployeEmbaucheDto;
 import com.tovo.erp.employe.service.EmployeService;
-import com.tovo.erp.iam.model.RoleNom;
+import com.tovo.erp.shared.Roles;
 import com.tovo.erp.shared.UtilisateurCourant;
 import jakarta.validation.Valid;
 import org.springframework.http.ContentDisposition;
@@ -37,26 +37,26 @@ public class EmployeController {
 
     @GetMapping("/{id}/dossier")
     public EmployeEmbaucheDto dossier(@PathVariable Long id) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION, RoleNom.MANAGER);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION, Roles.MANAGER);
         return employes.dossier(id);
     }
 
     @GetMapping("/{id}/documents")
     public List<DocumentEmbaucheDto> documents(@PathVariable Long id) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION, RoleNom.MANAGER);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION, Roles.MANAGER);
         return employes.documents(id);
     }
 
     @PostMapping("/{id}/documents")
     public DocumentEmbaucheDto ajouterDocument(@PathVariable Long id,
                                                @Valid @RequestBody DocumentEmbaucheRequest demande) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         return employes.enregistrerDocument(id, demande);
     }
 
     @GetMapping("/documents/{idDocument}")
     public ResponseEntity<byte[]> document(@PathVariable Long idDocument) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION, RoleNom.MANAGER);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION, Roles.MANAGER);
         DocumentEmbaucheFichier fichier = employes.contenuDocument(idDocument);
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(fichier.typeMime()))

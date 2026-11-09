@@ -22,6 +22,7 @@ import com.tovo.erp.embauche.model.TypeReponseCandidat;
 import com.tovo.erp.embauche.repository.PropositionEmbaucheRepository;
 import com.tovo.erp.embauche.service.PropositionService;
 import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.iam.repository.UtilisateurRepository;
 import com.tovo.erp.recrutement.model.Candidat;
 import com.tovo.erp.recrutement.model.Candidature;
@@ -168,9 +169,10 @@ public class Bloc3DemoDataInitializer implements CommandLineRunner {
             return false;
         }
 
+        UtilisateurConnecte rhConnecte = connecte(rh);
         LocalDateTime maintenant = LocalDateTime.now();
         DemandeRecrutement demande = new DemandeRecrutement();
-        demande.setUtilisateur(manager);
+        demande.setIdUtilisateur(manager.getId());
         demande.setMotif("Renforcement de l'equipe " + service.getNom());
         demande.setDateSouhaitee(DATE_DEBUT.plusDays(15));
         demande.setStatut(StatutDemande.FINALISEE);
@@ -260,41 +262,41 @@ public class Bloc3DemoDataInitializer implements CommandLineRunner {
                 "Lundi au vendredi, 08h00 - 17h00",
                 "Antananarivo",
                 false);
-        PropositionDtos.Detail proposition = propositionService.creer(rh, creation);
+        PropositionDtos.Detail proposition = propositionService.creer(rhConnecte, creation);
 
         switch (scenario.action()) {
             case BROUILLON -> {
             }
-            case VALIDEE -> propositionService.valider(proposition.id(), rh);
+            case VALIDEE -> propositionService.valider(proposition.id(), rhConnecte);
             case ENVOYEE -> {
-                propositionService.valider(proposition.id(), rh);
-                propositionService.envoyer(proposition.id(), rh);
+                propositionService.valider(proposition.id(), rhConnecte);
+                propositionService.envoyer(proposition.id(), rhConnecte);
             }
             case ACCEPTEE -> {
-                propositionService.valider(proposition.id(), rh);
-                propositionService.envoyer(proposition.id(), rh);
-                propositionService.repondrePourCandidat(proposition.id(), rh,
+                propositionService.valider(proposition.id(), rhConnecte);
+                propositionService.envoyer(proposition.id(), rhConnecte);
+                propositionService.repondrePourCandidat(proposition.id(), rhConnecte,
                         new PropositionDtos.ReponseInterne(
                                 TypeReponseCandidat.ACCEPTATION,
                                 "Acceptation du candidat.",
                                 "Courriel de confirmation archive."));
             }
             case REFUSEE -> {
-                propositionService.valider(proposition.id(), rh);
-                PropositionDtos.Detail envoyee = propositionService.envoyer(proposition.id(), rh);
+                propositionService.valider(proposition.id(), rhConnecte);
+                PropositionDtos.Detail envoyee = propositionService.envoyer(proposition.id(), rhConnecte);
                 propositionService.refuserPublique(envoyee.tokenAcceptation(),
                         "Proposition moins attractive que l'offre actuelle.", "127.0.0.1");
             }
             case CONTRE -> {
-                propositionService.valider(proposition.id(), rh);
-                PropositionDtos.Detail envoyee = propositionService.envoyer(proposition.id(), rh);
+                propositionService.valider(proposition.id(), rhConnecte);
+                PropositionDtos.Detail envoyee = propositionService.envoyer(proposition.id(), rhConnecte);
                 propositionService.contreProposerPublique(envoyee.tokenAcceptation(),
                         "Souhaite un salaire de 1 500 000 MGA et une prime de transport.",
                         "127.0.0.1");
             }
             case EXPIREE -> {
-                propositionService.valider(proposition.id(), rh);
-                propositionService.envoyer(proposition.id(), rh);
+                propositionService.valider(proposition.id(), rhConnecte);
+                propositionService.envoyer(proposition.id(), rhConnecte);
                 PropositionEmbauche entite = propositions.findById(proposition.id()).orElseThrow();
                 entite.setDateExpiration(maintenant.minusDays(1));
                 propositions.save(entite);
@@ -302,8 +304,8 @@ public class Bloc3DemoDataInitializer implements CommandLineRunner {
                 propositionService.expirerPropositions();
             }
             case RETIREE -> {
-                propositionService.valider(proposition.id(), rh);
-                propositionService.retirer(proposition.id(), rh,
+                propositionService.valider(proposition.id(), rhConnecte);
+                propositionService.retirer(proposition.id(), rhConnecte,
                         "Poste finalement pourvu par mobilite interne.");
             }
         }
@@ -314,7 +316,7 @@ public class Bloc3DemoDataInitializer implements CommandLineRunner {
                             EtapeValidation etape, LocalDateTime date) {
         Validation validation = new Validation();
         validation.setDemandePoste(ligne);
-        validation.setUtilisateur(utilisateur);
+        validation.setIdUtilisateur(utilisateur.getId());
         validation.setEtape(etape);
         validation.setDecision(Decision.APPROUVE);
         validation.setCommentaire("Validation de demonstration.");
@@ -325,6 +327,16 @@ public class Bloc3DemoDataInitializer implements CommandLineRunner {
 
     private Utilisateur utilisateur(String email) {
         return utilisateurs.findByEmailIgnoreCase(email).orElse(null);
+    }
+
+    private UtilisateurConnecte connecte(Utilisateur utilisateur) {
+        return new UtilisateurConnecte(
+                utilisateur.getId(),
+                utilisateur.getNom(),
+                utilisateur.getEmail(),
+                utilisateur.getRole().getNom(),
+                utilisateur.getIdDepartement(),
+                null);
     }
 
     private Service service(String nom) {

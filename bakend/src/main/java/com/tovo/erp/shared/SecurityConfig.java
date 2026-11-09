@@ -1,6 +1,5 @@
 package com.tovo.erp.shared;
 
-import com.tovo.erp.iam.repository.UtilisateurRepository;
 import com.tovo.erp.shared.JwtAuthenticationFilter;
 import com.tovo.erp.shared.JwtProperties;
 import com.tovo.erp.shared.JwtService;
@@ -12,6 +11,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
@@ -50,8 +50,8 @@ public class SecurityConfig {
     /** Filtre d'authentification par jeton, instancie ici pour eviter un cycle de dependances. */
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter(JwtDecoder jwtDecoder,
-                                                           UtilisateurRepository utilisateurRepository) {
-        return new JwtAuthenticationFilter(jwtDecoder, utilisateurRepository);
+                                                           UserDetailsService utilisateurDetailsService) {
+        return new JwtAuthenticationFilter(jwtDecoder, utilisateurDetailsService);
     }
 
     @Bean

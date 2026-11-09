@@ -3,15 +3,14 @@ package com.tovo.erp.besoin.service;
 import com.tovo.erp.shared.BusinessException;
 import com.tovo.erp.besoin.model.DemandeRecrutement;
 import com.tovo.erp.besoin.model.DemandeRecrutementPoste;
-import com.tovo.erp.employe.model.Employe;
 import com.tovo.erp.besoin.model.Poste;
 import com.tovo.erp.besoin.model.Service;
-import com.tovo.erp.employe.model.StatutEmploye;
 import com.tovo.erp.besoin.model.TypeBesoin;
 import com.tovo.erp.besoin.model.TypeRemplacement;
-import com.tovo.erp.employe.repository.EmployeRepository;
 import com.tovo.erp.besoin.repository.PosteRepository;
 import com.tovo.erp.besoin.repository.ServiceRepository;
+import com.tovo.erp.employe.dto.EmployeEmbaucheDto;
+import com.tovo.erp.employe.service.EmployeService;
 import com.tovo.erp.besoin.dto.DemandeDto;
 import org.springframework.stereotype.Component;
 
@@ -29,14 +28,14 @@ public class LigneRegles {
 
     private final ServiceRepository serviceRepository;
     private final PosteRepository posteRepository;
-    private final EmployeRepository employeRepository;
+    private final EmployeService employeService;
 
     public LigneRegles(ServiceRepository serviceRepository,
                        PosteRepository posteRepository,
-                       EmployeRepository employeRepository) {
+                       EmployeService employeService) {
         this.serviceRepository = serviceRepository;
         this.posteRepository = posteRepository;
-        this.employeRepository = employeRepository;
+        this.employeService = employeService;
     }
 
     /** Construit une ligne de demande a partir des donnees saisies et verifie sa coherence. */
@@ -154,12 +153,11 @@ public class LigneRegles {
                     "Un remplacement doit preciser son type (TEMPORAIRE ou DEFINITIF).");
         }
 
+        EmployeEmbaucheDto employeRemplace = null;
         if (source.idEmployeRemplace() != null) {
-            Employe employe = employeRepository.findById(source.idEmployeRemplace())
-                    .orElseThrow(() -> BusinessException.notFound(
-                            "L'employe a remplacer n'existe pas."));
-            controlerStatutEmployeRemplace(employe, source.typeRemplacement());
-            ligne.setEmployeRemplace(employe);
+            employeRemplace = employeService.dossier(source.idEmployeRemplace());
+            controlerStatutEmployeRemplace(employeRemplace, source.typeRemplacement());
+            ligne.setIdEmployeRemplace(employeRemplace.id());
         } else if (source.motifRemplacement() == null || source.motifRemplacement().isBlank()) {
             // RM-026 : si l'employe n'est pas identifie, le motif doit expliquer le remplacement.
             throw new BusinessException("MOTIF_REMPLACEMENT_MANQUANT",
@@ -173,24 +171,24 @@ public class LigneRegles {
                 source.dateDebutRemplacement(), source.dateFinRemplacement(), source.motifRemplacement());
 
         // RM-030 : si l'employe occupe un poste, le poste officiel est repris.
-        if (ligne.getEmployeRemplace() != null && ligne.getEmployeRemplace().getPoste() != null) {
-            ligne.setPoste(ligne.getEmployeRemplace().getPoste());
+        if (employeRemplace != null && employeRemplace.idPoste() != null) {
+            ligne.setPoste(posteDuService(employeRemplace.idPoste(), ligne.getService()));
         } else if (source.idPoste() != null) {
             ligne.setPoste(posteDuService(source.idPoste(), ligne.getService()));
         }
     }
 
     /** RM-027 : l'employe remplace doit etre coherent avec le scenario. */
-    private void controlerStatutEmployeRemplace(Employe employe, TypeRemplacement typeRemplacement) {
-        if (typeRemplacement == TypeRemplacement.TEMPORAIRE && employe.getStatut() != StatutEmploye.ACTIF) {
+    private void controlerStatutEmployeRemplace(EmployeEmbaucheDto employe, TypeRemplacement typeRemplacement) {
+        if (typeRemplacement == TypeRemplacement.TEMPORAIRE && !"ACTIF".equals(employe.statut())) {
             throw new BusinessException("EMPLOYE_NON_VALIDE",
                     "Un remplacement temporaire concerne un employe actif (statut actuel : "
-                            + employe.getStatut() + ").");
+                            + employe.statut() + ").");
         }
-        if (typeRemplacement == TypeRemplacement.DEFINITIF && employe.getStatut() == StatutEmploye.INACTIF) {
+        if (typeRemplacement == TypeRemplacement.DEFINITIF && "INACTIF".equals(employe.statut())) {
             throw new BusinessException("EMPLOYE_NON_VALIDE",
                     "Un remplacement definitif concerne un employe actif ou parti (statut actuel : "
-                            + employe.getStatut() + ").");
+                            + employe.statut() + ").");
         }
     }
 

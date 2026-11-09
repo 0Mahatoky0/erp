@@ -1,6 +1,5 @@
 package com.tovo.erp.besoin.model;
 
-import com.tovo.erp.iam.model.Utilisateur;
 import com.tovo.erp.besoin.model.StatutDemande;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -36,9 +35,8 @@ public class DemandeRecrutement {
     @Column(name = "id_demande")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "id_utilisateur", nullable = false)
-    private Utilisateur utilisateur;
+    @Column(name = "id_utilisateur", nullable = false)
+    private Long idUtilisateur;
 
     /** Motif general de la demande : obligatoire (RM-013). */
     @Column(name = "motif", nullable = false)

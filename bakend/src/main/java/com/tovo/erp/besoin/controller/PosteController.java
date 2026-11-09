@@ -1,6 +1,6 @@
 package com.tovo.erp.besoin.controller;
 
-import com.tovo.erp.iam.model.RoleNom;
+import com.tovo.erp.shared.Roles;
 import com.tovo.erp.shared.UtilisateurCourant;
 import com.tovo.erp.besoin.service.PosteService;
 import com.tovo.erp.besoin.dto.PosteDto;
@@ -43,20 +43,20 @@ public class PosteController {
 
     @PostMapping
     public ResponseEntity<PosteDto.Liste> creer(@Valid @RequestBody PosteDto.Creation demande) {
-        utilisateurCourant.exigerRole(RoleNom.RH);
+        utilisateurCourant.exigerRole(Roles.RH);
         return ResponseEntity.ok(posteService.creer(demande));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<PosteDto.Liste> modifier(@PathVariable Long id,
                                                    @Valid @RequestBody PosteDto.Modification demande) {
-        utilisateurCourant.exigerRole(RoleNom.RH);
+        utilisateurCourant.exigerRole(Roles.RH);
         return ResponseEntity.ok(posteService.modifier(id, demande));
     }
 
     @PostMapping("/{id}/desactiver")
     public ResponseEntity<PosteDto.Liste> desactiver(@PathVariable Long id) {
-        utilisateurCourant.exigerRole(RoleNom.RH);
+        utilisateurCourant.exigerRole(Roles.RH);
         return ResponseEntity.ok(posteService.desactiver(id));
     }
 }

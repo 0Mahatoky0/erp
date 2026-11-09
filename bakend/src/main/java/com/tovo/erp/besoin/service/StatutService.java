@@ -3,7 +3,7 @@ package com.tovo.erp.besoin.service;
 import com.tovo.erp.besoin.model.DemandeRecrutement;
 import com.tovo.erp.besoin.model.DemandeRecrutementPoste;
 import com.tovo.erp.besoin.model.HistoriqueStatut;
-import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.besoin.model.StatutDemande;
 import com.tovo.erp.besoin.model.StatutLigne;
 import com.tovo.erp.besoin.repository.HistoriqueStatutRepository;
@@ -74,7 +74,7 @@ public class StatutService {
      */
     @Transactional
     public StatutDemande recalculer(DemandeRecrutement demande, List<DemandeRecrutementPoste> lignes,
-                                    Utilisateur auteur, String commentaire) {
+                                    UtilisateurConnecte auteur, String commentaire) {
         StatutDemande nouveauStatut = calculerStatutGlobal(demande, lignes);
         StatutDemande ancienStatut = demande.getStatut();
         if (ancienStatut == nouveauStatut) {
@@ -87,7 +87,7 @@ public class StatutService {
         journal.setDemande(demande);
         journal.setAncienStatut(ancienStatut.name());
         journal.setNouveauStatut(nouveauStatut.name());
-        journal.setUtilisateur(auteur);
+        journal.setIdUtilisateur(auteur.getId());
         journal.setCommentaire(commentaire);
         historiqueStatutRepository.save(journal);
         return nouveauStatut;

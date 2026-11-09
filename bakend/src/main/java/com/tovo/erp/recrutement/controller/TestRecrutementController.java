@@ -1,6 +1,6 @@
 package com.tovo.erp.recrutement.controller;
 
-import com.tovo.erp.iam.model.RoleNom;
+import com.tovo.erp.shared.Roles;
 import com.tovo.erp.recrutement.dto.PassageTestDto;
 import com.tovo.erp.recrutement.dto.TestRecrutementDto;
 import com.tovo.erp.recrutement.model.PassageTest;
@@ -36,7 +36,7 @@ public class TestRecrutementController {
 
     @PostMapping("/tests")
     public ResponseEntity<TestRecrutementDto> creerTest(@Valid @RequestBody TestRecrutement test) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         return ResponseEntity.status(HttpStatus.CREATED).body(TestRecrutementDto.de(entretienTests.creerTest(test)));
     }
 
@@ -47,7 +47,7 @@ public class TestRecrutementController {
 
     @PostMapping("/passages-tests")
     public ResponseEntity<PassageTestDto> planifierPassage(@Valid @RequestBody PassageTest passage) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(PassageTestDto.de(entretienTests.planifierPassage(passage)));
     }

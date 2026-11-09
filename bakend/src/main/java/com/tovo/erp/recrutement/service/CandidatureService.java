@@ -4,8 +4,8 @@ import com.tovo.erp.recrutement.dto.CandidatureDto;
 import com.tovo.erp.recrutement.dto.CandidatureEmbaucheDto;
 import com.tovo.erp.recrutement.model.*;
 import com.tovo.erp.recrutement.repository.*;
-import com.tovo.erp.iam.model.RoleNom;
-import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.shared.Roles;
+import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.shared.BusinessException;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
@@ -70,8 +70,8 @@ public class CandidatureService {
     }
 
     @Transactional
-    public Candidature postuler(Long idOffre, Utilisateur utilisateur, String message, String source) {
-        if (!RoleNom.CANDIDAT.name().equals(utilisateur.getRole().getNom())) {
+    public Candidature postuler(Long idOffre, UtilisateurConnecte utilisateur, String message, String source) {
+        if (!Roles.CANDIDAT.equals(utilisateur.getRoleNom())) {
             throw new IllegalStateException("Seul un compte candidat peut postuler");
         }
         OffreEmploi offre = offres.findById(idOffre)

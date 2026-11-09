@@ -1,6 +1,6 @@
 package com.tovo.erp.besoin.controller;
 
-import com.tovo.erp.iam.model.RoleNom;
+import com.tovo.erp.shared.Roles;
 import com.tovo.erp.shared.UtilisateurCourant;
 import com.tovo.erp.besoin.service.BudgetService;
 import com.tovo.erp.besoin.dto.BudgetDto;
@@ -44,7 +44,7 @@ public class BudgetController {
     /** L'allocation d'un budget est reservee au role FINANCE. */
     @PutMapping
     public ResponseEntity<BudgetDto.Liste> definir(@Valid @RequestBody BudgetDto.MiseAJour demande) {
-        utilisateurCourant.exigerRole(RoleNom.FINANCE);
+        utilisateurCourant.exigerRole(Roles.FINANCE);
         return ResponseEntity.ok(budgetService.definirBudget(demande));
     }
 }

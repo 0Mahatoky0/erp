@@ -30,15 +30,15 @@ public final class ValidationDto {
                               com.tovo.erp.besoin.model.Decision decision, String commentaire,
                               LocalDateTime dateAction, String utilisateur, Long idUtilisateur, int episode) {
 
-        public static Historique de(Validation validation) {
+        public static Historique de(Validation validation, String utilisateur) {
             return new Historique(
                     validation.getId(),
                     validation.getEtape(),
                     validation.getDecision(),
                     validation.getCommentaire(),
                     validation.getDateAction(),
-                    validation.getUtilisateur().getNom(),
-                    validation.getUtilisateur().getId(),
+                    utilisateur,
+                    validation.getIdUtilisateur(),
                     validation.getEpisode());
         }
     }
@@ -50,7 +50,8 @@ public final class ValidationDto {
                                          com.tovo.erp.besoin.model.Decision decision, String commentaire,
                                          LocalDateTime dateVerification, String utilisateur, int episode) {
 
-        public static VerificationBudgetaire de(com.tovo.erp.besoin.model.VerificationBudget verification) {
+        public static VerificationBudgetaire de(com.tovo.erp.besoin.model.VerificationBudget verification,
+                                                   String utilisateur) {
             return new VerificationBudgetaire(
                     verification.getId(),
                     verification.getBudgetService().getId(),
@@ -61,7 +62,7 @@ public final class ValidationDto {
                     verification.getDecision(),
                     verification.getCommentaire(),
                     verification.getDateVerification(),
-                    verification.getUtilisateur().getNom(),
+                    utilisateur,
                     verification.getEpisode());
         }
     }
@@ -70,13 +71,13 @@ public final class ValidationDto {
     public record ChangementStatut(Long id, Long idDemandePoste, String ancienStatut, String nouveauStatut,
                                    String utilisateur, String commentaire, LocalDateTime dateAction) {
 
-        public static ChangementStatut de(HistoriqueStatut historique) {
+        public static ChangementStatut de(HistoriqueStatut historique, String utilisateur) {
             return new ChangementStatut(
                     historique.getId(),
                     historique.getDemandePoste() == null ? null : historique.getDemandePoste().getId(),
                     historique.getAncienStatut(),
                     historique.getNouveauStatut(),
-                    historique.getUtilisateur() == null ? null : historique.getUtilisateur().getNom(),
+                    utilisateur,
                     historique.getCommentaire(),
                     historique.getDateAction());
         }

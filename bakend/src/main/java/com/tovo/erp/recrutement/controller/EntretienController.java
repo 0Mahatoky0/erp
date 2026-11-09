@@ -1,6 +1,6 @@
 package com.tovo.erp.recrutement.controller;
 
-import com.tovo.erp.iam.model.RoleNom;
+import com.tovo.erp.shared.Roles;
 import com.tovo.erp.recrutement.dto.EntretienDto;
 import com.tovo.erp.recrutement.dto.RecrutementRequests;
 import com.tovo.erp.recrutement.model.Entretien;
@@ -34,7 +34,7 @@ public class EntretienController {
 
     @PostMapping("/entretiens")
     public ResponseEntity<EntretienDto> planifier(@Valid @RequestBody RecrutementRequests.EntretienRequest r) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         Entretien e = new Entretien();
         e.setCandidature(candidatureRepository.getReferenceById(r.idCandidature()));
         e.setIdUtilisateurOrganisateur(utilisateurCourant.exiger().getId());

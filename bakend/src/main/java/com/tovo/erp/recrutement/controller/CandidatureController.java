@@ -1,6 +1,6 @@
 package com.tovo.erp.recrutement.controller;
 
-import com.tovo.erp.iam.model.RoleNom;
+import com.tovo.erp.shared.Roles;
 import com.tovo.erp.recrutement.dto.CandidatureDto;
 import com.tovo.erp.recrutement.dto.CandidatureEmbaucheDto;
 import com.tovo.erp.recrutement.dto.HistoriqueCandidatureDto;
@@ -47,14 +47,14 @@ public class CandidatureController {
 
     @GetMapping("/mes-candidatures")
     public List<CandidatureDto> mesCandidatures() {
-        utilisateurCourant.exigerRole(RoleNom.CANDIDAT);
+        utilisateurCourant.exigerRole(Roles.CANDIDAT);
         var utilisateur = utilisateurCourant.exiger();
         return candidatures.listerParUtilisateurConnecte(utilisateur.getId(), utilisateur.getEmail());
     }
 
     @GetMapping
     public List<CandidatureDto> lister(@RequestParam(required = false) CandidatureStatut statut) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         return candidatures.listerParStatut(statut);
     }
 
@@ -65,20 +65,20 @@ public class CandidatureController {
 
     @GetMapping("/{id:[0-9]+}/embauche")
     public CandidatureEmbaucheDto dossierEmbauche(@PathVariable Long id) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         return candidatures.detailsPourEmbauche(id);
     }
 
     @PatchMapping("/{id:[0-9]+}/statut")
     public CandidatureDto statut(@PathVariable Long id, @Valid @RequestBody RecrutementRequests.StatutRequest request) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         return candidatures.changerStatut(
                 id, request.statut(), utilisateurCourant.exiger().getId(), request.commentaire());
     }
 
     @DeleteMapping("/{id:[0-9]+}")
     public CandidatureDto retirer(@PathVariable Long id) {
-        utilisateurCourant.exigerRole(RoleNom.RH, RoleNom.DIRECTION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         return candidatures.changerStatut(
                 id, CandidatureStatut.RETIREE, utilisateurCourant.exiger().getId(), "Retrait de candidature");
     }

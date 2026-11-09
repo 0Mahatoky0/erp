@@ -16,7 +16,7 @@ import com.tovo.erp.embauche.repository.ReponseCandidatRepository;
 import com.tovo.erp.employe.dto.DossierEmbaucheRequest;
 import com.tovo.erp.employe.dto.EmployeEmbaucheDto;
 import com.tovo.erp.employe.service.EmployeService;
-import com.tovo.erp.iam.model.Utilisateur;
+import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.recrutement.dto.CandidatureEmbaucheDto;
 import com.tovo.erp.recrutement.service.CandidatureService;
 import com.tovo.erp.shared.BusinessException;
@@ -63,7 +63,7 @@ public class EmbaucheService {
     /** Acceptation saisie par un RH (canal papier ou email avec preuve). */
     @Transactional
     public PropositionDtos.ResultatAcceptation accepterInterne(Long idProposition,
-                                                               Utilisateur auteur,
+                                                               UtilisateurConnecte auteur,
                                                                String preuve) {
         PropositionEmbauche proposition = propositions.findById(idProposition)
                 .orElseThrow(() -> BusinessException.notFound(
