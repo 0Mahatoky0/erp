@@ -55,12 +55,18 @@ const sections = computed(() => {
     )
   }
 
+  const temps = []
+  if (auth.estRh || auth.estDirection || auth.estManager) {
+    temps.push({ nom: 'temps-pointage-liste', label: 'Temps et pointage', icon: 'pi pi-clock' })
+  }
+
   return [
     { label: 'Demande', items: principal },
     { label: 'Gestion', items: gestion },
     { label: 'Recrutement', items: recrutement },
     { label: 'Embauche', items: embauche },
     { label: 'Contrats', items: contrats },
+    { label: 'Temps de travail', items: temps },
   ]
     .filter((s) => s.items.length)
     .map((s) => ({
