@@ -23,6 +23,7 @@ export const useAuthStore = defineStore('auth', {
     estRh: (state) => state.profil?.role === 'RH',
     estFinance: (state) => state.profil?.role === 'FINANCE',
     estDirection: (state) => state.profil?.role === 'DIRECTION',
+    estEmploye: (state) => state.profil?.role === 'EMPLOYE',
     initiales: (state) => {
       if (!state.profil?.nom) {
         return '?'

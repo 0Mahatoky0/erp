@@ -66,7 +66,7 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (roleRepository.count() > 0) {
+        if (utilisateurRepository.existsByEmailIgnoreCase("manager@tovo.mg")) {
             return;
         }
 

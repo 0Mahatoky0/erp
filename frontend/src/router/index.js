@@ -7,6 +7,7 @@ import { recrutementRoutes } from '@/modules/recrutement/routes'
 import { embaucheRoutes } from '@/modules/embauche/routes'
 import { contratRoutes } from '@/modules/contrat/routes'
 import { tempsRoutes } from '@/modules/temps/routes'
+import { congesRoutes } from '@/modules/conges/routes'
 
 const routes = [
   ...iamRoutes,
@@ -16,6 +17,7 @@ const routes = [
   ...embaucheRoutes,
   ...contratRoutes,
   ...tempsRoutes,
+  ...congesRoutes,
   {
     path: '/:pathMatch(.*)*',
     name: 'introuvable',

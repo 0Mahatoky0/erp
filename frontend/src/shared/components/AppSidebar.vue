@@ -60,6 +60,11 @@ const sections = computed(() => {
     temps.push({ nom: 'temps-pointage-liste', label: 'Temps et pointage', icon: 'pi pi-clock' })
   }
 
+  const conges = []
+  if (auth.estRh || auth.estDirection || auth.estManager || auth.estEmploye) {
+    conges.push({ nom: 'conges-liste', label: 'Congés et absences', icon: 'pi pi-calendar' })
+  }
+
   return [
     { label: 'Demande', items: principal },
     { label: 'Gestion', items: gestion },
@@ -67,6 +72,7 @@ const sections = computed(() => {
     { label: 'Embauche', items: embauche },
     { label: 'Contrats', items: contrats },
     { label: 'Temps de travail', items: temps },
+    { label: 'Congés et absences', items: conges },
   ]
     .filter((s) => s.items.length)
     .map((s) => ({

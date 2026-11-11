@@ -1,0 +1,42 @@
+Bloc 1 Création du besoin
+Un manager exprime un besoin : création ou remplacement d' un poste
+ Informations : poste , département, effectif ,motif , budget , date souhaitée.
+ Workflow : Manager -> RH -> finance -> Direction -> RH -> ouverture du recrutement.
+ Object metier : Departement,Post , DemandeRecrutement,Validation.
+ Point de conception : un Poste existe indépendamment de l' employé.
+Le manager : Déclare le besoin
+Post : Definì le poste concerne
+L' effectif : Le nombre de personne a recruté
+Le type de besoin :
+Remplacement ou Création de post
+Si Replacement :
+Definir date debut , date fin
+
+
+Bloc 2 Recrutement
+Transformer une demande validée en offre d' emploi.
+ Publier l' offre et recevoir plusieurs candidatures.
+ Présélectionner [Mode de selection], organiser les entretiens et les tests.
+ Conserver les évaluations et la decision final
+ Objet : OffreEmploi,Candidat , Candidature,Emtretient,EvaluationCandidat.
+La trasaciliter est tres importande dans les aplicaiton.
+
+bloc 6 : temps de travail et pointage
+
+definir horaires , planning et regime de travail
+enregistrer entrees , sorties , retards et heures sup
+calculer le temps reellement de pointage
+les donnees de temps alimentent les absences et les variables de pointage
+
+bloc 7 : conges et absences
+demande de congé -- controle de solde -- validation manager/RH
+gerer droits , soldes , types  de conges , absences et justification
+controler chevauchements et disponibilite du solde
+mettre à jour planning et variables de paie
+Object : TypeCong , DroitConge , SoldeConge , DemandeConge , Absence
+
+2,5 JOURS par mois (calcul de congé)
+
+salaire brute x nb jour / 30 (karama)
+
+planning (auto , parametrable , saisie sans controle sans verification)

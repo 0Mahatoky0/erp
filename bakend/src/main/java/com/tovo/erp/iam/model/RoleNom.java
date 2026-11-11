@@ -20,6 +20,9 @@ public enum RoleNom {
     /** Prend la decision finale lorsque son approbation est requise. */
     DIRECTION,
 
+    /** Declare et suit ses propres conges et absences. */
+    EMPLOYE,
+
     /** Consulte les offres et depose ses candidatures. */
     CANDIDAT
 }

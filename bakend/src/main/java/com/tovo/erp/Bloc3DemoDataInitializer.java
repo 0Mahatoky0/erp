@@ -24,6 +24,8 @@ import com.tovo.erp.embauche.service.PropositionService;
 import com.tovo.erp.iam.model.Utilisateur;
 import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.iam.repository.UtilisateurRepository;
+import com.tovo.erp.iam.repository.RoleRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import com.tovo.erp.recrutement.model.Candidat;
 import com.tovo.erp.recrutement.model.Candidature;
 import com.tovo.erp.recrutement.model.CandidatureStatut;
@@ -58,6 +60,8 @@ public class Bloc3DemoDataInitializer implements CommandLineRunner {
     private final PropositionEmbaucheRepository propositions;
     private final PropositionService propositionService;
     private final UtilisateurRepository utilisateurs;
+    private final RoleRepository roles;
+    private final PasswordEncoder passwordEncoder;
     private final ServiceRepository services;
     private final PosteRepository postes;
     private final DemandeRecrutementRepository demandes;
@@ -70,6 +74,8 @@ public class Bloc3DemoDataInitializer implements CommandLineRunner {
     public Bloc3DemoDataInitializer(PropositionEmbaucheRepository propositions,
                                     PropositionService propositionService,
                                     UtilisateurRepository utilisateurs,
+                                    RoleRepository roles,
+                                    PasswordEncoder passwordEncoder,
                                     ServiceRepository services,
                                     PosteRepository postes,
                                     DemandeRecrutementRepository demandes,
@@ -81,6 +87,8 @@ public class Bloc3DemoDataInitializer implements CommandLineRunner {
         this.propositions = propositions;
         this.propositionService = propositionService;
         this.utilisateurs = utilisateurs;
+        this.roles = roles;
+        this.passwordEncoder = passwordEncoder;
         this.services = services;
         this.postes = postes;
         this.demandes = demandes;
@@ -234,6 +242,7 @@ public class Bloc3DemoDataInitializer implements CommandLineRunner {
         candidat.setCin(scenario.cin());
         candidat.setDateNaissance(scenario.naissance());
         candidat.setStatut(StatutCandidat.CANDIDAT);
+        candidat.setIdUtilisateur(creerCompteCandidat(candidat).getId());
         candidats.save(candidat);
 
         Candidature candidature = new Candidature();
@@ -267,6 +276,7 @@ public class Bloc3DemoDataInitializer implements CommandLineRunner {
         switch (scenario.action()) {
             case BROUILLON -> {
             }
+
             case VALIDEE -> propositionService.valider(proposition.id(), rhConnecte);
             case ENVOYEE -> {
                 propositionService.valider(proposition.id(), rhConnecte);
@@ -310,6 +320,17 @@ public class Bloc3DemoDataInitializer implements CommandLineRunner {
             }
         }
         return true;
+    }
+
+    private Utilisateur creerCompteCandidat(Candidat candidat) {
+        Utilisateur compte = new Utilisateur();
+        compte.setNom(candidat.getPrenom() + " " + candidat.getNom());
+        compte.setEmail(candidat.getEmail());
+        compte.setMotDePasse(passwordEncoder.encode("Candidat@2026"));
+        compte.setRole(roles.findByNom("CANDIDAT")
+                .orElseThrow(() -> new IllegalStateException("Role CANDIDAT absent")));
+        compte.setActif(true);
+        return utilisateurs.save(compte);
     }
 
     private void validation(DemandeRecrutementPoste ligne, Utilisateur utilisateur,
