@@ -9,4 +9,5 @@ import java.util.List;
 public interface AbsenceRepository extends JpaRepository<Absence, Long> {
     List<Absence> findAllByOrderByDateDebutDesc();
     List<Absence> findByStatutOrderByDateDebutDesc(StatutAbsence statut);
+    List<Absence> findByIdEmployeOrderByDateDebutDesc(Long idEmploye);
 }

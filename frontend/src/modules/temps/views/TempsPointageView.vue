@@ -138,6 +138,12 @@ onMounted(() => {
         <div><h2>Pointage du mois</h2><p class="mt-1 text-sm text-muted-color">Entrees, sorties, retards et heures supplementaires.</p></div>
         <div v-if="resume" class="flex flex-wrap gap-3 text-sm"><span>{{ resume.joursPointes }} jour(s)</span><span>{{ resume.minutesRetard }} min de retard</span><span>{{ resume.minutesSupplementaires }} min supplementaires</span></div>
       </div>
+      <div v-if="resume?.conges?.length" class="mb-4 rounded-lg bg-primary/10 p-3 text-sm">
+        <strong>Congés validés sur la période :</strong>
+        <span v-for="conge in resume.conges" :key="`${conge.dateDebut}-${conge.dateFin}`" class="ml-2">
+          {{ conge.typeConge }} ({{ conge.dateDebut }} → {{ conge.dateFin }})
+        </span>
+      </div>
       <div v-if="chargement" class="text-sm text-muted-color">Chargement...</div>
       <DataTable v-else :value="pointages" striped-rows paginator :rows="10" responsive-layout="scroll">
         <Column field="date" header="Jour" />

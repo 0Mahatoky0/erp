@@ -45,6 +45,15 @@ public class CongeService {
         return types.findByActifTrueOrderByLibelleAsc().stream().map(CongeDtos.TypeDto::de).toList();
     }
 
+    @Transactional(readOnly = true)
+    public CongeDtos.EmployeCourantDto employeCourant(UtilisateurConnecte utilisateur) {
+        Long id = employes.findFirstByIdUtilisateur(utilisateur.getId())
+                .map(e -> e.getId())
+                .orElseThrow(() -> BusinessException.notFound(
+                        "Aucun dossier employe n'est associe a votre compte."));
+        return new CongeDtos.EmployeCourantDto(id);
+    }
+
     @Transactional
     public List<CongeDtos.SoldeDto> soldes(Long idEmploye, int annee) {
         verifierEmploye(idEmploye);
@@ -122,14 +131,21 @@ public class CongeService {
     }
 
     @Transactional
-    public CongeDtos.DemandeDto decision(Long id, CongeDtos.DecisionRequest request, boolean valider) {
+    public CongeDtos.DemandeDto decision(Long id, CongeDtos.DecisionRequest request, boolean valider,
+                                         UtilisateurConnecte utilisateur) {
         DemandeConge demande = demandes.findById(id).orElseThrow(() -> BusinessException.notFound("Demande de conge introuvable."));
         if (demande.getStatut() != StatutDemandeConge.EN_ATTENTE) {
             throw new BusinessException("DEMANDE_DEJA_TRAITEE", "Cette demande a deja ete traitee.");
         }
+        if ("MANAGER".equals(utilisateur.getRoleNom())
+                && !demandes.managerAffecteAEmploye(utilisateur.getId(), demande.getIdEmploye(),
+                demande.getDateDebut(), demande.getDateFin())) {
+            throw BusinessException.forbidden(
+                    "Un manager ne peut valider que les demandes des employes de son equipe.");
+        }
         TypeConge type = types.findById(demande.getIdTypeConge()).orElseThrow();
         demande.setStatut(valider ? StatutDemandeConge.VALIDEE : StatutDemandeConge.REFUSEE);
-        demande.setIdValidateur(request == null ? null : request.idValidateur());
+        demande.setIdValidateur(utilisateur.getId());
         demande.setMotifDecision(request == null ? null : request.motif());
         demande.setDateDecision(LocalDateTime.now());
         if (valider && type.getJoursAcquisMois().signum() > 0) {
@@ -149,6 +165,14 @@ public class CongeService {
     public List<CongeDtos.AbsenceDto> absences(StatutAbsence statut) {
         return (statut == null ? absences.findAllByOrderByDateDebutDesc() : absences.findByStatutOrderByDateDebutDesc(statut))
                 .stream().map(CongeDtos.AbsenceDto::de).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CongeDtos.AbsenceDto> absencesEmploye(Long idEmploye) {
+        verifierEmploye(idEmploye);
+        return absences.findByIdEmployeOrderByDateDebutDesc(idEmploye).stream()
+                .map(CongeDtos.AbsenceDto::de)
+                .toList();
     }
 
     @Transactional
@@ -195,6 +219,23 @@ public class CongeService {
         return demandes.findByStatutOrderByDateDebutAsc(StatutDemandeConge.VALIDEE).stream()
                 .map(d -> CongeDtos.DemandeDto.de(d, noms.get(d.getIdTypeConge())))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CongeDtos.PlanningDto> planningConges(Long idEmploye, LocalDate debut, LocalDate fin) {
+        Map<Long, String> noms = types.findAll().stream()
+                .collect(Collectors.toMap(TypeConge::getId, TypeConge::getLibelle));
+        return demandes.findByStatutOrderByDateDebutAsc(StatutDemandeConge.VALIDEE).stream()
+                .filter(d -> d.getIdEmploye().equals(idEmploye))
+                .filter(d -> !d.getDateDebut().isAfter(fin) && !d.getDateFin().isBefore(debut))
+                .map(d -> new CongeDtos.PlanningDto(d.getIdEmploye(), d.getDateDebut(), d.getDateFin(),
+                        d.getNombreJours(), noms.get(d.getIdTypeConge()), d.getMotif()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean estEnCongeValide(Long idEmploye, LocalDate date) {
+        return !planningConges(idEmploye, date, date).isEmpty();
     }
 
     private SoldeConge nouveauSolde(Long employe, TypeConge type, int annee) {

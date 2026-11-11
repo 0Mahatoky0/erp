@@ -40,7 +40,7 @@ function idRequis() {
 }
 
 async function charger() {
-  const id = idRequis()
+  const id = auth.estEmploye ? Number(employeId.value) : idRequis()
   if (!id) return
   chargement.value = true
   try {
@@ -48,7 +48,7 @@ async function charger() {
     const [soldesEmploye, listeDemandes, listeAbsences] = await Promise.all([
       api.soldes(id, new Date().getFullYear()),
       auth.estEmploye ? api.demandesEmploye(id) : api.demandes(),
-      api.absences(),
+      auth.estEmploye ? api.mesAbsences() : api.absences(),
     ])
     soldes.value = soldesEmploye
     demandes.value = listeDemandes
@@ -62,6 +62,11 @@ async function charger() {
 
 async function initialiser() {
   try {
+    if (auth.estEmploye) {
+      const courant = await api.employeCourant()
+      employeId.value = String(courant.idEmploye)
+      localStorage.setItem('erp.conges.employeId', employeId.value)
+    }
     types.value = await api.types()
     demande.value.idTypeConge = types.value[0]?.id || null
   } catch (e) {
@@ -141,7 +146,7 @@ onMounted(async () => {
     </section>
 
     <div class="grid gap-5 lg:grid-cols-2">
-      <section v-if="!auth.estEmploye" class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+      <section class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
         <h2 class="mb-3">Déclarer une demande de congé</h2>
         <div class="grid gap-3">
           <PrimeSelect v-model="demande.idTypeConge" :options="types" option-label="libelle" option-value="id" placeholder="Type de congé" />
@@ -171,14 +176,14 @@ onMounted(async () => {
     <section class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
       <h2 class="mb-3">Demandes de congé</h2>
       <DataTable :value="demandes" :loading="chargement" striped-rows paginator :rows="8" responsive-layout="scroll">
-        <Column field="idEmploye" header="Employe" />
+        <Column v-if="!auth.estEmploye" field="idEmploye" header="Employe" />
         <Column field="typeConge" header="Type" />
         <Column header="Période"><template #body="{ data }">{{ data.dateDebut }} → {{ data.dateFin }}</template></Column>
         <Column field="nombreJours" header="Jours" />
         <Column field="statut" header="Statut" />
         <Column header="Actions">
           <template #body="{ data }">
-            <div v-if="data.statut === 'EN_ATTENTE'" class="flex gap-2">
+            <div v-if="!auth.estEmploye && data.statut === 'EN_ATTENTE'" class="flex gap-2">
               <PrimeButton icon="pi pi-check" severity="success" text rounded aria-label="Valider" @click="traiter(data, true)" />
               <PrimeButton icon="pi pi-times" severity="danger" text rounded aria-label="Refuser" @click="traiter(data, false)" />
             </div>
@@ -190,7 +195,7 @@ onMounted(async () => {
     <section class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
       <h2 class="mb-3">Absences</h2>
       <DataTable :value="absences" :loading="chargement" striped-rows>
-        <Column field="idEmploye" header="Employe" />
+        <Column v-if="!auth.estEmploye" field="idEmploye" header="Employe" />
         <Column header="Période"><template #body="{ data }">{{ data.dateDebut }} → {{ data.dateFin }}</template></Column>
         <Column field="motif" header="Motif" />
         <Column field="statut" header="Statut" />

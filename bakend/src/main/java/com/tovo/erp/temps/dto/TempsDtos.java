@@ -62,6 +62,7 @@ public final class TempsDtos {
             long minutesTravaillees,
             long minutesRetard,
             long minutesSupplementaires,
-            List<PointageDto> pointages) {
+            List<PointageDto> pointages,
+            List<com.tovo.erp.conges.dto.CongeDtos.PlanningDto> conges) {
     }
 }

@@ -1,5 +1,6 @@
 package com.tovo.erp.temps.service;
 
+import com.tovo.erp.conges.service.CongeService;
 import com.tovo.erp.shared.BusinessException;
 import com.tovo.erp.temps.dto.TempsDtos;
 import com.tovo.erp.temps.model.PlanningTravail;
@@ -20,10 +21,13 @@ public class TempsService {
 
     private final PlanningTravailRepository planningRepository;
     private final PointageRepository pointageRepository;
+    private final CongeService conges;
 
-    public TempsService(PlanningTravailRepository planningRepository, PointageRepository pointageRepository) {
+    public TempsService(PlanningTravailRepository planningRepository, PointageRepository pointageRepository,
+                        CongeService conges) {
         this.planningRepository = planningRepository;
         this.pointageRepository = pointageRepository;
+        this.conges = conges;
     }
 
     @Transactional(readOnly = true)
@@ -55,6 +59,7 @@ public class TempsService {
     public TempsDtos.PointageDto pointerEntree(TempsDtos.PointageRequest demande) {
         LocalDate date = demande.date() == null ? LocalDate.now() : demande.date();
         LocalTime heure = demande.heure() == null ? LocalTime.now().withNano(0) : demande.heure();
+        verifierPasEnConge(demande.idEmploye(), date);
         Pointage pointage = pointageRepository.findByIdEmployeAndDatePointage(demande.idEmploye(), date)
                 .orElseGet(Pointage::new);
         if (pointage.getHeureEntree() != null) {
@@ -70,6 +75,7 @@ public class TempsService {
     public TempsDtos.PointageDto pointerSortie(TempsDtos.PointageRequest demande) {
         LocalDate date = demande.date() == null ? LocalDate.now() : demande.date();
         LocalTime heure = demande.heure() == null ? LocalTime.now().withNano(0) : demande.heure();
+        verifierPasEnConge(demande.idEmploye(), date);
         Pointage pointage = pointageRepository.findByIdEmployeAndDatePointage(demande.idEmploye(), date)
                 .orElseThrow(() -> new BusinessException("ENTREE_MANQUANTE", "Enregistrez l'entree avant la sortie."));
         if (pointage.getHeureSortie() != null) {
@@ -94,7 +100,8 @@ public class TempsService {
                 pointages.stream().filter(p -> p.heureSortie() != null).count(),
                 pointages.stream().mapToLong(TempsDtos.PointageDto::minutesTravaillees).sum(),
                 pointages.stream().mapToLong(TempsDtos.PointageDto::minutesRetard).sum(),
-                pointages.stream().mapToLong(TempsDtos.PointageDto::minutesSupplementaires).sum(), pointages);
+                pointages.stream().mapToLong(TempsDtos.PointageDto::minutesSupplementaires).sum(), pointages,
+                conges.planningConges(idEmploye, debut, fin));
     }
 
     private TempsDtos.PointageDto dto(Pointage pointage) {
@@ -115,5 +122,12 @@ public class TempsService {
                 .findFirstByIdEmployeAndDateDebutLessThanEqualAndDateFinIsNullOrderByDateDebutDesc(idEmploye, date)
                 .or(() -> planningRepository.findFirstByIdEmployeAndDateDebutLessThanEqualAndDateFinGreaterThanEqualOrderByDateDebutDesc(idEmploye, date, date))
                 .orElse(null);
+    }
+
+    private void verifierPasEnConge(Long idEmploye, LocalDate date) {
+        if (conges.estEnCongeValide(idEmploye, date)) {
+            throw new BusinessException("POINTAGE_INTERDIT_CONGE",
+                    "Le pointage est interdit pendant un conge valide.");
+        }
     }
 }

@@ -12,6 +12,10 @@ const aujourdHui = new Date()
 const debut = ref(new Date(aujourdHui.getFullYear(), aujourdHui.getMonth(), 1).toISOString().slice(0, 10))
 const fin = ref(new Date(aujourdHui.getFullYear(), aujourdHui.getMonth() + 1, 0).toISOString().slice(0, 10))
 const variables = ref([])
+const parametres = ref({ tauxCotisationsSalariales: '', tauxCotisationsPatronales: '', tauxIrsa: '' })
+const bulletins = ref([])
+const periodes = ref([])
+const moisPaie = ref(aujourdHui.toISOString().slice(0, 7))
 const chargement = ref(false)
 
 async function charger() {
@@ -25,7 +29,50 @@ async function charger() {
   }
 }
 
-onMounted(charger)
+async function chargerParametres() {
+  try {
+    const resultat = await api.parametres()
+    if (resultat) parametres.value = resultat
+  } catch (e) {
+    notifications.erreur(e.message)
+  }
+}
+
+async function chargerPeriodes() {
+  try {
+    periodes.value = await api.periodes()
+  } catch (e) {
+    notifications.erreur(e.message)
+  }
+}
+
+async function enregistrerParametres() {
+  try {
+    parametres.value = await api.enregistrerParametres({
+      tauxCotisationsSalariales: Number(parametres.value.tauxCotisationsSalariales),
+      tauxCotisationsPatronales: Number(parametres.value.tauxCotisationsPatronales),
+      tauxIrsa: Number(parametres.value.tauxIrsa),
+    })
+    notifications.succes('Les paramètres de paie ont été enregistrés.')
+  } catch (e) {
+    notifications.erreur(e.message)
+  }
+}
+
+async function calculerPeriode() {
+  try {
+    const resultat = await api.calculerPeriode(moisPaie.value)
+    bulletins.value = resultat.bulletins
+    await chargerPeriodes()
+    notifications.succes('La période de paie a été calculée.')
+  } catch (e) {
+    notifications.erreur(e.message)
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([charger(), chargerParametres(), chargerPeriodes()])
+})
 </script>
 
 <template>
@@ -47,6 +94,57 @@ onMounted(charger)
         </div>
         <PrimeButton label="Actualiser" icon="pi pi-refresh" @click="charger" />
       </div>
+    </section>
+
+    <section class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+      <h2 class="mb-3">Paramètres de calcul</h2>
+      <p class="mb-3 text-xs text-muted-color">Les taux doivent être configurés selon la réglementation applicable avant tout calcul.</p>
+      <div class="grid gap-3 md:grid-cols-4">
+        <PrimeInputText v-model="parametres.tauxCotisationsSalariales" type="number" placeholder="Cotisations salariales (%)" />
+        <PrimeInputText v-model="parametres.tauxCotisationsPatronales" type="number" placeholder="Cotisations patronales (%)" />
+        <PrimeInputText v-model="parametres.tauxIrsa" type="number" placeholder="IRSA (%)" />
+        <PrimeButton label="Enregistrer" icon="pi pi-save" @click="enregistrerParametres" />
+      </div>
+    </section>
+
+    <section class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+      <div class="flex flex-wrap items-end gap-3">
+        <div class="flex flex-col gap-2">
+          <label for="mois-paie" class="text-sm font-semibold text-muted-color">Période</label>
+          <PrimeInputText id="mois-paie" v-model="moisPaie" type="month" />
+        </div>
+        <PrimeButton label="Calculer les bulletins" icon="pi pi-calculator" @click="calculerPeriode" />
+      </div>
+      <DataTable v-if="bulletins.length" :value="bulletins" class="mt-4" striped-rows>
+        <Column field="idEmploye" header="Employé" />
+        <Column field="salaireBrut" header="Brut" />
+        <Column field="cotisationsSalariales" header="Cotisations salariales" />
+        <Column field="impot" header="IRSA" />
+        <Column header="Retenue">
+          <template #body="{ data }">
+            <PrimeInputText v-model="data.retenues" type="number" class="w-28" />
+            <PrimeButton
+              icon="pi pi-save"
+              text
+              rounded
+              aria-label="Enregistrer la retenue"
+              @click="api.enregistrerRetenue(data.id, Number(data.retenues))"
+            />
+          </template>
+        </Column>
+        <Column field="salaireNet" header="Net à payer" />
+        <Column field="statut" header="Statut" />
+      </DataTable>
+    </section>
+
+    <section class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+      <h2 class="mb-3">Historique des périodes</h2>
+      <DataTable :value="periodes" striped-rows>
+        <Column field="mois" header="Mois" />
+        <Column field="statut" header="Statut" />
+        <Column field="dateCreation" header="Créée le" />
+        <Column field="dateCloture" header="Clôturée le" />
+      </DataTable>
     </section>
 
     <section class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">

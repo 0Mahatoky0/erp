@@ -25,4 +25,21 @@ public interface DemandeCongeRepository extends JpaRepository<DemandeConge, Long
                                 @Param("debut") LocalDate debut,
                                 @Param("fin") LocalDate fin,
                                 @Param("statuts") List<StatutDemandeConge> statuts);
+
+    @Query(value = """
+        select exists (
+            select 1
+            from affectation a
+            where a.id_employe = :employe
+              and a.id_manager = :manager
+              and a.principale = true
+              and a.statut in ('ACTIVE', 'PLANIFIEE')
+              and a.date_debut <= :fin
+              and (a.date_fin is null or a.date_fin >= :debut)
+        )
+        """, nativeQuery = true)
+    boolean managerAffecteAEmploye(@Param("manager") Long manager,
+                                   @Param("employe") Long employe,
+                                   @Param("debut") LocalDate debut,
+                                   @Param("fin") LocalDate fin);
 }

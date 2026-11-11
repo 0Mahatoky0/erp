@@ -53,6 +53,11 @@ public final class CongeDtos {
     public record CongeResume(List<TypeDto> types, List<SoldeDto> soldes,
                               List<DemandeDto> demandes, List<AbsenceDto> absences) {}
 
+    public record EmployeCourantDto(Long idEmploye) {}
+
     public record VariablePaieDto(Long idEmploye, LocalDate dateDebut, LocalDate dateFin,
                                   BigDecimal jours, String typeConge, String motif) {}
+
+    public record PlanningDto(Long idEmploye, LocalDate dateDebut, LocalDate dateFin,
+                              BigDecimal jours, String typeConge, String motif) {}
 }

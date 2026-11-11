@@ -23,9 +23,23 @@ public class CongeController {
     }
 
     @GetMapping("/types")
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER', 'EMPLOYE')")
     public List<CongeDtos.TypeDto> types() {
         return service.types();
+    }
+
+    @GetMapping("/moi")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('EMPLOYE')")
+    public CongeDtos.EmployeCourantDto employeCourant() {
+        return service.employeCourant(utilisateurCourant.exiger());
+    }
+
+    @GetMapping("/moi/absences")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('EMPLOYE')")
+    public List<CongeDtos.AbsenceDto> mesAbsences() {
+        var utilisateur = utilisateurCourant.exiger();
+        Long idEmploye = service.employeCourant(utilisateur).idEmploye();
+        return service.absencesEmploye(idEmploye);
     }
 
     @GetMapping("/employes/{idEmploye}/soldes")
@@ -60,13 +74,13 @@ public class CongeController {
     @PostMapping("/demandes/{id}/valider")
     @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
     public CongeDtos.DemandeDto valider(@PathVariable Long id, @RequestBody(required = false) CongeDtos.DecisionRequest request) {
-        return service.decision(id, request, true);
+        return service.decision(id, request, true, utilisateurCourant.exiger());
     }
 
     @PostMapping("/demandes/{id}/refuser")
     @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
     public CongeDtos.DemandeDto refuser(@PathVariable Long id, @RequestBody(required = false) CongeDtos.DecisionRequest request) {
-        return service.decision(id, request, false);
+        return service.decision(id, request, false, utilisateurCourant.exiger());
     }
 
     @GetMapping("/absences")
