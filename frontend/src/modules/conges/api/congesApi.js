@@ -11,6 +11,8 @@ export const congesApi = {
   absences: () => api.get('/conges/absences'),
   creerAbsence: (absence) => api.post('/conges/absences', absence),
   justifier: (id, demande) => api.post(`/conges/absences/${id}/justifier`, demande),
+  planning: () => api.get('/conges/planning'),
+  variablesPaie: () => api.get('/conges/variables-paie'),
 }
 
 export { ErreurApi }

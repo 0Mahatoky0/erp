@@ -56,6 +56,9 @@ public class Employe {
     @Column(name = "id_candidat")
     private Long idCandidat;
 
+    @Column(name = "id_utilisateur", unique = true)
+    private Long idUtilisateur;
+
     @Column(name = "cin")
     private String cin;
 

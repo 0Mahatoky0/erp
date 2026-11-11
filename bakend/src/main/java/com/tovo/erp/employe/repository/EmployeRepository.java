@@ -23,6 +23,8 @@ public interface EmployeRepository extends JpaRepository<Employe, Long> {
 
     Optional<Employe> findFirstByIdCandidat(Long idCandidat);
 
+    Optional<Employe> findFirstByIdUtilisateur(Long idUtilisateur);
+
     List<Employe> findByIdInAndStatut(java.util.Collection<Long> ids, StatutEmploye statut);
 
     @Query("""

@@ -65,6 +65,11 @@ const sections = computed(() => {
     conges.push({ nom: 'conges-liste', label: 'Congés et absences', icon: 'pi pi-calendar' })
   }
 
+  const paie = []
+  if (auth.estRh || auth.estDirection || auth.estFinance) {
+    paie.push({ nom: 'paie-variables', label: 'Variables de paie', icon: 'pi pi-money-bill' })
+  }
+
   return [
     { label: 'Demande', items: principal },
     { label: 'Gestion', items: gestion },
@@ -73,6 +78,7 @@ const sections = computed(() => {
     { label: 'Contrats', items: contrats },
     { label: 'Temps de travail', items: temps },
     { label: 'Congés et absences', items: conges },
+    { label: 'Paie', items: paie },
   ]
     .filter((s) => s.items.length)
     .map((s) => ({

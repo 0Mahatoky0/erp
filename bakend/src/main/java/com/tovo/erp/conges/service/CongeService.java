@@ -5,6 +5,7 @@ import com.tovo.erp.conges.model.*;
 import com.tovo.erp.conges.repository.*;
 import com.tovo.erp.employe.repository.EmployeRepository;
 import com.tovo.erp.shared.BusinessException;
+import com.tovo.erp.shared.UtilisateurConnecte;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,15 +23,18 @@ import java.util.stream.Collectors;
 public class CongeService {
     private final TypeCongeRepository types;
     private final SoldeCongeRepository soldes;
+    private final DroitCongeRepository droits;
     private final DemandeCongeRepository demandes;
     private final AbsenceRepository absences;
     private final EmployeRepository employes;
 
     public CongeService(TypeCongeRepository types, SoldeCongeRepository soldes,
                         DemandeCongeRepository demandes, AbsenceRepository absences,
+                        DroitCongeRepository droits,
                         EmployeRepository employes) {
         this.types = types;
         this.soldes = soldes;
+        this.droits = droits;
         this.demandes = demandes;
         this.absences = absences;
         this.employes = employes;
@@ -52,8 +56,19 @@ public class CongeService {
                 solde = nouveauSolde(idEmploye, type, annee);
                 solde = soldes.save(solde);
             }
+
             return soldeDto(solde, type);
         }).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public void verifierAccesEmploye(Long idEmploye, UtilisateurConnecte utilisateur) {
+        verifierEmploye(idEmploye);
+        if ("EMPLOYE".equals(utilisateur.getRoleNom())) {
+            employes.findFirstByIdUtilisateur(utilisateur.getId())
+                    .filter(e -> e.getId().equals(idEmploye))
+                    .orElseThrow(() -> BusinessException.forbidden("Vous ne pouvez consulter que vos propres donnees."));
+        }
     }
 
     @Transactional(readOnly = true)
@@ -88,13 +103,14 @@ public class CongeService {
                 List.of(StatutDemandeConge.EN_ATTENTE, StatutDemandeConge.VALIDEE))) {
             throw new BusinessException("CHEVAUCHEMENT", "Une demande de conge existe deja sur cette periode.");
         }
-        SoldeConge solde = soldes.findByIdEmployeAndIdTypeCongeAndAnnee(request.idEmploye(), type.getId(), request.dateDebut().getYear())
-                .orElseGet(() -> soldes.save(nouveauSolde(request.idEmploye(), type, request.dateDebut().getYear())));
+        SoldeConge solde = soldeVoor(request.idEmploye(), type, request.dateDebut().getYear());
         BigDecimal nombre = BigDecimal.valueOf(jours);
         if (type.getJoursAcquisMois().signum() > 0
-                && solde.getJoursAcquis().subtract(solde.getJoursPris()).compareTo(nombre) < 0) {
+                && solde.getJoursAcquis().subtract(solde.getJoursPris()).subtract(solde.getJoursReserves()).compareTo(nombre) < 0) {
             throw new BusinessException("SOLDE_INSUFFISANT", "Le solde disponible est insuffisant pour cette demande.");
         }
+        solde.setJoursReserves(solde.getJoursReserves().add(nombre));
+        soldes.save(solde);
         DemandeConge demande = new DemandeConge();
         demande.setIdEmploye(request.idEmploye());
         demande.setIdTypeConge(type.getId());
@@ -117,10 +133,13 @@ public class CongeService {
         demande.setMotifDecision(request == null ? null : request.motif());
         demande.setDateDecision(LocalDateTime.now());
         if (valider && type.getJoursAcquisMois().signum() > 0) {
-            SoldeConge solde = soldes.findByIdEmployeAndIdTypeCongeAndAnnee(
-                    demande.getIdEmploye(), type.getId(), demande.getDateDebut().getYear())
-                    .orElseGet(() -> soldes.save(nouveauSolde(demande.getIdEmploye(), type, demande.getDateDebut().getYear())));
+            SoldeConge solde = soldeVoor(demande.getIdEmploye(), type, demande.getDateDebut().getYear());
+            solde.setJoursReserves(solde.getJoursReserves().subtract(demande.getNombreJours()).max(BigDecimal.ZERO));
             solde.setJoursPris(solde.getJoursPris().add(demande.getNombreJours()));
+            soldes.save(solde);
+        } else if (type.getJoursAcquisMois().signum() > 0) {
+            SoldeConge solde = soldeVoor(demande.getIdEmploye(), type, demande.getDateDebut().getYear());
+            solde.setJoursReserves(solde.getJoursReserves().subtract(demande.getNombreJours()).max(BigDecimal.ZERO));
             soldes.save(solde);
         }
         return CongeDtos.DemandeDto.de(demandes.save(demande), type.getLibelle());
@@ -159,19 +178,57 @@ public class CongeService {
         return CongeDtos.AbsenceDto.de(absences.save(absence));
     }
 
+    @Transactional(readOnly = true)
+    public List<CongeDtos.VariablePaieDto> variablesPaie() {
+        Map<Long, String> noms = types.findAll().stream()
+                .collect(Collectors.toMap(TypeConge::getId, TypeConge::getLibelle));
+        return demandes.findByStatutOrderByDateDebutAsc(StatutDemandeConge.VALIDEE).stream()
+                .map(d -> new CongeDtos.VariablePaieDto(d.getIdEmploye(), d.getDateDebut(), d.getDateFin(),
+                        d.getNombreJours(), noms.get(d.getIdTypeConge()), d.getMotif()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CongeDtos.DemandeDto> planningConges() {
+        Map<Long, String> noms = types.findAll().stream()
+                .collect(Collectors.toMap(TypeConge::getId, TypeConge::getLibelle));
+        return demandes.findByStatutOrderByDateDebutAsc(StatutDemandeConge.VALIDEE).stream()
+                .map(d -> CongeDtos.DemandeDto.de(d, noms.get(d.getIdTypeConge())))
+                .toList();
+    }
+
     private SoldeConge nouveauSolde(Long employe, TypeConge type, int annee) {
+        DroitConge droit = droits.findByIdEmployeAndIdTypeCongeAndAnnee(employe, type.getId(), annee)
+                .orElseGet(() -> droits.save(nouveauDroit(employe, type, annee)));
         SoldeConge solde = new SoldeConge();
         solde.setIdEmploye(employe);
         solde.setIdTypeConge(type.getId());
         solde.setAnnee(annee);
         int mois = annee < LocalDate.now().getYear() ? 12 : LocalDate.now().getMonthValue();
-        solde.setJoursAcquis(type.getJoursAcquisMois().multiply(BigDecimal.valueOf(mois)).setScale(2, RoundingMode.HALF_UP));
+        solde.setIdDroitConge(droit.getId());
+        solde.setJoursAcquis(droit.getJoursAutorises().add(droit.getReportEntrant()));
         return solde;
+    }
+
+    private DroitConge nouveauDroit(Long employe, TypeConge type, int annee) {
+        DroitConge droit = new DroitConge();
+        droit.setIdEmploye(employe);
+        droit.setIdTypeConge(type.getId());
+        droit.setAnnee(annee);
+        int mois = annee < LocalDate.now().getYear() ? 12 : LocalDate.now().getMonthValue();
+        droit.setJoursAutorises(type.getJoursAcquisMois().multiply(BigDecimal.valueOf(mois)).setScale(2, RoundingMode.HALF_UP));
+        return droit;
+    }
+
+    private SoldeConge soldeVoor(Long employe, TypeConge type, int annee) {
+        return soldes.findByIdEmployeAndIdTypeCongeAndAnnee(employe, type.getId(), annee)
+                .orElseGet(() -> soldes.save(nouveauSolde(employe, type, annee)));
     }
 
     private CongeDtos.SoldeDto soldeDto(SoldeConge s, TypeConge type) {
         return new CongeDtos.SoldeDto(s.getId(), s.getIdEmploye(), s.getIdTypeConge(), type.getLibelle(),
-                s.getAnnee(), s.getJoursAcquis(), s.getJoursPris(), s.getJoursAcquis().subtract(s.getJoursPris()));
+                s.getAnnee(), s.getJoursAcquis(), s.getJoursPris(), s.getJoursReserves(),
+                s.getJoursAcquis().subtract(s.getJoursPris()).subtract(s.getJoursReserves()));
     }
 
     private void verifierEmploye(Long id) {

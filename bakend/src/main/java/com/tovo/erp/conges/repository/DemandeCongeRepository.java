@@ -14,6 +14,8 @@ public interface DemandeCongeRepository extends JpaRepository<DemandeConge, Long
     List<DemandeConge> findByStatutOrderByDateCreationDesc(StatutDemandeConge statut);
     List<DemandeConge> findByIdEmployeOrderByDateCreationDesc(Long idEmploye);
 
+    List<DemandeConge> findByStatutOrderByDateDebutAsc(StatutDemandeConge statut);
+
     @Query("""
         select count(d) > 0 from DemandeConge d
         where d.idEmploye = :employe and d.statut in :statuts

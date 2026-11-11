@@ -18,7 +18,8 @@ public final class CongeDtos {
     }
 
     public record SoldeDto(Long id, Long idEmploye, Long idTypeConge, String typeConge,
-                           int annee, BigDecimal joursAcquis, BigDecimal joursPris, BigDecimal disponible) {}
+                           int annee, BigDecimal joursAcquis, BigDecimal joursPris, BigDecimal joursReserves,
+                           BigDecimal disponible) {}
 
     public record DemandeRequest(@NotNull Long idEmploye, @NotNull Long idTypeConge,
                                  @NotNull LocalDate dateDebut, @NotNull LocalDate dateFin,
@@ -51,4 +52,7 @@ public final class CongeDtos {
 
     public record CongeResume(List<TypeDto> types, List<SoldeDto> soldes,
                               List<DemandeDto> demandes, List<AbsenceDto> absences) {}
+
+    public record VariablePaieDto(Long idEmploye, LocalDate dateDebut, LocalDate dateFin,
+                                  BigDecimal jours, String typeConge, String motif) {}
 }

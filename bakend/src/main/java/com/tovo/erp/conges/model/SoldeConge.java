@@ -19,10 +19,14 @@ public class SoldeConge {
     private Long idEmploye;
     @Column(name = "id_type_conge", nullable = false)
     private Long idTypeConge;
+    @Column(name = "id_droit_conge")
+    private Long idDroitConge;
     @Column(nullable = false)
     private int annee;
     @Column(name = "jours_acquis", nullable = false, precision = 6, scale = 2)
     private BigDecimal joursAcquis = BigDecimal.ZERO;
     @Column(name = "jours_pris", nullable = false, precision = 6, scale = 2)
     private BigDecimal joursPris = BigDecimal.ZERO;
+    @Column(name = "jours_reserves", nullable = false, precision = 6, scale = 2)
+    private BigDecimal joursReserves = BigDecimal.ZERO;
 }

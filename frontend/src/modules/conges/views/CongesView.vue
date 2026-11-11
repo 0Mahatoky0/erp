@@ -135,6 +135,7 @@ onMounted(async () => {
         <Column field="typeConge" header="Type" />
         <Column field="joursAcquis" header="Acquis" />
         <Column field="joursPris" header="Pris" />
+        <Column field="joursReserves" header="Réservés" />
         <Column field="disponible" header="Disponible" />
       </DataTable>
     </section>

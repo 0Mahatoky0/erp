@@ -4,6 +4,7 @@ import com.tovo.erp.conges.dto.CongeDtos;
 import com.tovo.erp.conges.model.StatutAbsence;
 import com.tovo.erp.conges.model.StatutDemandeConge;
 import com.tovo.erp.conges.service.CongeService;
+import com.tovo.erp.shared.UtilisateurCourant;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -14,9 +15,11 @@ import java.util.List;
 @RequestMapping("/api/conges")
 public class CongeController {
     private final CongeService service;
+    private final UtilisateurCourant utilisateurCourant;
 
-    public CongeController(CongeService service) {
+    public CongeController(CongeService service, UtilisateurCourant utilisateurCourant) {
         this.service = service;
+        this.utilisateurCourant = utilisateurCourant;
     }
 
     @GetMapping("/types")
@@ -29,6 +32,7 @@ public class CongeController {
     @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
     public List<CongeDtos.SoldeDto> soldes(@PathVariable Long idEmploye,
                                            @RequestParam(required = false) Integer annee) {
+        service.verifierAccesEmploye(idEmploye, utilisateurCourant.exiger());
         return service.soldes(idEmploye, annee == null ? java.time.LocalDate.now().getYear() : annee);
     }
 
@@ -41,13 +45,15 @@ public class CongeController {
     @GetMapping("/employes/{idEmploye}/demandes")
     @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER', 'EMPLOYE')")
     public List<CongeDtos.DemandeDto> demandesEmploye(@PathVariable Long idEmploye) {
+        service.verifierAccesEmploye(idEmploye, utilisateurCourant.exiger());
         return service.demandesEmploye(idEmploye);
     }
 
     @PostMapping("/demandes")
     @ResponseStatus(HttpStatus.CREATED)
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER', 'EMPLOYE')")
     public CongeDtos.DemandeDto creerDemande(@Valid @RequestBody CongeDtos.DemandeRequest request) {
+        service.verifierAccesEmploye(request.idEmploye(), utilisateurCourant.exiger());
         return service.creerDemande(request);
     }
 
@@ -71,8 +77,9 @@ public class CongeController {
 
     @PostMapping("/absences")
     @ResponseStatus(HttpStatus.CREATED)
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER', 'EMPLOYE')")
     public CongeDtos.AbsenceDto creerAbsence(@Valid @RequestBody CongeDtos.AbsenceRequest request) {
+        service.verifierAccesEmploye(request.idEmploye(), utilisateurCourant.exiger());
         return service.creerAbsence(request);
     }
 
@@ -81,5 +88,17 @@ public class CongeController {
     public CongeDtos.AbsenceDto justifier(@PathVariable Long id, @RequestBody CongeDtos.DecisionRequest request) {
         return service.justifier(id, request == null ? null : request.idValidateur(),
                 request == null ? null : request.motif());
+    }
+
+    @GetMapping("/planning")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    public List<CongeDtos.DemandeDto> planning() {
+        return service.planningConges();
+    }
+
+    @GetMapping("/variables-paie")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'FINANCE', 'DIRECTION')")
+    public List<CongeDtos.VariablePaieDto> variablesPaie() {
+        return service.variablesPaie();
     }
 }
