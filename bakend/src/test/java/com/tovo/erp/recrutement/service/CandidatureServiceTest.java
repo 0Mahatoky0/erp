@@ -91,6 +91,26 @@ class CandidatureServiceTest {
     }
 
     @Test
+    void historiseUneAcceptationPubliqueCommeActionDuCandidat() {
+        Candidature candidature = new Candidature();
+        candidature.setIdCandidature(3L);
+        candidature.setStatut(CandidatureStatut.RETENUE);
+        Candidat candidat = new Candidat();
+        candidature.setCandidat(candidat);
+        OffreEmploi offre = new OffreEmploi();
+        offre.setStatut(OffreStatut.PUBLIEE);
+        candidature.setOffre(offre);
+        when(candidatures.findById(3L)).thenReturn(Optional.of(candidature));
+        when(candidatures.save(candidature)).thenReturn(candidature);
+
+        service.marquerEmbauchee(3L, AuteurType.CANDIDAT, null, "Acceptation publique");
+
+        verify(historiques).save(argThat(h -> h.getAuteurType() == AuteurType.CANDIDAT
+                && h.getIdUtilisateur() == null
+                && h.getNouveauStatut() == CandidatureStatut.EMBAUCHEE));
+    }
+
+    @Test
     void refuseUneTransitionQuiContourneLeCycle() {
         Candidature candidature = new Candidature();
         candidature.setIdCandidature(3L);

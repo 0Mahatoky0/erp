@@ -161,6 +161,12 @@ public class CandidatureService {
     /** Le candidat a accepte : la candidature devient EMBAUCHEE (section 5.4, etape 8). */
     @Transactional
     public Candidature marquerEmbauchee(Long id, Long idUtilisateur, String commentaire) {
+        return marquerEmbauchee(id, AuteurType.UTILISATEUR, idUtilisateur, commentaire);
+    }
+
+    @Transactional
+    public Candidature marquerEmbauchee(Long id, AuteurType auteurType, Long idUtilisateur,
+                                        String commentaire) {
         Candidature candidature = charger(id);
         if (candidature.getStatut() == CandidatureStatut.EMBAUCHEE) {
             return candidature;
@@ -172,7 +178,7 @@ public class CandidatureService {
         }
         candidature.setStatut(CandidatureStatut.EMBAUCHEE);
         Candidature saved = candidatures.save(candidature);
-        historiser(saved, ancien, CandidatureStatut.EMBAUCHEE, AuteurType.UTILISATEUR,
+        historiser(saved, ancien, CandidatureStatut.EMBAUCHEE, auteurType,
                 idUtilisateur, commentaire);
         Candidat candidat = saved.getCandidat();
         candidat.setStatut(StatutCandidat.EMPLOYE);
