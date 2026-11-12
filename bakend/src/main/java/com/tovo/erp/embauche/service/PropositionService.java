@@ -225,6 +225,22 @@ public class PropositionService {
     }
 
     @Transactional(readOnly = true)
+    public List<PropositionDtos.Resume> lister(String statut) {
+        return lister(parserStatut(statut));
+    }
+
+    private PropositionStatut parserStatut(String statut) {
+        if (statut == null || statut.isBlank()) {
+            return null;
+        }
+        try {
+            return PropositionStatut.valueOf(statut.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new BusinessException("STATUT_INVALIDE", "Statut de proposition inconnu : " + statut);
+        }
+    }
+
+    @Transactional(readOnly = true)
     public List<PropositionDtos.Resume> lister(PropositionStatut statut) {
         List<PropositionEmbauche> liste = statut == null
                 ? propositions.findAllByOrderByDateCreationDesc()

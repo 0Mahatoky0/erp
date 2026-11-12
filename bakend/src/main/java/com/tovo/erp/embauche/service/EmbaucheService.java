@@ -18,7 +18,6 @@ import com.tovo.erp.employe.dto.EmployeEmbaucheDto;
 import com.tovo.erp.employe.service.EmployeService;
 import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.recrutement.dto.CandidatureEmbaucheDto;
-import com.tovo.erp.recrutement.model.AuteurType;
 import com.tovo.erp.recrutement.service.CandidatureService;
 import com.tovo.erp.shared.BusinessException;
 import org.springframework.stereotype.Service;
@@ -167,8 +166,8 @@ public class EmbaucheService {
         if (candidature.idDemandePoste() != null) {
             demandes.enregistrerEmbauche(candidature.idDemandePoste());
         }
-        candidatures.marquerEmbauchee(proposition.getIdCandidature(),
-                auteurType == AuteurProposition.CANDIDAT ? AuteurType.CANDIDAT : AuteurType.UTILISATEUR,
+        candidatures.marquerEmbaucheePar(proposition.getIdCandidature(),
+                auteurType == AuteurProposition.CANDIDAT ? "CANDIDAT" : "UTILISATEUR",
                 idUtilisateur,
                 "Acceptation de la proposition " + proposition.getReference());
 

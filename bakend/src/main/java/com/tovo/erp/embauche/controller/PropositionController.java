@@ -1,7 +1,6 @@
 package com.tovo.erp.embauche.controller;
 
 import com.tovo.erp.embauche.dto.PropositionDtos;
-import com.tovo.erp.embauche.model.PropositionStatut;
 import com.tovo.erp.embauche.service.PropositionService;
 import com.tovo.erp.shared.Roles;
 import com.tovo.erp.shared.UtilisateurCourant;
@@ -38,7 +37,7 @@ public class PropositionController {
     }
 
     @GetMapping
-    public List<PropositionDtos.Resume> lister(@RequestParam(required = false) PropositionStatut statut) {
+    public List<PropositionDtos.Resume> lister(@RequestParam(required = false) String statut) {
         utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION, Roles.MANAGER);
         return propositions.lister(statut);
     }
