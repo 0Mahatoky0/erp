@@ -33,4 +33,18 @@ public final class EmployeDto {
                     employe.getStatut().name());
         }
     }
+
+    /** Reference minimale d'un salarie actif, pour les modules qui calculent des variables. */
+    public record Actif(Long id, String nom, String prenom, Long idService, LocalDate dateEmbauche) {
+
+        public static Actif de(Employe employe) {
+            return new Actif(employe.getId(), employe.getNom(), employe.getPrenom(), null,
+                    employe.getDateEmbauche());
+        }
+
+        public static Actif de(Employe employe, PosteDetailVue poste) {
+            return new Actif(employe.getId(), employe.getNom(), employe.getPrenom(),
+                    poste == null ? null : poste.getIdService(), employe.getDateEmbauche());
+        }
+    }
 }

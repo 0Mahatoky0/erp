@@ -29,6 +29,23 @@ public interface EmployeRepository extends JpaRepository<Employe, Long> {
 
     @Query("""
             select e from Employe e
+            where e.statut = :statut
+              and e.idPoste in (select p.id from PosteDetailVue p where p.idService = :idService)
+            order by e.nom, e.prenom
+            """)
+    List<Employe> findByStatutAndIdService(@Param("statut") StatutEmploye statut,
+                                           @Param("idService") Long idService);
+
+    @Query("""
+            select e from Employe e
+            where e.statut = :statut and e.idPoste = :idPoste
+            order by e.nom, e.prenom
+            """)
+    List<Employe> findByStatutAndIdPoste(@Param("statut") StatutEmploye statut,
+                                         @Param("idPoste") Long idPoste);
+
+    @Query("""
+            select e from Employe e
             where (:statut is null or e.statut = :statut)
               and (:idService is null or e.idPoste in (
                    select p.id from PosteDetailVue p where p.idService = :idService))
