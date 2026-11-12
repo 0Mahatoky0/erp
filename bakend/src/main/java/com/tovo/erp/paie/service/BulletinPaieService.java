@@ -2,7 +2,7 @@ package com.tovo.erp.paie.service;
 
 import com.tovo.erp.contrat.dto.ContratDtos;
 import com.tovo.erp.contrat.service.ContratService;
-import com.tovo.erp.employe.repository.EmployeRepository;
+import com.tovo.erp.employe.service.EmployeService;
 import com.tovo.erp.paie.dto.BulletinPaieDtos;
 import com.tovo.erp.paie.model.*;
 import com.tovo.erp.paie.repository.*;
@@ -21,11 +21,11 @@ public class BulletinPaieService {
     private final ParametrePaieRepository parametres;
     private final PeriodePaieRepository periodes;
     private final BulletinPaieRepository bulletins;
-    private final EmployeRepository employes;
+    private final EmployeService employes;
     private final ContratService contrats;
 
     public BulletinPaieService(ParametrePaieRepository parametres, PeriodePaieRepository periodes,
-                               BulletinPaieRepository bulletins, EmployeRepository employes,
+                               BulletinPaieRepository bulletins, EmployeService employes,
                                ContratService contrats) {
         this.parametres = parametres;
         this.periodes = periodes;
@@ -69,19 +69,19 @@ public class BulletinPaieService {
         if (periode.getStatut() == StatutPeriodePaie.CLOTUREE) {
             throw new BusinessException("PERIODE_CLOTUREE", "Une période clôturée ne peut plus être recalculée.");
         }
-        employes.findByStatutOrderByNomAscPrenomAsc(com.tovo.erp.employe.model.StatutEmploye.ACTIF)
+        employes.actifs()
                 .forEach(employe -> {
-                    ContratDtos.ContratDto contrat = contrats.courant(employe.getId());
+                    ContratDtos.ContratDto contrat = contrats.courant(employe.id());
                     if (contrat == null || contrat.salaireBase() == null) return;
                     BigDecimal brut = contrat.salaireBase();
                     BigDecimal cotisationsSalariales = taux(brut, parametre.getTauxCotisationsSalariales());
                     BigDecimal impot = taux(brut.subtract(cotisationsSalariales).max(BigDecimal.ZERO),
                             parametre.getTauxIrsa());
                     BigDecimal cotisationsPatronales = taux(brut, parametre.getTauxCotisationsPatronales());
-                    BulletinPaie bulletin = bulletins.findByIdPeriodeAndIdEmploye(periode.getId(), employe.getId())
+                    BulletinPaie bulletin = bulletins.findByIdPeriodeAndIdEmploye(periode.getId(), employe.id())
                             .orElseGet(BulletinPaie::new);
                     bulletin.setIdPeriode(periode.getId());
-                    bulletin.setIdEmploye(employe.getId());
+                    bulletin.setIdEmploye(employe.id());
                     bulletin.setSalaireBrut(brut);
                     bulletin.setCotisationsSalariales(cotisationsSalariales);
                     bulletin.setImpot(impot);
