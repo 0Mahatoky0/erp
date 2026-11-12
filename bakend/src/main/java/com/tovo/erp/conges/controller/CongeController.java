@@ -1,9 +1,8 @@
 package com.tovo.erp.conges.controller;
 
 import com.tovo.erp.conges.dto.CongeDtos;
-import com.tovo.erp.conges.model.StatutAbsence;
-import com.tovo.erp.conges.model.StatutDemandeConge;
 import com.tovo.erp.conges.service.CongeService;
+import com.tovo.erp.conges.service.SuppleanceService;
 import com.tovo.erp.shared.UtilisateurCourant;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -15,10 +14,13 @@ import java.util.List;
 @RequestMapping("/api/conges")
 public class CongeController {
     private final CongeService service;
+    private final SuppleanceService suppleances;
     private final UtilisateurCourant utilisateurCourant;
 
-    public CongeController(CongeService service, UtilisateurCourant utilisateurCourant) {
+    public CongeController(CongeService service, SuppleanceService suppleances,
+                           UtilisateurCourant utilisateurCourant) {
         this.service = service;
+        this.suppleances = suppleances;
         this.utilisateurCourant = utilisateurCourant;
     }
 
@@ -52,7 +54,7 @@ public class CongeController {
 
     @GetMapping("/demandes")
     @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
-    public List<CongeDtos.DemandeDto> demandes(@RequestParam(required = false) StatutDemandeConge statut) {
+    public List<CongeDtos.DemandeDto> demandes(@RequestParam(required = false) String statut) {
         return service.demandes(statut);
     }
 
@@ -83,9 +85,43 @@ public class CongeController {
         return service.decision(id, request, false, utilisateurCourant.exiger());
     }
 
+    @PostMapping("/demandes/{id}/annuler")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER', 'EMPLOYE')")
+    public CongeDtos.DemandeDto annuler(@PathVariable Long id,
+                                         @RequestBody(required = false) CongeDtos.AnnulationRequest request) {
+        return service.annuler(id, request == null ? null : request.motif(), utilisateurCourant.exiger());
+    }
+
+    @PostMapping("/demandes/{id}/ecourter")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    public CongeDtos.DemandeDto ecourter(@PathVariable Long id,
+                                          @Valid @RequestBody CongeDtos.EcourtementRequest request) {
+        return service.ecourter(id, request, utilisateurCourant.exiger());
+    }
+
+    @PostMapping("/soldes/ajuster")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION')")
+    public CongeDtos.SoldeDto ajuster(@Valid @RequestBody CongeDtos.AjustementRequest request) {
+        return service.ajuster(request, utilisateurCourant.exiger().getId());
+    }
+
+    @GetMapping("/employes/{idEmploye}/mouvements")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    public List<CongeDtos.MouvementDto> mouvements(@PathVariable Long idEmploye,
+                                                   @RequestParam(required = false) Long idTypeConge) {
+        service.verifierAccesEmploye(idEmploye, utilisateurCourant.exiger());
+        return service.mouvements(idEmploye, idTypeConge);
+    }
+
+    @PostMapping("/acquisition")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION')")
+    public int acquerir(@RequestParam int annee, @RequestParam int mois) {
+        return service.acquerirMois(annee, mois);
+    }
+
     @GetMapping("/absences")
     @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
-    public List<CongeDtos.AbsenceDto> absences(@RequestParam(required = false) StatutAbsence statut) {
+    public List<CongeDtos.AbsenceDto> absences(@RequestParam(required = false) String statut) {
         return service.absences(statut);
     }
 
@@ -102,6 +138,74 @@ public class CongeController {
     public CongeDtos.AbsenceDto justifier(@PathVariable Long id, @RequestBody CongeDtos.DecisionRequest request) {
         return service.justifier(id, request == null ? null : request.idValidateur(),
                 request == null ? null : request.motif());
+    }
+
+    @GetMapping("/periodes-bloquees")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    public List<CongeDtos.PeriodeBloqueeDto> periodesBloquees() {
+        return service.periodesBloquees();
+    }
+
+    @PostMapping("/periodes-bloquees")
+    @ResponseStatus(HttpStatus.CREATED)
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION')")
+    public CongeDtos.PeriodeBloqueeDto creerPeriodeBloquee(
+            @Valid @RequestBody CongeDtos.PeriodeBloqueeRequest request) {
+        return service.creerPeriodeBloquee(request);
+    }
+
+    @DeleteMapping("/periodes-bloquees/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION')")
+    public void supprimerPeriodeBloquee(@PathVariable Long id) {
+        service.supprimerPeriodeBloquee(id);
+    }
+
+    @GetMapping("/matrice-remplacement")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    public List<CongeDtos.MatriceRemplacementDto> matrice() {
+        return suppleances.matrice();
+    }
+
+    @PostMapping("/matrice-remplacement")
+    @ResponseStatus(HttpStatus.CREATED)
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION')")
+    public CongeDtos.MatriceRemplacementDto enregistrerMatrice(
+            @RequestBody CongeDtos.MatriceRemplacementRequest request) {
+        return suppleances.enregistrerMatrice(request);
+    }
+
+    @PostMapping("/demandes/{id}/suppleance")
+    @ResponseStatus(HttpStatus.CREATED)
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    public CongeDtos.SuppleanceDto proposerSuppleance(
+            @PathVariable Long id, @RequestBody(required = false) CongeDtos.SuppleanceRequest request) {
+        return suppleances.proposer(id, request);
+    }
+
+    @GetMapping("/demandes/{id}/suppleances")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    public List<CongeDtos.SuppleanceDto> suppleancesDeDemande(@PathVariable Long id) {
+        return suppleances.deDemande(id);
+    }
+
+    @PostMapping("/suppleances/{id}/repondre")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER', 'EMPLOYE')")
+    public CongeDtos.SuppleanceDto repondreSuppleance(
+            @PathVariable Long id, @Valid @RequestBody CongeDtos.ReponseSuppleanceRequest request) {
+        return suppleances.repondre(id, request);
+    }
+
+    @PostMapping("/suppleances/{id}/terminer")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    public CongeDtos.SuppleanceDto terminerSuppleance(@PathVariable Long id) {
+        return suppleances.terminer(id);
+    }
+
+    @GetMapping("/employes/{idEmploye}/suppleances")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER', 'EMPLOYE')")
+    public List<CongeDtos.SuppleanceDto> suppleancesDuRemplacant(@PathVariable Long idEmploye) {
+        return suppleances.deRemplacant(idEmploye);
     }
 
     @GetMapping("/planning")

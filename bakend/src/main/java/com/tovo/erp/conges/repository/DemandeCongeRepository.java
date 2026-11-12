@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 public interface DemandeCongeRepository extends JpaRepository<DemandeConge, Long> {
@@ -15,6 +16,7 @@ public interface DemandeCongeRepository extends JpaRepository<DemandeConge, Long
     List<DemandeConge> findByIdEmployeOrderByDateCreationDesc(Long idEmploye);
 
     List<DemandeConge> findByStatutOrderByDateDebutAsc(StatutDemandeConge statut);
+    List<DemandeConge> findByStatutInOrderByDateDebutAsc(List<StatutDemandeConge> statuts);
 
     @Query("""
         select count(d) > 0 from DemandeConge d
@@ -25,6 +27,10 @@ public interface DemandeCongeRepository extends JpaRepository<DemandeConge, Long
                                 @Param("debut") LocalDate debut,
                                 @Param("fin") LocalDate fin,
                                 @Param("statuts") List<StatutDemandeConge> statuts);
+
+    List<DemandeConge> findByIdEmployeInAndStatutInAndDateDebutLessThanEqualAndDateFinGreaterThanEqual(
+            Collection<Long> idEmployes, Collection<StatutDemandeConge> statuts,
+            LocalDate fin, LocalDate debut);
 
     @Query(value = """
         select exists (

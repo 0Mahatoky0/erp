@@ -31,13 +31,33 @@ public class DemandeConge {
     private String motif;
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private StatutDemandeConge statut = StatutDemandeConge.EN_ATTENTE;
+    private StatutDemandeConge statut = StatutDemandeConge.SOUMISE;
     @Column(name = "id_validateur")
     private Long idValidateur;
     @Column(name = "motif_decision", columnDefinition = "TEXT")
     private String motifDecision;
     @Column(name = "date_decision")
     private LocalDateTime dateDecision;
+    @Column(name = "date_depot", nullable = false)
+    private LocalDateTime dateDepot = LocalDateTime.now();
+    @Enumerated(EnumType.STRING)
+    @Column(name = "demi_journee_debut", length = 10)
+    private DemiJournee demiJourneeDebut;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "demi_journee_fin", length = 10)
+    private DemiJournee demiJourneeFin;
+    @Column(name = "id_validateur_manager")
+    private Long idValidateurManager;
+    @Column(name = "date_validation_manager")
+    private LocalDateTime dateValidationManager;
+    @Column(name = "id_validateur_rh")
+    private Long idValidateurRh;
+    @Column(name = "date_validation_rh")
+    private LocalDateTime dateValidationRh;
+    @Column(name = "id_remplacant")
+    private Long idRemplacant;
+    @Column(name = "justificatif_document_id")
+    private Long justificatifDocumentId;
     @Column(name = "date_creation", nullable = false)
     private LocalDateTime dateCreation = LocalDateTime.now();
 }
