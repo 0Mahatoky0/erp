@@ -5,7 +5,6 @@ import { onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/store/useAuthStore'
 import { recrutementApi as api, ErreurApi } from '@/modules/recrutement/api/recrutementApi'
-import { contratApi } from '@/modules/contrat/api/contratApi'
 import StatusBadge from '@/shared/components/StatusBadge.vue'
 import ModalDialog from '@/shared/components/ModalDialog.vue'
 import { formatDate, formatDateHeure, formatMontant } from '@/shared/utils/format'
@@ -45,7 +44,7 @@ async function chargerMesCandidatures() {
 
 async function chargerMesContrats() {
   try {
-    contrats.value = await contratApi.get('/contrats/mes-contrats')
+    contrats.value = await api.get('/contrats/mes-contrats')
   } catch {
     contrats.value = []
   }
@@ -60,7 +59,7 @@ async function signerContrat() {
   if (!contratASigner.value || !nomSignataire.value.trim()) return
   signatureEnCours.value = true
   try {
-    await contratApi.post(`/contrats/mes-contrats/${contratASigner.value.id}/signer`,
+    await api.post(`/contrats/mes-contrats/${contratASigner.value.id}/signer`,
       { nomSignataire: nomSignataire.value })
     contratASigner.value = null
     nomSignataire.value = ''

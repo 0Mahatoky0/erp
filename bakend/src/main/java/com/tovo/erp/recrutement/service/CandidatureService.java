@@ -2,6 +2,7 @@ package com.tovo.erp.recrutement.service;
 
 import com.tovo.erp.recrutement.dto.CandidatureDto;
 import com.tovo.erp.recrutement.dto.CandidatureEmbaucheDto;
+import com.tovo.erp.recrutement.dto.HistoriqueCandidatureDto;
 import com.tovo.erp.recrutement.model.*;
 import com.tovo.erp.recrutement.repository.*;
 import com.tovo.erp.shared.Roles;
@@ -92,6 +93,13 @@ public class CandidatureService {
         return saved;
     }
 
+    /** Variante HTTP : la candidature creee est exposee sous forme de DTO. */
+    @Transactional
+    public CandidatureDto postulerDto(Long idOffre, UtilisateurConnecte utilisateur,
+                                      String message, String source) {
+        return CandidatureDto.de(postuler(idOffre, utilisateur, message, source));
+    }
+
     /** Compatibilite des tests legacy ; les endpoints utilisent le compte authentifie. */
     @Deprecated
     @Transactional
@@ -126,6 +134,19 @@ public class CandidatureService {
         return CandidatureDto.de(saved);
     }
 
+    /** Candidatures filtrees par statut texte, pour les clients HTTP. */
+    @Transactional
+    public List<CandidatureDto> listerParStatut(String statut) {
+        if (statut == null || statut.isBlank()) {
+            return listerParStatut((CandidatureStatut) null);
+        }
+        try {
+            return listerParStatut(CandidatureStatut.valueOf(statut.trim().toUpperCase(java.util.Locale.ROOT)));
+        } catch (IllegalArgumentException ex) {
+            throw new BusinessException("STATUT_INVALIDE", "Statut de candidature inconnu : " + statut);
+        }
+    }
+
     /** Candidatures filtrees par statut, pour la liste de selection d'embauche. */
     @Transactional
     public List<CandidatureDto> listerParStatut(CandidatureStatut statut) {
@@ -143,6 +164,11 @@ public class CandidatureService {
 
     /** Vue partagee avec le module embauche pour une candidature. */
     @Transactional
+    public CandidatureDto retirerDto(Long id, Long idUtilisateur) {
+        return changerStatut(id, CandidatureStatut.RETIREE, idUtilisateur, "Retrait de candidature");
+    }
+
+    @Transactional
     public CandidatureEmbaucheDto detailsPourEmbauche(Long id) {
         return CandidatureEmbaucheDto.de(charger(id));
     }
@@ -159,6 +185,17 @@ public class CandidatureService {
     }
 
     /** Le candidat a accepte : la candidature devient EMBAUCHEE (section 5.4, etape 8). */
+    @Transactional
+    public CandidatureDto marquerEmbaucheePar(Long id, String auteur, Long idUtilisateur, String commentaire) {
+        AuteurType type;
+        try {
+            type = AuteurType.valueOf(auteur.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException | NullPointerException ex) {
+            throw new BusinessException("AUTEUR_INVALIDE", "Auteur inconnu : " + auteur);
+        }
+        return CandidatureDto.de(marquerEmbauchee(id, type, idUtilisateur, commentaire));
+    }
+
     @Transactional
     public Candidature marquerEmbauchee(Long id, Long idUtilisateur, String commentaire) {
         return marquerEmbauchee(id, AuteurType.UTILISATEUR, idUtilisateur, commentaire);
@@ -224,12 +261,50 @@ public class CandidatureService {
         return saved;
     }
 
+    @Transactional
+    public List<CandidatureDto> parOffreDto(Long idOffre, String statut) {
+        CandidatureStatut filtre = null;
+        if (statut != null && !statut.isBlank()) {
+            try {
+                filtre = CandidatureStatut.valueOf(statut.trim().toUpperCase(java.util.Locale.ROOT));
+            } catch (IllegalArgumentException ex) {
+                throw new BusinessException("STATUT_INVALIDE", "Statut de candidature inconnu : " + statut);
+            }
+        }
+        return parOffre(idOffre, filtre).stream().map(CandidatureDto::de).toList();
+    }
+
     public List<Candidature> parOffre(Long idOffre, CandidatureStatut statut) {
         return statut == null ? candidatures.findByOffreIdOffre(idOffre)
                 : candidatures.findByOffreIdOffreAndStatut(idOffre, statut);
     }
 
     public List<Candidature> parCandidat(Long idCandidat) { return candidatures.findByCandidatIdCandidat(idCandidat); }
+
+    @Transactional
+    public List<CandidatureDto> parCandidatDto(Long idCandidat) {
+        return parCandidat(idCandidat).stream().map(CandidatureDto::de).toList();
+    }
+
+    @Transactional
+    public List<HistoriqueCandidatureDto> historique(Long idCandidature) {
+        return historiques.findByCandidatureIdCandidatureOrderByDateActionAsc(idCandidature).stream()
+                .map(HistoriqueCandidatureDto::de)
+                .toList();
+    }
+
+    @Transactional
+    public void enregistrerProfilCandidat(Long idUtilisateur, String nom, String prenom,
+                                          String email, String telephone, String adresse) {
+        Candidat candidat = candidats.findByIdUtilisateur(idUtilisateur).orElseGet(Candidat::new);
+        candidat.setIdUtilisateur(idUtilisateur);
+        candidat.setNom(nom == null ? null : nom.trim());
+        candidat.setPrenom(prenom == null ? null : prenom.trim());
+        candidat.setEmail(email == null ? null : email.trim());
+        candidat.setTelephone(telephone);
+        candidat.setAdresse(adresse);
+        candidats.save(candidat);
+    }
 
     @Transactional
     public List<CandidatureDto> listerParEmailPublic(String email) {

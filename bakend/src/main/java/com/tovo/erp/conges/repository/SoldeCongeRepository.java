@@ -8,5 +8,6 @@ import java.util.Optional;
 
 public interface SoldeCongeRepository extends JpaRepository<SoldeConge, Long> {
     List<SoldeConge> findByIdEmployeAndAnnee(Long idEmploye, int annee);
+    List<SoldeConge> findByIdEmployeAndIdTypeCongeOrderByAnneeAsc(Long idEmploye, Long idTypeConge);
     Optional<SoldeConge> findByIdEmployeAndIdTypeCongeAndAnnee(Long idEmploye, Long idTypeConge, int annee);
 }

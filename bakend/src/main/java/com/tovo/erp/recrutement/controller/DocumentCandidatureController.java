@@ -1,14 +1,19 @@
 package com.tovo.erp.recrutement.controller;
 
-import com.tovo.erp.shared.Roles;
 import com.tovo.erp.recrutement.dto.DocumentCandidatureDto;
-import com.tovo.erp.recrutement.model.TypeDocument;
 import com.tovo.erp.recrutement.service.DocumentCandidatureService;
+import com.tovo.erp.shared.Roles;
 import com.tovo.erp.shared.UtilisateurCourant;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -28,15 +33,15 @@ public class DocumentCandidatureController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<DocumentCandidatureDto> deposer(@PathVariable Long id, @RequestParam TypeDocument type,
+    public ResponseEntity<DocumentCandidatureDto> deposer(@PathVariable Long id, @RequestParam String type,
                                                           @RequestPart MultipartFile fichier) throws IOException {
         utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(DocumentCandidatureDto.de(documents.deposer(id, type, fichier)));
+                .body(documents.deposer(id, type, fichier));
     }
 
     @GetMapping
     public List<DocumentCandidatureDto> lister(@PathVariable Long id) {
-        return documents.lister(id).stream().map(DocumentCandidatureDto::de).toList();
+        return documents.listerDto(id);
     }
 }

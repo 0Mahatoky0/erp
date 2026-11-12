@@ -2,11 +2,13 @@ package com.tovo.erp.recrutement.service;
 
 import com.tovo.erp.recrutement.model.*;
 import com.tovo.erp.recrutement.repository.*;
+import com.tovo.erp.recrutement.dto.OffreEmploiDto;
 import com.tovo.erp.recrutement.dto.OffreIndicateursDto;
 import jakarta.transaction.Transactional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
@@ -25,6 +27,67 @@ public class OffreEmploiService {
         this.historiques = historiques;
         this.candidatures = candidatures;
         this.jdbc = jdbc;
+    }
+
+    @Transactional
+    public OffreEmploiDto creerDepuis(OffreEmploiDto.Request request, Long idUtilisateurCreateur) {
+        OffreEmploi offre = versEntite(request);
+        offre.setIdUtilisateurCreateur(idUtilisateurCreateur);
+        return OffreEmploiDto.de(creer(offre));
+    }
+
+    @Transactional
+    public OffreEmploiDto modifierDepuis(Long idOffre, OffreEmploiDto.Request request) {
+        return OffreEmploiDto.de(modifier(idOffre, versEntite(request)));
+    }
+
+    @Transactional
+    public List<OffreEmploiDto> lister(String statut, boolean seulementPubliees) {
+        List<OffreEmploi> liste;
+        if (seulementPubliees) {
+            liste = offres.findByStatut(OffreStatut.PUBLIEE);
+        } else if (statut == null || statut.isBlank()) {
+            liste = offres.findAll();
+        } else {
+            try {
+                liste = offres.findByStatut(OffreStatut.valueOf(
+                        statut.trim().toUpperCase(java.util.Locale.ROOT)));
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException("Statut d'offre inconnu : " + statut);
+            }
+        }
+        return liste.stream().map(OffreEmploiDto::de).toList();
+    }
+
+    @Transactional
+    public OffreEmploiDto publierDto(Long idOffre, Long idUtilisateur) {
+        return OffreEmploiDto.de(publier(idOffre, idUtilisateur));
+    }
+
+    @Transactional
+    public OffreEmploiDto cloturerDto(Long idOffre, Long idUtilisateur) {
+        return OffreEmploiDto.de(cloturer(idOffre, idUtilisateur));
+    }
+
+    @Transactional
+    public OffreEmploiDto annulerDto(Long idOffre, Long idUtilisateur) {
+        return OffreEmploiDto.de(annuler(idOffre, idUtilisateur));
+    }
+
+    private OffreEmploi versEntite(OffreEmploiDto.Request request) {
+        OffreEmploi offre = new OffreEmploi();
+        offre.setIdDemandePoste(request.idDemandePoste());
+        offre.setTitre(request.titre());
+        offre.setDescription(request.description());
+        offre.setProfilRecherche(request.profilRecherche());
+        offre.setLieuTravail(request.lieuTravail());
+        offre.setTypeContrat(request.typeContrat());
+        offre.setEffectifRecherche(request.effectifRecherche());
+        offre.setSalaireMin(request.salaireMin());
+        offre.setSalaireMax(request.salaireMax());
+        offre.setModeSelection(request.modeSelection());
+        offre.setDateLimiteCandidature(request.dateLimiteCandidature());
+        return offre;
     }
 
     @Transactional

@@ -53,6 +53,63 @@ public class EmployeService {
         this.postes = postes;
     }
 
+    /** Vrai si le dossier salarie existe. */
+    @Transactional(readOnly = true)
+    public boolean existe(Long idEmploye) {
+        return idEmploye != null && employeRepository.existsById(idEmploye);
+    }
+
+    /** Identifiant du dossier salarie rattache a un compte utilisateur. */
+    @Transactional(readOnly = true)
+    public Optional<Long> idParUtilisateur(Long idUtilisateur) {
+        return employeRepository.findFirstByIdUtilisateur(idUtilisateur).map(Employe::getId);
+    }
+
+    /** Salaries actifs, references minimales pour les traitements transverses. */
+    @Transactional(readOnly = true)
+    public List<EmployeDto.Actif> actifs() {
+        return employeRepository.findByStatutOrderByNomAscPrenomAsc(StatutEmploye.ACTIF).stream()
+                .map(EmployeDto.Actif::de)
+                .toList();
+    }
+
+    /** Service de rattachement d'un salarie, sans exposer les entites aux autres modules. */
+    @Transactional(readOnly = true)
+    public Optional<Long> serviceDe(Long idEmploye) {
+        return employeRepository.findById(idEmploye)
+                .map(Employe::getIdPoste)
+                .flatMap(idPoste -> postes.findById(idPoste))
+                .map(PosteDetailVue::getIdService);
+    }
+
+    /** Poste de rattachement d'un salarie. */
+    @Transactional(readOnly = true)
+    public Optional<Long> posteDe(Long idEmploye) {
+        return employeRepository.findById(idEmploye).map(Employe::getIdPoste);
+    }
+
+    /** Salaries actifs d'un service, avec leur poste et leur anciennete. */
+    @Transactional(readOnly = true)
+    public List<EmployeDto.Actif> actifsDuService(Long idService) {
+        if (idService == null) {
+            return List.of();
+        }
+        List<Employe> liste = employeRepository.findByStatutAndIdService(StatutEmploye.ACTIF, idService);
+        Map<Long, PosteDetailVue> details = detailsPostes(liste);
+        return liste.stream().map(e -> EmployeDto.Actif.de(e, details.get(e.getIdPoste()))).toList();
+    }
+
+    /** Salaries actifs occupant un poste donne. */
+    @Transactional(readOnly = true)
+    public List<EmployeDto.Actif> actifsDuPoste(Long idPoste) {
+        if (idPoste == null) {
+            return List.of();
+        }
+        List<Employe> liste = employeRepository.findByStatutAndIdPoste(StatutEmploye.ACTIF, idPoste);
+        Map<Long, PosteDetailVue> details = detailsPostes(liste);
+        return liste.stream().map(e -> EmployeDto.Actif.de(e, details.get(e.getIdPoste()))).toList();
+    }
+
     /** Liste des employes filtres par statut, service et recherche textuelle. */
     @Transactional(readOnly = true)
     public List<EmployeDto.Liste> lister(String statut, Long idService, String recherche) {

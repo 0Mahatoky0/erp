@@ -30,4 +30,19 @@ public class TypeConge {
 
     @Column(nullable = false)
     private boolean actif = true;
+
+    @Column(nullable = false)
+    private boolean paye = true;
+
+    @Column(name = "decompte_solde", nullable = false)
+    private boolean decompteSolde = true;
+
+    @Column(name = "delai_prevenance_jours", nullable = false)
+    private int delaiPrevenanceJours;
+
+    @Column(name = "duree_max_jours")
+    private Integer dureeMaxJours;
+
+    @Column(name = "assimile_travail_effectif", nullable = false)
+    private boolean assimileTravailEffectif = true;
 }
