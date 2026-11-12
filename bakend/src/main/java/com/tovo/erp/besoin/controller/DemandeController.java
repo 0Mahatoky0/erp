@@ -1,6 +1,5 @@
 package com.tovo.erp.besoin.controller;
 
-import com.tovo.erp.besoin.model.StatutDemande;
 import com.tovo.erp.shared.UtilisateurCourant;
 import com.tovo.erp.besoin.service.DemandeService;
 import com.tovo.erp.besoin.dto.DemandeDto;
@@ -35,7 +34,7 @@ public class DemandeController {
 
     @GetMapping
     public ResponseEntity<List<DemandeDto.Resume>> lister(
-            @RequestParam(required = false) StatutDemande statut,
+            @RequestParam(required = false) String statut,
             @RequestParam(required = false) String recherche,
             @RequestParam(required = false) Boolean mesDemandes) {
         return ResponseEntity.ok(demandeService.lister(utilisateurCourant.exiger(), statut, recherche, mesDemandes));

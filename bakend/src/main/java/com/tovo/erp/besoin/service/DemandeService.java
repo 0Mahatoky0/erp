@@ -90,6 +90,23 @@ public class DemandeService {
      * Un MANAGER ne voit que ses propres demandes, les autres roles voient le perimetre complet.
      */
     @Transactional(readOnly = true)
+    public List<DemandeDto.Resume> lister(UtilisateurConnecte lecteur, String statut, String recherche,
+                                          Boolean mesDemandes) {
+        return lister(lecteur, parserStatut(statut), recherche, mesDemandes);
+    }
+
+    private StatutDemande parserStatut(String statut) {
+        if (statut == null || statut.isBlank()) {
+            return null;
+        }
+        try {
+            return StatutDemande.valueOf(statut.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new BusinessException("STATUT_INVALIDE", "Statut de demande inconnu : " + statut);
+        }
+    }
+
+    @Transactional(readOnly = true)
     public List<DemandeDto.Resume> lister(UtilisateurConnecte lecteur, StatutDemande statut, String recherche,
                                           Boolean mesDemandes) {
         boolean uniquementLesMiennes = Boolean.TRUE.equals(mesDemandes)
