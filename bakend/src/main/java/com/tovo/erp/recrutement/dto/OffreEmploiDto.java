@@ -69,4 +69,19 @@ public record OffreEmploiDto(
             String lieuTravail,
             String typeContrat) {
     }
+
+    /** Corps de creation/modification d'une offre, sans exposition de l'entite. */
+    public record Request(
+            Long idDemandePoste,
+            String titre,
+            String description,
+            String profilRecherche,
+            String lieuTravail,
+            String typeContrat,
+            Integer effectifRecherche,
+            BigDecimal salaireMin,
+            BigDecimal salaireMax,
+            String modeSelection,
+            LocalDateTime dateLimiteCandidature) {
+    }
 }

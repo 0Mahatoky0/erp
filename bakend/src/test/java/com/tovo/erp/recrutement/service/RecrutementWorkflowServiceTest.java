@@ -81,7 +81,7 @@ class RecrutementWorkflowServiceTest {
     @Test
     void valideLesNotesEtExigeUnMotifDeDecision() {
         EvaluationDecisionService service = new EvaluationDecisionService(
-                evaluations, decisions, candidatures, candidatureService);
+                evaluations, decisions, candidatures, entretiens, passages, candidatureService);
         Candidature candidature = new Candidature();
         candidature.setIdCandidature(3L);
         EvaluationCandidat evaluation = new EvaluationCandidat();

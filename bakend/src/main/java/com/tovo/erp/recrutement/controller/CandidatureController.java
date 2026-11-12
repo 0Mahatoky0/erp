@@ -5,9 +5,6 @@ import com.tovo.erp.recrutement.dto.CandidatureDto;
 import com.tovo.erp.recrutement.dto.CandidatureEmbaucheDto;
 import com.tovo.erp.recrutement.dto.HistoriqueCandidatureDto;
 import com.tovo.erp.recrutement.dto.RecrutementRequests;
-import com.tovo.erp.recrutement.model.Candidature;
-import com.tovo.erp.recrutement.model.CandidatureStatut;
-import com.tovo.erp.recrutement.repository.HistoriqueCandidatureRepository;
 import com.tovo.erp.recrutement.service.CandidatureService;
 import com.tovo.erp.shared.UtilisateurCourant;
 import jakarta.validation.Valid;
@@ -22,22 +19,18 @@ import java.util.List;
 public class CandidatureController {
 
     private final CandidatureService candidatures;
-    private final HistoriqueCandidatureRepository historiqueRepository;
     private final UtilisateurCourant utilisateurCourant;
 
     public CandidatureController(CandidatureService candidatures,
-                                 HistoriqueCandidatureRepository historiqueRepository,
                                  UtilisateurCourant utilisateurCourant) {
         this.candidatures = candidatures;
-        this.historiqueRepository = historiqueRepository;
         this.utilisateurCourant = utilisateurCourant;
     }
 
     @PostMapping
     public ResponseEntity<CandidatureDto> postuler(@Valid @RequestBody RecrutementRequests.CandidatureRequest request) {
-        Candidature candidature = candidatures.postuler(
-                request.idOffre(), utilisateurCourant.exiger(), request.messageCandidat(), request.source());
-        return ResponseEntity.status(HttpStatus.CREATED).body(CandidatureDto.de(candidature));
+        return ResponseEntity.status(HttpStatus.CREATED).body(candidatures.postulerDto(
+                request.idOffre(), utilisateurCourant.exiger(), request.messageCandidat(), request.source()));
     }
 
     @GetMapping(value = "/public")
@@ -53,7 +46,7 @@ public class CandidatureController {
     }
 
     @GetMapping
-    public List<CandidatureDto> lister(@RequestParam(required = false) CandidatureStatut statut) {
+    public List<CandidatureDto> lister(@RequestParam(required = false) String statut) {
         utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         return candidatures.listerParStatut(statut);
     }
@@ -79,13 +72,11 @@ public class CandidatureController {
     @DeleteMapping("/{id:[0-9]+}")
     public CandidatureDto retirer(@PathVariable Long id) {
         utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
-        return candidatures.changerStatut(
-                id, CandidatureStatut.RETIREE, utilisateurCourant.exiger().getId(), "Retrait de candidature");
+        return candidatures.retirerDto(id, utilisateurCourant.exiger().getId());
     }
 
     @GetMapping("/{id:[0-9]+}/historique")
     public List<HistoriqueCandidatureDto> historique(@PathVariable Long id) {
-        return historiqueRepository.findByCandidatureIdCandidatureOrderByDateActionAsc(id)
-                .stream().map(HistoriqueCandidatureDto::de).toList();
+        return candidatures.historique(id);
     }
 }

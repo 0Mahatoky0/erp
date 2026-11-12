@@ -1,6 +1,7 @@
 package com.tovo.erp.recrutement.service;
 
 import com.tovo.erp.recrutement.model.*;
+import com.tovo.erp.recrutement.dto.DocumentCandidatureDto;
 import com.tovo.erp.recrutement.repository.*;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,17 @@ public class DocumentCandidatureService {
     }
 
     @Transactional
+    public DocumentCandidatureDto deposer(Long idCandidature, String type, MultipartFile fichier) throws IOException {
+        TypeDocument typeDocument;
+        try {
+            typeDocument = TypeDocument.valueOf(type.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException | NullPointerException ex) {
+            throw new IllegalArgumentException("Type de document inconnu : " + type);
+        }
+        return DocumentCandidatureDto.de(deposer(idCandidature, typeDocument, fichier));
+    }
+
+    @Transactional
     public DocumentCandidature deposer(Long idCandidature, TypeDocument type, MultipartFile fichier) throws IOException {
         Candidature candidature = candidatures.findById(idCandidature)
                 .orElseThrow(() -> new IllegalArgumentException("Candidature introuvable"));
@@ -36,6 +48,10 @@ public class DocumentCandidatureService {
         document.setTailleOctets(fichier.getSize());
         document.setCleStockage("candidatures/" + idCandidature + "/" + UUID.randomUUID());
         return documents.save(document);
+    }
+
+    public List<DocumentCandidatureDto> listerDto(Long idCandidature) {
+        return lister(idCandidature).stream().map(DocumentCandidatureDto::de).toList();
     }
 
     public List<DocumentCandidature> lister(Long idCandidature) {

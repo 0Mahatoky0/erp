@@ -44,4 +44,13 @@ public final class RecrutementRequests {
             Long idEntretien, Long idPassage, @DecimalMin("0.0") BigDecimal note,
             @Positive BigDecimal noteMax, @NotBlank String appreciation, @NotBlank String commentaire) {
     }
+
+    public record TestRequest(@NotNull Long idOffre, @NotBlank @Size(max = 150) String titre,
+            String description, @Positive Integer dureeMinutes, @Positive BigDecimal noteMax) {
+    }
+
+    public record PassageTestRequest(@NotNull Long idTest, @NotNull Long idCandidature,
+            @Positive Integer numeroTentative, LocalDateTime datePrevue, LocalDateTime dateDebut,
+            LocalDateTime dateFin, String commentaire) {
+    }
 }
