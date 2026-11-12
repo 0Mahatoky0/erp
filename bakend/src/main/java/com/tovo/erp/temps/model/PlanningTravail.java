@@ -42,6 +42,12 @@ public class PlanningTravail {
     @Column(name = "date_fin")
     private LocalDate dateFin;
 
+    @Column(name = "pause_minutes", nullable = false)
+    private int pauseMinutes = 60;
+
+    @Column(name = "tolerance_minutes", nullable = false)
+    private int toleranceMinutes = 5;
+
     @Column(name = "date_creation", nullable = false)
     private LocalDateTime dateCreation = LocalDateTime.now();
 }
