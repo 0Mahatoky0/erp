@@ -8,5 +8,7 @@ import java.util.List;
 public interface EvaluationCandidatRepository extends JpaRepository<EvaluationCandidat, Long> {
     @EntityGraph(attributePaths = {"candidature", "entretien", "passage"})
     List<EvaluationCandidat> findByCandidatureIdCandidature(Long idCandidature);
+    @EntityGraph(attributePaths = {"candidature", "entretien", "passage"})
+    List<EvaluationCandidat> findByCandidatureOffreIdOffre(Long idOffre);
     List<EvaluationCandidat> findByTypeEvaluation(TypeEvaluation typeEvaluation);
 }

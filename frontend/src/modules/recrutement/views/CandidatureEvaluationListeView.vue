@@ -16,6 +16,7 @@ import StatusBadge from '@/shared/components/StatusBadge.vue'
 import { useNotificationStore } from '@/shared/store/useNotificationStore'
 import { formatDateHeure } from '@/shared/utils/format'
 import { recrutementApi as api, ErreurApi } from '../api/recrutementApi'
+import NoteEvaluation from '../components/NoteEvaluation.vue'
 import { STATUTS_CANDIDATURE } from '../utils/statutsCandidature'
 
 const notifications = useNotificationStore()
@@ -23,6 +24,7 @@ const route = useRoute()
 const idOffre = computed(() => String(route.params.idOffre || ''))
 const offre = ref(null)
 const candidatures = ref([])
+const syntheses = ref({})
 const statutActif = ref(String(route.query.statut || 'TOUTES'))
 const loading = ref(false)
 
@@ -37,9 +39,17 @@ const compter = (valeur) =>
     : candidatures.value.filter((candidature) => candidature.statut === valeur).length
 
 const candidaturesPour = (valeur) =>
-  valeur === 'TOUTES'
+  (valeur === 'TOUTES'
     ? candidatures.value
     : candidatures.value.filter((candidature) => candidature.statut === valeur)
+  ).map((candidature) => ({ ...candidature, synthese: syntheses.value[candidature.idCandidature] || null }))
+
+/** La moyenne générale n'existe que si au moins une catégorie a reçu une note. */
+const moyenneDe = (synthese) => ({
+  evaluee: synthese?.noteGlobale !== null && synthese?.noteGlobale !== undefined,
+  note: synthese?.noteGlobale ?? null,
+  noteMax: 20,
+})
 
 function lienEvaluation(candidature) {
   return {
@@ -52,16 +62,19 @@ function lienEvaluation(candidature) {
 async function chargerCandidatures() {
   if (!idOffre.value) {
     candidatures.value = []
+    syntheses.value = {}
     return
   }
   loading.value = true
   try {
-    const [offres, listeCandidatures] = await Promise.all([
+    const [offres, listeCandidatures, listeSyntheses] = await Promise.all([
       api.get('/recrutement/offres'),
       api.get(`/recrutement/offres/${idOffre.value}/candidatures`),
+      api.get(`/recrutement/offres/${idOffre.value}/evaluations/synthese`),
     ])
     offre.value = offres.find((item) => String(item.idOffre ?? item.id) === idOffre.value) || null
     candidatures.value = listeCandidatures
+    syntheses.value = Object.fromEntries(listeSyntheses.map((synthese) => [synthese.idCandidature, synthese]))
   } catch (cause) {
     notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible de charger les candidatures.')
   } finally {
@@ -159,6 +172,23 @@ watch([idOffre, () => route.query.statut], () => {
                   <Column field="statut" header="Statut" sortable>
                     <template #body="{ data }"><StatusBadge :valeur="data.statut" /></template>
                   </Column>
+
+                  <!-- Colonnes de notes affichées uniquement pour le statut EN_EVALUATION -->
+                  <template v-if="onglet.valeur === 'EN_EVALUATION'">
+                    <Column header="Note dossier" sortable sort-field="synthese.dossier.note">
+                      <template #body="{ data }"><NoteEvaluation :categorie="data.synthese?.dossier" /></template>
+                    </Column>
+                    <Column header="Note entretien" sortable sort-field="synthese.entretien.note">
+                      <template #body="{ data }"><NoteEvaluation :categorie="data.synthese?.entretien" /></template>
+                    </Column>
+                    <Column header="Note test" sortable sort-field="synthese.test.note">
+                      <template #body="{ data }"><NoteEvaluation :categorie="data.synthese?.test" /></template>
+                    </Column>
+                    <Column header="Moyenne" sortable sort-field="synthese.noteGlobale">
+                      <template #body="{ data }"><NoteEvaluation :categorie="moyenneDe(data.synthese)" /></template>
+                    </Column>
+                  </template>
+
                   <Column field="dateCandidature" header="Reçue le" sortable>
                     <template #body="{ data }">{{ formatDateHeure(data.dateCandidature) }}</template>
                   </Column>
