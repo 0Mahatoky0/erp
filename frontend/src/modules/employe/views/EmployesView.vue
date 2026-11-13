@@ -5,12 +5,14 @@ import Column from 'primevue/column'
 import PrimeButton from 'primevue/button'
 import PrimeInputText from 'primevue/inputtext'
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { employeApi as api } from '@/modules/employe/api/employeApi'
 import EmptyState from '@/shared/components/EmptyState.vue'
 import StatusBadge from '@/shared/components/StatusBadge.vue'
 import { useNotificationStore } from '@/shared/store/useNotificationStore'
 import { formatDate } from '@/shared/utils/format'
 
+const router = useRouter()
 const notifications = useNotificationStore()
 
 const employes = ref([])
@@ -139,6 +141,12 @@ onMounted(charger)
         </Column>
         <Column header="Date d'embauche"><template #body="{ data }">{{ formatDate(data.dateEmbauche) }}</template></Column>
         <Column header="Statut"><template #body="{ data }"><StatusBadge :valeur="data.statut" /></template></Column>
+        <Column header="Actions">
+          <template #body="{ data }">
+            <PrimeButton label="Dossier" icon="pi pi-folder-open" size="small" outlined
+              @click="router.push({ name: 'employe-dossier', params: { id: data.id } })" />
+          </template>
+        </Column>
       </DataTable>
     </section>
   </div>

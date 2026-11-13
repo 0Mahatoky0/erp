@@ -107,6 +107,13 @@ const LIBELLES = {
   LUE: 'Lue',
   CONFIRMATION: 'Confirmation',
   RUPTURE: 'Rupture',
+  DOCUMENT_EXPIRE: 'Document expire',
+  DOCUMENT_EXPIRANT: 'Document expirant',
+  DOCUMENT_MANQUANT: 'Piece manquante',
+  RETRAITE_PROCHE: 'Retraite proche',
+  MISSION_EN_RETARD: 'Mission en retard',
+  CRITIQUE: 'Critique',
+  AVERTISSEMENT: 'Avertissement',
 }
 
 const COULEURS = {
@@ -203,6 +210,13 @@ const COULEURS = {
   LUE: 'neutre',
   CONFIRMATION: 'succes',
   RUPTURE: 'danger',
+  DOCUMENT_EXPIRE: 'danger',
+  DOCUMENT_EXPIRANT: 'alerte',
+  DOCUMENT_MANQUANT: 'info',
+  RETRAITE_PROCHE: 'alerte',
+  MISSION_EN_RETARD: 'alerte',
+  CRITIQUE: 'danger',
+  AVERTISSEMENT: 'alerte',
 }
 
 const couleur = computed(() => {
