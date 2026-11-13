@@ -13,8 +13,12 @@ public interface AnomaliePointageRepository extends JpaRepository<AnomaliePointa
     boolean existsByIdEmployeAndDateAnomalieAndStatut(Long idEmploye, LocalDate dateAnomalie,
                                                       AnomaliePointage.Statut statut);
 
+    boolean existsByIdEmployeAndDateAnomalieAndTypeAndStatutNot(Long idEmploye, LocalDate dateAnomalie,
+                                                                String type, AnomaliePointage.Statut statut);
+
     boolean existsByDateAnomalieBetweenAndStatut(LocalDate debut, LocalDate fin,
                                                   AnomaliePointage.Statut statut);
 
-    void deleteByIdEmployeAndDateAnomalie(Long idEmploye, LocalDate dateAnomalie);
+    void deleteByIdEmployeAndDateAnomalieAndStatut(Long idEmploye, LocalDate dateAnomalie,
+                                                   AnomaliePointage.Statut statut);
 }

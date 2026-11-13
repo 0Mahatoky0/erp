@@ -75,6 +75,9 @@ public class TempsService {
             throw new BusinessException("DATES_INVALIDES", "La date de fin doit etre posterieure ou egale a la date de debut.");
         }
         verifierPeriodeOuverte(demande.dateDebut());
+        if (demande.dateFin() != null) {
+            verifierPeriodeOuverte(demande.dateFin());
+        }
         PlanningTravail planning = new PlanningTravail();
         planning.setIdEmploye(demande.idEmploye());
         planning.setJoursTravailles(demande.joursTravailles().trim());
@@ -394,7 +397,18 @@ public class TempsService {
                                                   List<AnomaliePointage> anomalies, int presence, int pause,
                                                   int travaillees, int theoriques, int retard, int departAnticipe,
                                                   int hs, int nuit, int dimanche, int ferie) {
-        anomaliesRepository.deleteByIdEmployeAndDateAnomalie(idEmploye, date);
+        List<AnomaliePointage> conservees = new ArrayList<>();
+        List<AnomaliePointage> existantes =
+                anomaliesRepository.findByIdEmployeAndDateAnomalieOrderByIdAsc(idEmploye, date);
+        if (existantes != null) {
+            for (AnomaliePointage existante : existantes) {
+                if (existante.getStatut() != AnomaliePointage.Statut.OUVERTE) {
+                    conservees.add(existante);
+                }
+            }
+        }
+        anomaliesRepository.deleteByIdEmployeAndDateAnomalieAndStatut(idEmploye, date,
+                AnomaliePointage.Statut.OUVERTE);
         JourTravaille jour = joursRepository.findByIdEmployeAndDateJour(idEmploye, date)
                 .orElseGet(JourTravaille::new);
         jour.setIdEmploye(idEmploye);
@@ -416,8 +430,12 @@ public class TempsService {
         jour.setDateCalcul(LocalDateTime.now());
         jour = joursRepository.save(jour);
 
-        List<AnomaliePointage> enregistrees = new ArrayList<>();
+        List<AnomaliePointage> enregistrees = new ArrayList<>(conservees);
         for (AnomaliePointage anomalie : anomalies) {
+            if (anomaliesRepository.existsByIdEmployeAndDateAnomalieAndTypeAndStatutNot(
+                    idEmploye, date, anomalie.getType(), AnomaliePointage.Statut.OUVERTE)) {
+                continue;
+            }
             anomalie.setIdJourTravaille(jour.getId());
             enregistrees.add(anomaliesRepository.save(anomalie));
         }
