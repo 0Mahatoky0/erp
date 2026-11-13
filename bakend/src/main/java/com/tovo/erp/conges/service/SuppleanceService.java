@@ -178,6 +178,12 @@ public class SuppleanceService {
     }
 
     @Transactional(readOnly = true)
+    public List<CongeDtos.SuppleanceDto> toutes() {
+        return suppleances.findAllByOrderByDateDebutDesc().stream()
+                .map(CongeDtos.SuppleanceDto::de).toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<CongeDtos.SuppleanceDto> deDemande(Long idDemande) {
         return suppleances.findByIdDemandeCongeOrderByDateCreationDesc(idDemande).stream()
                 .map(CongeDtos.SuppleanceDto::de).toList();

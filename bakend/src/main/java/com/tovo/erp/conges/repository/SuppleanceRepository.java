@@ -36,4 +36,6 @@ public interface SuppleanceRepository extends JpaRepository<Suppleance, Long> {
                                         @Param("statuts") Collection<StatutSuppleance> statuts);
 
     List<Suppleance> findByIdEmployeAbsentOrderByDateDebutDesc(Long idEmployeAbsent);
+
+    List<Suppleance> findAllByOrderByDateDebutDesc();
 }

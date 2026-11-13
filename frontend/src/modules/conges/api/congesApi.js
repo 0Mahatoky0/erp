@@ -8,6 +8,8 @@ export const congesApi = {
   demandesEmploye: (idEmploye) => api.get(`/conges/employes/${idEmploye}/demandes`),
   creerDemande: (demande) => api.post('/conges/demandes', demande),
   valider: (id, demande = {}) => api.post(`/conges/demandes/${id}/valider`, demande),
+  annuler: (id, demande = {}) => api.post(`/conges/demandes/${id}/annuler`, demande),
+  ecourter: (id, demande) => api.post(`/conges/demandes/${id}/ecourter`, demande),
   refuser: (id, demande) => api.post(`/conges/demandes/${id}/refuser`, demande),
   absences: () => api.get('/conges/absences'),
   mesAbsences: () => api.get('/conges/moi/absences'),
@@ -20,10 +22,15 @@ export const congesApi = {
   matriceRemplacement: () => api.get('/conges/matrice-remplacement'),
   creerMatriceRemplacement: (matrice) => api.post('/conges/matrice-remplacement', matrice),
   proposerSuppleance: (id, demande = {}) => api.post(`/conges/demandes/${id}/suppleance`, demande),
+  suppleances: () => api.get('/conges/suppleances'),
   suppleancesDemande: (id) => api.get(`/conges/demandes/${id}/suppleances`),
+  suppleancesDuRemplacant: (idEmploye) => api.get(`/conges/employes/${idEmploye}/suppleances`),
   repondreSuppleance: (id, demande) => api.post(`/conges/suppleances/${id}/repondre`, demande),
   terminerSuppleance: (id) => api.post(`/conges/suppleances/${id}/terminer`),
   variablesPaie: () => api.get('/conges/variables-paie'),
+  ajusterSolde: (demande) => api.post('/conges/soldes/ajuster', demande),
+  mouvements: (idEmploye, idTypeConge) => api.get(idTypeConge ? `/conges/employes/${idEmploye}/mouvements?idTypeConge=${idTypeConge}` : `/conges/employes/${idEmploye}/mouvements`),
+  acquerirDroits: (annee, mois) => api.post(`/conges/acquisition?annee=${annee}&mois=${mois}`),
 }
 
 export { ErreurApi }

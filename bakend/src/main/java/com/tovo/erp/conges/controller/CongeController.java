@@ -189,6 +189,12 @@ public class CongeController {
         return suppleances.deDemande(id);
     }
 
+    @GetMapping("/suppleances")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    public List<CongeDtos.SuppleanceDto> suppleances() {
+        return suppleances.toutes();
+    }
+
     @PostMapping("/suppleances/{id}/repondre")
     @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER', 'EMPLOYE')")
     public CongeDtos.SuppleanceDto repondreSuppleance(

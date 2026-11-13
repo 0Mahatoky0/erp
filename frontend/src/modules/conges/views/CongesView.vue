@@ -9,6 +9,7 @@ import { congesApi as api } from '@/modules/conges/api/congesApi'
 import StatusBadge from '@/shared/components/StatusBadge.vue'
 import { useNotificationStore } from '@/shared/store/useNotificationStore'
 import { useAuthStore } from '@/shared/store/useAuthStore'
+import { libelle } from '@/shared/utils/format'
 
 const notifications = useNotificationStore()
 const auth = useAuthStore()
@@ -20,6 +21,11 @@ const demandes = ref([])
 const absences = ref([])
 const planning = ref([])
 const periodesBloquees = ref([])
+const mouvements = ref([])
+const suppleances = ref([])
+const variablesPaie = ref([])
+const actionDemande = ref({ id: null, type: null, dateFinReelle: '', motif: '' })
+const ajustement = ref({ idTypeConge: null, jours: 0, motif: '' })
 const periode = ref({
   libelle: '',
   dateDebut: new Date().toISOString().slice(0, 10),
@@ -66,6 +72,12 @@ async function charger() {
     absences.value = listeAbsences
     planning.value = listePlanning
     periodesBloquees.value = auth.estEmploye ? [] : await api.periodesBloquees()
+    if (auth.estEmploye) {
+      suppleances.value = await api.suppleancesDuRemplacant(id)
+    } else {
+      suppleances.value = await api.suppleances()
+      variablesPaie.value = auth.estRh || auth.estDirection ? await api.variablesPaie() : []
+    }
   } catch (e) {
     notifications.erreur(e.message)
   } finally {
@@ -119,6 +131,74 @@ async function creerAbsence() {
   }
 }
 
+async function ajusterSolde() {
+  const id = idRequis()
+  if (!id) return
+  if (!ajustement.value.idTypeConge || !ajustement.value.motif.trim()) {
+    notifications.erreur('Choisissez un type et saisissez un motif.')
+    return
+  }
+  try {
+    await api.ajusterSolde({
+      idEmploye: id,
+      idTypeConge: ajustement.value.idTypeConge,
+      annee: new Date().getFullYear(),
+      jours: Number(ajustement.value.jours),
+      motif: ajustement.value.motif,
+    })
+    notifications.succes('Solde ajuste.')
+    ajustement.value.jours = 0
+    ajustement.value.motif = ''
+    await charger()
+  } catch (e) {
+    notifications.erreur(e.message)
+  }
+}
+
+async function acquerirDroits() {
+  const maintenant = new Date()
+  try {
+    const nombre = await api.acquerirDroits(maintenant.getFullYear(), maintenant.getMonth() + 1)
+    notifications.succes(`${nombre} solde(s) mis a jour pour le mois.`)
+    await charger()
+  } catch (e) {
+    notifications.erreur(e.message)
+  }
+}
+
+async function repondreSuppleance(item, statut) {
+  try {
+    await api.repondreSuppleance(item.id, {
+      statut,
+      motif: statut === 'ACCEPTEE' ? 'Suppleance acceptee' : 'Suppleance refusee',
+    })
+    notifications.succes(statut === 'ACCEPTEE' ? 'Suppleance acceptee.' : 'Suppleance refusee.')
+    await charger()
+  } catch (e) {
+    notifications.erreur(e.message)
+  }
+}
+
+async function terminerSuppleance(item) {
+  try {
+    await api.terminerSuppleance(item.id)
+    notifications.succes('Suppleance terminee.')
+    await charger()
+  } catch (e) {
+    notifications.erreur(e.message)
+  }
+}
+
+async function justifierAbsence(item) {
+  try {
+    await api.justifier(item.id, { motif: 'Justificatif recu par le RH' })
+    notifications.succes('Absence justifiee.')
+    await charger()
+  } catch (e) {
+    notifications.erreur(e.message)
+  }
+}
+
 async function creerPeriodeBloquee() {
   try {
     await api.creerPeriodeBloquee(periode.value)
@@ -154,6 +234,40 @@ function peutTraiter(item) {
   if (auth.estRh) return item.statut === 'VALIDEE_MANAGER'
   if (auth.estDirection) return item.statut === 'VALIDEE_RH'
   return false
+}
+
+function ouvrirActionDemande(item, type) {
+  actionDemande.value = {
+    id: item.id,
+    type,
+    dateFinReelle: item.dateFin,
+    motif: type === 'ANNULER' ? 'Annulee depuis l\'interface' : 'Retour anticipe',
+  }
+}
+
+async function validerActionDemande() {
+  const action = actionDemande.value
+  try {
+    if (action.type === 'ANNULER') {
+      await api.annuler(action.id, { motif: action.motif })
+      notifications.succes('Demande annulee.')
+    } else {
+      await api.ecourter(action.id, { dateFinReelle: action.dateFinReelle, motif: action.motif })
+      notifications.succes('Demande ecourtee.')
+    }
+    actionDemande.value = { id: null, type: null, dateFinReelle: '', motif: '' }
+    await charger()
+  } catch (e) {
+    notifications.erreur(e.message)
+  }
+}
+
+function peutAnnuler(item) {
+  return ['SOUMISE', 'VALIDEE_MANAGER', 'VALIDEE_RH', 'APPROUVEE'].includes(item.statut)
+}
+
+function peutEcourter(item) {
+  return ['APPROUVEE', 'EN_COURS'].includes(item.statut)
 }
 
 async function traiter(item, valider) {
@@ -205,6 +319,28 @@ onMounted(async () => {
       </DataTable>
     </section>
 
+    <section v-if="auth.estRh" class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2>Gestion des soldes RH</h2>
+          <p class="mt-1 text-sm text-muted-color">Acquisition mensuelle, ajustements et grand livre des mouvements.</p>
+        </div>
+        <PrimeButton label="Acquerir les droits du mois" icon="pi pi-refresh" severity="secondary" @click="acquerirDroits" />
+      </div>
+      <div class="mb-4 grid gap-3 md:grid-cols-4">
+        <PrimeSelect v-model="ajustement.idTypeConge" :options="types" option-label="libelle" option-value="id" placeholder="Type de conge" />
+        <PrimeInputText v-model="ajustement.jours" type="number" placeholder="Jours (+/-)" />
+        <PrimeInputText v-model="ajustement.motif" placeholder="Motif de l'ajustement" />
+        <PrimeButton label="Ajuster" icon="pi pi-sliders-h" @click="ajusterSolde" />
+      </div>
+      <DataTable :value="mouvements" striped-rows size="small" responsive-layout="scroll">
+        <Column field="dateEffet" header="Date d'effet" />
+        <Column field="typeMouvement" header="Mouvement"><template #body="{ data }">{{ libelle(data.typeMouvement) }}</template></Column>
+        <Column field="jours" header="Jours" />
+        <Column field="commentaire" header="Commentaire" />
+      </DataTable>
+    </section>
+
     <div class="grid gap-5 lg:grid-cols-2">
       <section class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
         <h2 class="mb-3">Déclarer une demande de congé</h2>
@@ -242,15 +378,69 @@ onMounted(async () => {
         <Column header="Période"><template #body="{ data }">{{ data.dateDebut }} → {{ data.dateFin }}</template></Column>
         <Column field="nombreJours" header="Jours" />
         <Column header="Statut"><template #body="{ data }"><StatusBadge :valeur="data.statut" /></template></Column>
-        <Column v-if="!auth.estEmploye" header="Actions">
+        <Column header="Actions">
           <template #body="{ data }">
-            <div v-if="peutTraiter(data)" class="flex gap-2">
-              <PrimeButton icon="pi pi-check" severity="success" text rounded aria-label="Valider" @click="traiter(data, true)" />
-              <PrimeButton icon="pi pi-times" severity="danger" text rounded aria-label="Refuser" @click="traiter(data, false)" />
-              <PrimeButton icon="pi pi-user-plus" severity="secondary" text rounded aria-label="Proposer un remplacant" @click="proposerSuppleance(data)" />
+            <div class="flex flex-wrap gap-1">
+              <template v-if="!auth.estEmploye && peutTraiter(data)">
+                <PrimeButton icon="pi pi-check" severity="success" text rounded aria-label="Valider" @click="traiter(data, true)" />
+                <PrimeButton icon="pi pi-times" severity="danger" text rounded aria-label="Refuser" @click="traiter(data, false)" />
+                <PrimeButton icon="pi pi-user-plus" severity="secondary" text rounded aria-label="Proposer un remplacant" @click="proposerSuppleance(data)" />
+              </template>
+              <PrimeButton v-if="peutAnnuler(data)" label="Annuler" size="small" severity="danger" text
+                @click="ouvrirActionDemande(data, 'ANNULER')" />
+              <PrimeButton v-if="peutEcourter(data)" label="Écourter" size="small" severity="secondary" text
+                @click="ouvrirActionDemande(data, 'ECOURTER')" />
             </div>
           </template>
         </Column>
+      </DataTable>
+    </section>
+
+    <section v-if="actionDemande.id" class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+      <h2 class="mb-3">{{ actionDemande.type === 'ANNULER' ? 'Annuler la demande' : 'Écourter la demande' }}</h2>
+      <div class="grid gap-3 md:grid-cols-3">
+        <PrimeInputText v-if="actionDemande.type === 'ECOURTER'" v-model="actionDemande.dateFinReelle" type="date" />
+        <PrimeInputText v-model="actionDemande.motif" placeholder="Motif" />
+        <div class="flex gap-2">
+          <PrimeButton :label="actionDemande.type === 'ANNULER' ? 'Annuler la demande' : 'Enregistrer le retour'"
+            :severity="actionDemande.type === 'ANNULER' ? 'danger' : 'primary'" @click="validerActionDemande" />
+          <PrimeButton label="Fermer" severity="secondary" text
+            @click="actionDemande = { id: null, type: null, dateFinReelle: '', motif: '' }" />
+        </div>
+      </div>
+    </section>
+
+    <section class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+      <h2 class="mb-3">Suppléances</h2>
+      <p class="mb-3 text-sm text-muted-color">Propositions de remplacement, réponses et clôture des suppléances.</p>
+      <DataTable :value="suppleances" :loading="chargement" striped-rows paginator :rows="8" responsive-layout="scroll">
+        <Column field="idEmployeAbsent" header="Absent" />
+        <Column field="idEmployeRemplacant" header="Remplaçant" />
+        <Column header="Période"><template #body="{ data }">{{ data.dateDebut }} → {{ data.dateFin }}</template></Column>
+        <Column header="Statut"><template #body="{ data }"><StatusBadge :valeur="data.statut" /></template></Column>
+        <Column field="motif" header="Motif" />
+        <Column header="Actions">
+          <template #body="{ data }">
+            <div v-if="data.statut === 'PROPOSEE'" class="flex gap-2">
+              <PrimeButton icon="pi pi-check" severity="success" text rounded aria-label="Accepter la suppléance" @click="repondreSuppleance(data, 'ACCEPTEE')" />
+              <PrimeButton icon="pi pi-times" severity="danger" text rounded aria-label="Refuser la suppléance" @click="repondreSuppleance(data, 'REFUSEE')" />
+            </div>
+            <PrimeButton v-else-if="!auth.estEmploye && (data.statut === 'ACCEPTEE' || data.statut === 'EN_COURS')"
+              label="Terminer" size="small" severity="secondary" @click="terminerSuppleance(data)" />
+          </template>
+        </Column>
+      </DataTable>
+    </section>
+
+    <section v-if="auth.estRh || auth.estDirection" class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+      <h2 class="mb-3">Variables de paie liées aux congés</h2>
+      <p class="mb-3 text-sm text-muted-color">Congés payés validés à intégrer dans le calcul de la paie.</p>
+      <DataTable :value="variablesPaie" striped-rows size="small" responsive-layout="scroll">
+        <Column field="idEmploye" header="Employe" />
+        <Column header="Période"><template #body="{ data }">{{ data.dateDebut }} → {{ data.dateFin }}</template></Column>
+        <Column field="jours" header="Jours" />
+        <Column field="typeConge" header="Type" />
+        <Column field="motif" header="Motif" />
       </DataTable>
     </section>
 
@@ -289,6 +479,12 @@ onMounted(async () => {
         <Column header="Période"><template #body="{ data }">{{ data.dateDebut }} → {{ data.dateFin }}</template></Column>
         <Column field="motif" header="Motif" />
         <Column header="Statut"><template #body="{ data }"><StatusBadge :valeur="data.statut" /></template></Column>
+        <Column v-if="auth.estRh" header="Action">
+          <template #body="{ data }">
+            <PrimeButton v-if="data.statut === 'A_JUSTIFIER'" label="Justifier" size="small"
+              icon="pi pi-check" @click="justifierAbsence(data)" />
+          </template>
+        </Column>
       </DataTable>
     </section>
   </div>
