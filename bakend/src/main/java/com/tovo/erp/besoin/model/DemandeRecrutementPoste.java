@@ -84,6 +84,7 @@ public class DemandeRecrutementPoste {
     @Column(name = "profil_recherche")
     private String profilRecherche;
 
+    /** Fourchette salariale : definie par le RH a sa validation, null avant (RM-017). */
     @Column(name = "salaire_min_estime", precision = 15, scale = 2)
     private BigDecimal salaireMinEstime;
 
@@ -97,7 +98,8 @@ public class DemandeRecrutementPoste {
     @Column(name = "nombre_pourvus", nullable = false)
     private Integer nombrePourvus = 0;
 
-    @Column(name = "budget_estime", nullable = false)
+    /** Budget du profil : defini par le RH a sa validation, null tant qu'il n'a pas statue. */
+    @Column(name = "budget_estime")
     private BigDecimal budgetEstime;
 
     /** Statut propre a la ligne : chaque ligne suit son propre circuit (RM-032). */

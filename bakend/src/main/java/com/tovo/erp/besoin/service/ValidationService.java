@@ -42,6 +42,7 @@ public class ValidationService {
     private final StatutService statutService;
     private final BudgetService budgetService;
     private final DemandeService demandeService;
+    private final LigneRegles ligneRegles;
     private final CircuitValidationProperties circuitProperties;
 
     public ValidationService(DemandeRecrutementPosteRepository ligneRepository,
@@ -51,6 +52,7 @@ public class ValidationService {
                              StatutService statutService,
                              BudgetService budgetService,
                              DemandeService demandeService,
+                             LigneRegles ligneRegles,
                              CircuitValidationProperties circuitProperties) {
         this.ligneRepository = ligneRepository;
         this.validationRepository = validationRepository;
@@ -59,6 +61,7 @@ public class ValidationService {
         this.statutService = statutService;
         this.budgetService = budgetService;
         this.demandeService = demandeService;
+        this.ligneRegles = ligneRegles;
         this.circuitProperties = circuitProperties;
     }
 
@@ -80,10 +83,19 @@ public class ValidationService {
         controlerSeparationDesResponsabilites(demande, validateur);
         controlerDecisionUnique(ligne);
 
-        // RM-054 : le montant verifie par la finance doit correspondre au montant soumis.
-        controlerMontantVerifie(ligne, decision);
-
         EtapeValidation etape = ligne.getEtapeCourante();
+
+        // Le RH examine le dossier et definit le budget et la fourchette salariale du profil.
+        // Elles doivent etre posees avant le calcul de l'etape suivante (seuil Direction, RM-034).
+        if (etape == EtapeValidation.RH && decision.decision() == Decision.APPROUVE) {
+            definirEvaluationRh(ligne, decision);
+        }
+
+        // Les etapes autres que le RH travaillent sur le budget fixe par le RH.
+        controlerBudgetDefini(ligne, etape);
+
+        // RM-054 : le montant verifie par la finance doit correspondre au montant defini par le RH.
+        controlerMontantVerifie(ligne, decision);
 
         // L'etape financiere verifie la disponibilite budgetaire (RM-050 a RM-055).
         if (etape == EtapeValidation.FINANCE) {
@@ -194,6 +206,7 @@ public class ValidationService {
         List<EtapeValidation> etapes = new ArrayList<>(circuitProperties.etapesEnum());
         BigDecimal seuil = circuitProperties.seuilDirection();
         if (seuil.compareTo(BigDecimal.ZERO) > 0
+                && ligne.getBudgetEstime() != null
                 && ligne.getBudgetEstime().compareTo(seuil) < 0) {
             etapes.remove(EtapeValidation.DIRECTION);
         }
@@ -242,9 +255,32 @@ public class ValidationService {
         }
     }
 
+    /**
+     * Evaluation du RH : les valeurs de la decision priment, a defaut on garde celles deja portees
+     * par la ligne (cas d'une ligne revenue apres correction). Le budget reste obligatoire.
+     */
+    private void definirEvaluationRh(DemandeRecrutementPoste ligne, ValidationDto.DecisionRequest decision) {
+        BigDecimal salaireMin = decision.salaireMinEstime() != null
+                ? decision.salaireMinEstime() : ligne.getSalaireMinEstime();
+        BigDecimal salaireMax = decision.salaireMaxEstime() != null
+                ? decision.salaireMaxEstime() : ligne.getSalaireMaxEstime();
+        BigDecimal budget = decision.budgetEstime() != null
+                ? decision.budgetEstime() : ligne.getBudgetEstime();
+        ligneRegles.appliquerEvaluationRh(ligne, salaireMin, salaireMax, budget);
+    }
+
+    /** Finance et Direction ne peuvent statuer que sur une ligne dont le RH a defini le budget. */
+    private void controlerBudgetDefini(DemandeRecrutementPoste ligne, EtapeValidation etape) {
+        if (etape != EtapeValidation.RH && ligne.getBudgetEstime() == null) {
+            throw new BusinessException("BUDGET_NON_DEFINI",
+                    "Le RH n'a pas encore defini le budget de la ligne '" + ligne.getIntituleDemande()
+                            + "' : l'etape " + etape + " ne peut pas statuer.");
+        }
+    }
+
     /** RM-054 : le montant verifie doit correspondre au montant reellement soumis. */
     private void controlerMontantVerifie(DemandeRecrutementPoste ligne, ValidationDto.DecisionRequest decision) {
-        if (decision.montantVerifie() == null) {
+        if (decision.montantVerifie() == null || ligne.getBudgetEstime() == null) {
             return;
         }
         if (decision.montantVerifie().compareTo(ligne.getBudgetEstime()) != 0) {

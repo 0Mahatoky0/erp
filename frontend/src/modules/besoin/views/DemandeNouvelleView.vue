@@ -3,7 +3,7 @@ import PrimeButton from 'primevue/button'
 import PrimeInputText from 'primevue/inputtext'
 import PrimeTextarea from 'primevue/textarea'
 import PrimeSelect from 'primevue/select'
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { besoinApi as api } from '@/modules/besoin/api/besoinApi'
 import { useNotificationStore } from '@/shared/store/useNotificationStore'
@@ -40,10 +40,7 @@ function nouvelleLigne() {
     intituleDemande: '',
     descriptionPoste: '',
     profilRecherche: '',
-    salaireMinEstime: null,
-    salaireMaxEstime: null,
     effectif: 1,
-    budgetEstime: null,
   }
 }
 
@@ -58,10 +55,6 @@ function employesPour(ligne) {
     (employe) => !ligne.idService || employe.idService === ligne.idService,
   )
 }
-
-const budgetTotal = computed(() =>
-  lignes.value.reduce((somme, ligne) => somme + Number(ligne.budgetEstime || 0), 0),
-)
 
 function ajouterLigne() {
   lignes.value.push(nouvelleLigne())
@@ -118,10 +111,7 @@ function corpsLigne(ligne) {
     intituleDemande: ligne.intituleDemande,
     descriptionPoste: ligne.descriptionPoste || null,
     profilRecherche: ligne.profilRecherche || null,
-    salaireMinEstime: ligne.salaireMinEstime,
-    salaireMaxEstime: ligne.salaireMaxEstime,
     effectif: ligne.effectif,
-    budgetEstime: ligne.budgetEstime,
   }
 }
 
@@ -157,7 +147,8 @@ async function enregistrer(soumettre) {
         <h1>Nouvelle demande</h1>
         <p class="mt-1 text-sm text-muted-color">
           Une demande peut contenir plusieurs besoins de nature differente. Chaque ligne suivra son
-          propre circuit de validation.
+          propre circuit de validation. Exprimez uniquement le besoin : le budget et la fourchette
+          salariale seront definis par le RH lors de sa validation.
         </p>
       </div>
       <PrimeButton
@@ -397,48 +388,6 @@ async function enregistrer(soumettre) {
               rows="2"
             />
           </div>
-          <div class="flex flex-col gap-2 mb-4">
-            <label class="text-sm font-semibold text-muted-color" :for="`salaireMin-${index}`"
-              >Salaire minimum estime (Ar)</label
-            >
-            <PrimeInputText
-              :id="`salaireMin-${index}`"
-              v-model.number="ligne.salaireMinEstime"
-              class="w-full"
-              type="number"
-              min="0"
-              step="1000"
-            />
-          </div>
-          <div class="flex flex-col gap-2 mb-4">
-            <label class="text-sm font-semibold text-muted-color" :for="`salaireMax-${index}`"
-              >Salaire maximum estime (Ar)</label
-            >
-            <PrimeInputText
-              :id="`salaireMax-${index}`"
-              v-model.number="ligne.salaireMaxEstime"
-              class="w-full"
-              type="number"
-              min="0"
-              step="1000"
-            />
-          </div>
-          <div class="flex flex-col gap-2 mb-4">
-            <label class="text-sm font-semibold text-muted-color" :for="`budget-${index}`"
-              >Budget estime (Ar) <span class="text-red-500">*</span></label
-            >
-            <PrimeInputText
-              :id="`budget-${index}`"
-              v-model.number="ligne.budgetEstime"
-              class="w-full"
-              type="number"
-              min="0"
-              step="1000"
-            />
-            <span class="text-xs text-muted-color"
-              >Verification de la disponibilite budgetaire a l'etape Finance.</span
-            >
-          </div>
         </div>
       </div>
     </section>
@@ -461,7 +410,7 @@ async function enregistrer(soumettre) {
             >Ajouter une ligne</PrimeButton
           >
           <div class="text-muted-color" style="font-size: 12.5px; margin-top: 8px">
-            {{ lignes.length }} ligne(s) · budget total {{ budgetTotal.toLocaleString('fr-FR') }} Ar
+            {{ lignes.length }} ligne(s)
           </div>
         </div>
         <div style="display: flex; gap: 10px">

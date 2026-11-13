@@ -214,8 +214,8 @@ verif "fourchette de salaire incoherente refusee" '[ "$STATUS" = 400 ]' "$BODY"
 echo "== 4. Demande multi-lignes (RM-012 a RM-020) =="
 CORPS_DEMANDE=$(cat <<JSON
 {"motif":"Accroissement activite $SUFFIXE","dateSouhaitee":"2026-12-01","lignes":[
- {"idService":$SERVICE_VENTES_ID,"idPoste":$POSTE_ID,"typeBesoin":"CREATION","intituleDemande":"Charge de clientele premium","descriptionPoste":"Profil commercial","profilRecherche":"3 ans d experience","salaireMinEstime":1200000,"salaireMaxEstime":2500000,"effectif":1,"budgetEstime":1500000},
- {"idService":$SERVICE_VENTES_ID,"typeBesoin":"REMPLACEMENT","idEmployeRemplace":$EMPLOYE_ID,"typeRemplacement":"DEFINITIF","motifRemplacement":"Depart a la retraite","dateDebutRemplacement":"2026-12-01","dateFinRemplacement":"2027-01-31","intituleDemande":"Remplacement employe","effectif":1,"budgetEstime":1000000}]}
+ {"idService":$SERVICE_VENTES_ID,"idPoste":$POSTE_ID,"typeBesoin":"CREATION","intituleDemande":"Charge de clientele premium","descriptionPoste":"Profil commercial","profilRecherche":"3 ans d experience","effectif":1},
+ {"idService":$SERVICE_VENTES_ID,"typeBesoin":"REMPLACEMENT","idEmployeRemplace":$EMPLOYE_ID,"typeRemplacement":"DEFINITIF","motifRemplacement":"Depart a la retraite","dateDebutRemplacement":"2026-12-01","dateFinRemplacement":"2027-01-31","intituleDemande":"Remplacement employe","effectif":1}]}
 JSON
 )
 api POST /demandes "$MGR" "$CORPS_DEMANDE"
@@ -227,27 +227,25 @@ DETAIL="$BODY"
 verif "statut initial BROUILLON" '[ "$(json_get "$DETAIL" statut)" = BROUILLON ]' "$DETAIL"
 LIGNE1=$(json_get "$DETAIL" lignes.0.id)
 LIGNE2=$(json_get "$DETAIL" lignes.1.id)
+verif "budget non defini par le manager (defini par le RH)" '[ -z "$(json_get "$DETAIL" lignes.0.budgetEstime)" ] || [ "$(json_get "$DETAIL" lignes.0.budgetEstime)" = null ]' "$DETAIL"
 
 # ---------------------------------------------------------------------------
 echo "== 5. Regles de saisie (RM-015 a RM-031) =="
 api PUT "/demandes/$DEMANDE_ID" "$MGR" "$(printf '{"motif":"Autre motif %s","dateSouhaitee":"2026-11-15"}' "$SUFFIXE")"
 verif "modification entete en brouillon (RM-019)" '[ "$STATUS" = 200 ]' "$BODY"
 
-api POST "/demandes/$DEMANDE_ID/lignes" "$MGR" "$(printf '{"idService":%s,"typeBesoin":"REMPLACEMENT","idEmployeRemplace":%s,"typeRemplacement":"DEFINITIF","intituleDemande":"Ligne invalide","effectif":1,"budgetEstime":100000}' "$SERVICE_VENTES_ID" "$EMPLOYE_ID")"
+api POST "/demandes/$DEMANDE_ID/lignes" "$MGR" "$(printf '{"idService":%s,"typeBesoin":"REMPLACEMENT","idEmployeRemplace":%s,"typeRemplacement":"DEFINITIF","intituleDemande":"Ligne invalide","effectif":1}' "$SERVICE_VENTES_ID" "$EMPLOYE_ID")"
 verif "remplacement sans dates refuse (RM-028)" '[ "$STATUS" = 400 ]' "$BODY"
 
-api POST "/demandes/$DEMANDE_ID/lignes" "$MGR" "$(printf '{"idService":%s,"typeBesoin":"CREATION","intituleDemande":"Ligne sans effectif","effectif":0,"budgetEstime":100000}' "$SERVICE_VENTES_ID")"
+api POST "/demandes/$DEMANDE_ID/lignes" "$MGR" "$(printf '{"idService":%s,"typeBesoin":"CREATION","intituleDemande":"Ligne sans effectif","effectif":0}' "$SERVICE_VENTES_ID")"
 verif "effectif nul refuse (RM-022)" '[ "$STATUS" = 400 ]' "$BODY"
-
-api POST "/demandes/$DEMANDE_ID/lignes" "$MGR" "$(printf '{"idService":%s,"typeBesoin":"CREATION","intituleDemande":"Salaire incoherent","effectif":1,"budgetEstime":100000,"salaireMinEstime":3000000,"salaireMaxEstime":1000000}' "$SERVICE_VENTES_ID")"
-verif "salaires incoherents refuses (RM-030)" '[ "$STATUS" = 400 ]' "$BODY"
 
 # ---------------------------------------------------------------------------
 echo "== 6. Soumission (RM-032, RM-041 a RM-047) =="
 api POST "/demandes/$DEMANDE_ID/soumettre" "$MGR"
 verif "soumission acceptee" '[ "$STATUS" = 200 ] && [ "$(json_get "$BODY" statut)" = EN_VALIDATION ]' "$BODY"
 
-api PUT "/demandes/$DEMANDE_ID/lignes/$LIGNE1" "$MGR" '{"intituleDemande":"modif","effectif":2,"budgetEstime":2000000}'
+api PUT "/demandes/$DEMANDE_ID/lignes/$LIGNE1" "$MGR" '{"intituleDemande":"modif","effectif":2}'
 verif "ligne non modifiable apres soumission (RM-019)" '[ "$STATUS" = 409 ] || [ "$STATUS" = 400 ]' "$BODY"
 
 api GET "/demandes/$DEMANDE_ID" "$MGR"
@@ -264,7 +262,13 @@ verif "file de validation FINANCE limitee a son etape (RM-039)" '[ "$STATUS" = 2
 api POST "/validation/lignes/$LIGNE1/decision" "$FIN" '{"decision":"APPROUVE","commentaire":"par finance"}'
 verif "validation refusee si mauvais role (RM-039)" '[ "$STATUS" = 403 ]' "$BODY"
 
-api POST "/validation/lignes/$LIGNE1/decision" "$RH" '{"decision":"APPROUVE","commentaire":"RH valide"}'
+api POST "/validation/lignes/$LIGNE1/decision" "$RH" '{"decision":"APPROUVE","commentaire":"RH sans budget"}'
+verif "approbation RH sans budget refusee (budget defini par le RH)" '[ "$STATUS" = 400 ]' "$BODY"
+
+api POST "/validation/lignes/$LIGNE1/decision" "$RH" '{"decision":"APPROUVE","commentaire":"RH salaires incoherents","budgetEstime":1500000,"salaireMinEstime":3000000,"salaireMaxEstime":1000000}'
+verif "approbation RH avec salaires incoherents refusee" '[ "$STATUS" = 400 ]' "$BODY"
+
+api POST "/validation/lignes/$LIGNE1/decision" "$RH" '{"decision":"APPROUVE","commentaire":"RH valide","budgetEstime":1500000,"salaireMinEstime":1200000,"salaireMaxEstime":2500000}'
 verif "validation RH acceptee" '[ "$STATUS" = 200 ] && [ "$(json_get "$BODY" statut)" = EN_ATTENTE_FINANCE ]' "$BODY"
 
 api POST "/validation/lignes/$LIGNE1/decision" "$RH" '{"decision":"APPROUVE","commentaire":"doublon"}'
@@ -291,13 +295,13 @@ verif "ligne 1 passee a l etape DIRECTION" '[ "$(json_get "$BODY" lignes.0.etape
 
 # ---------------------------------------------------------------------------
 echo "== 8bis. Budget insuffisant (RM-051, RM-052) =="
-api POST /demandes "$MGR" "$(printf '{"motif":"Budget trop important %s","dateSouhaitee":"2026-12-01","lignes":[{"idService":%s,"typeBesoin":"CREATION","intituleDemande":"Poste hors budget","effectif":1,"budgetEstime":900000000}]}' "$SUFFIXE" "$SERVICE_VENTES_ID")"
+api POST /demandes "$MGR" "$(printf '{"motif":"Budget trop important %s","dateSouhaitee":"2026-12-01","lignes":[{"idService":%s,"typeBesoin":"CREATION","intituleDemande":"Poste hors budget","effectif":1}]}' "$SUFFIXE" "$SERVICE_VENTES_ID")"
 verif "demande hors budget creee" '[ "$STATUS" = 200 ]' "$BODY"
 GROS_ID=$(json_get "$BODY" id)
 api POST "/demandes/$GROS_ID/soumettre" "$MGR" >/dev/null
 api GET "/demandes/$GROS_ID" "$RH"
 GROS_LIGNE=$(json_get "$BODY" lignes.0.id)
-api POST "/validation/lignes/$GROS_LIGNE/decision" "$RH" '{"decision":"APPROUVE","commentaire":"RH"}' >/dev/null
+api POST "/validation/lignes/$GROS_LIGNE/decision" "$RH" '{"decision":"APPROUVE","commentaire":"RH","budgetEstime":900000000}' >/dev/null
 api POST "/validation/lignes/$GROS_LIGNE/decision" "$FIN" '{"decision":"APPROUVE","commentaire":"Finance"}'
 verif "budget insuffisant refuse (RM-051)" '([ "$STATUS" = 400 ] || [ "$STATUS" = 409 ]) && [ "$(json_contains "$BODY" . budget)" = true ]' "$BODY"
 api GET "/demandes/$GROS_ID" "$FIN"
@@ -318,7 +322,7 @@ verif "poste present au catalogue" '[ "$(json_hasid "$BODY" . "$(json_get "$LIGN
 
 # ---------------------------------------------------------------------------
 echo "== 10. Separation des responsabilites (RM-005) =="
-api POST /demandes "$RH" "$(printf '{"motif":"Auto validation %s","dateSouhaitee":"2026-12-01","lignes":[{"idService":%s,"typeBesoin":"CREATION","intituleDemande":"Poste RH","effectif":1,"budgetEstime":500000}]}' "$SUFFIXE" "$SERVICE_VENTES_ID")"
+api POST /demandes "$RH" "$(printf '{"motif":"Auto validation %s","dateSouhaitee":"2026-12-01","lignes":[{"idService":%s,"typeBesoin":"CREATION","intituleDemande":"Poste RH","effectif":1}]}' "$SUFFIXE" "$SERVICE_VENTES_ID")"
 verif "demande RH creee" '[ "$STATUS" = 200 ]' "$BODY"
 AUTO_ID=$(json_get "$BODY" id)
 api POST "/demandes/$AUTO_ID/soumettre" "$RH"
@@ -338,7 +342,7 @@ verif "statut global A_CORRIGER" '[ "$(json_get "$BODY" statut)" = A_CORRIGER ]'
 L2=$(json_findid "$BODY" lignes "$LIGNE2")
 verif "ligne 2 en correction, episode 1" '[ "$(json_get "$L2" statut)" = A_CORRIGER ] && [ "$(json_get "$L2" episode)" = 1 ]' "$L2"
 
-api PUT "/demandes/$DEMANDE_ID/lignes/$LIGNE2" "$MGR" '{"intituleDemande":"Remplacement employe corrige","effectif":1,"budgetEstime":1000000,"motifRemplacement":"Depart a la retraite","dateDebutRemplacement":"2026-12-01","dateFinRemplacement":"2027-01-31"}'
+api PUT "/demandes/$DEMANDE_ID/lignes/$LIGNE2" "$MGR" '{"intituleDemande":"Remplacement employe corrige","effectif":1,"motifRemplacement":"Depart a la retraite","dateDebutRemplacement":"2026-12-01","dateFinRemplacement":"2027-01-31"}'
 verif "ligne A_CORRIGER modifiable par le demandeur (RM-037)" '[ "$STATUS" = 200 ]' "$BODY"
 
 api POST "/demandes/$DEMANDE_ID/lignes/$LIGNE2/resoumettre" "$MGR"
