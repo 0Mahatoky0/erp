@@ -25,13 +25,16 @@ public class BudgetService {
     private final BudgetRepository budgetRepository;
     private final VerificationBudgetRepository verificationRepository;
     private final com.tovo.erp.besoin.repository.ServiceRepository serviceRepository;
+    private final DemandeProperties proprietes;
 
     public BudgetService(BudgetRepository budgetRepository,
                          VerificationBudgetRepository verificationRepository,
-                         com.tovo.erp.besoin.repository.ServiceRepository serviceRepository) {
+                         com.tovo.erp.besoin.repository.ServiceRepository serviceRepository,
+                         DemandeProperties proprietes) {
         this.budgetRepository = budgetRepository;
         this.verificationRepository = verificationRepository;
         this.serviceRepository = serviceRepository;
+        this.proprietes = proprietes;
     }
 
     /** Liste des budgets filtres par service et par exercice. */
@@ -94,7 +97,7 @@ public class BudgetService {
                                 + " sur l'exercice " + exercice + ". Impossible de valider la ligne."));
 
         BigDecimal disponible = budget.getMontantDisponible();
-        BigDecimal montant = ligne.getBudgetEstime();
+        BigDecimal montant = coutAnnuel(ligne);
 
         if (decision == Decision.APPROUVE && montant.compareTo(disponible) > 0) {
             throw new BusinessException("BUDGET_INSUFFISANT",
@@ -128,7 +131,7 @@ public class BudgetService {
                 .orElseThrow(() -> new BusinessException("BUDGET_ABSENT",
                         "Aucun budget n'est defini pour le service " + ligne.getService().getNom()
                                 + " sur l'exercice " + exercice + " : l'engagement est impossible."));
-        budget.setMontantEngage(budget.getMontantEngage().add(ligne.getBudgetEstime()));
+        budget.setMontantEngage(budget.getMontantEngage().add(coutAnnuel(ligne)));
         budget.setDateModification(LocalDateTime.now());
         budgetRepository.save(budget);
     }
@@ -142,10 +145,28 @@ public class BudgetService {
         if (budget == null) {
             return;
         }
-        BigDecimal engage = budget.getMontantEngage().subtract(ligne.getBudgetEstime()).max(BigDecimal.ZERO);
+        BigDecimal engage = budget.getMontantEngage().subtract(coutAnnuel(ligne)).max(BigDecimal.ZERO);
         budget.setMontantEngage(engage);
         budget.setDateModification(LocalDateTime.now());
         budgetRepository.save(budget);
+    }
+
+    /**
+     * Cout annuel du poste (RG-B1-09) : salaire mensuel x nombre de mois x (1 + charges).
+     * Le budget etant annuel, toutes les comparaisons et engagements utilisent ce montant.
+     */
+    private BigDecimal coutAnnuel(DemandeRecrutementPoste ligne) {
+        BigDecimal salaireMensuel = ligne.getBudgetEstime() != null
+                ? ligne.getBudgetEstime()
+                : ligne.getSalaireMaxEstime();
+        if (salaireMensuel == null) {
+            throw new BusinessException("BUDGET_INVALIDE",
+                    "Le budget de la ligne doit etre defini avant le controle budgetaire.");
+        }
+        BigDecimal facteur = BigDecimal.ONE.add(proprietes.facteurCharges());
+        return salaireMensuel
+                .multiply(BigDecimal.valueOf(proprietes.moisParAn()))
+                .multiply(facteur);
     }
 
     /** Exercice budgetaire de la ligne : annee de la date souhaitee de la demande (RM-050). */

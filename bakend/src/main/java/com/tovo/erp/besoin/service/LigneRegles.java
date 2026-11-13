@@ -29,13 +29,16 @@ public class LigneRegles {
     private final ServiceRepository serviceRepository;
     private final PosteRepository posteRepository;
     private final EmployeService employeService;
+    private final DemandeProperties proprietes;
 
     public LigneRegles(ServiceRepository serviceRepository,
                        PosteRepository posteRepository,
-                       EmployeService employeService) {
+                       EmployeService employeService,
+                       DemandeProperties proprietes) {
         this.serviceRepository = serviceRepository;
         this.posteRepository = posteRepository;
         this.employeService = employeService;
+        this.proprietes = proprietes;
     }
 
     /** Construit une ligne de demande a partir des donnees saisies et verifie sa coherence. */
@@ -124,11 +127,23 @@ public class LigneRegles {
                 .orElseThrow(() -> BusinessException.notFound("Le service " + idService + " n'existe pas."));
     }
 
-    /** RM-016. */
+    /**
+     * RM-016 et RG-B1-05 : effectif entre 1 et le maximum parametre ; un remplacement
+     * porte toujours sur un seul poste.
+     */
     private void controlerEffectif(DemandeRecrutementPoste ligne) {
         if (ligne.getEffectif() == null || ligne.getEffectif() <= 0) {
             throw new BusinessException("EFFECTIF_INVALIDE",
                     "L'effectif doit etre strictement superieur a zero.");
+        }
+        if (ligne.getEffectif() > proprietes.effectifMaximum()) {
+            throw new BusinessException("EFFECTIF_INVALIDE",
+                    "L'effectif demande (" + ligne.getEffectif() + ") depasse le maximum autorise ("
+                            + proprietes.effectifMaximum() + ").");
+        }
+        if (ligne.getTypeBesoin() == TypeBesoin.REMPLACEMENT && ligne.getEffectif() != 1) {
+            throw new BusinessException("EFFECTIF_REMPLACEMENT_INVALIDE",
+                    "Un remplacement porte sur un seul poste (effectif = 1).");
         }
     }
 
