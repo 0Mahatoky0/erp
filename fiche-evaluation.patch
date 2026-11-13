@@ -1,0 +1,773 @@
+diff --git a/bakend/src/main/java/com/tovo/erp/recrutement/controller/EvaluationCandidatController.java b/bakend/src/main/java/com/tovo/erp/recrutement/controller/EvaluationCandidatController.java
+index 29d3973..a5a0ea0 100644
+--- a/bakend/src/main/java/com/tovo/erp/recrutement/controller/EvaluationCandidatController.java
++++ b/bakend/src/main/java/com/tovo/erp/recrutement/controller/EvaluationCandidatController.java
+@@ -2,7 +2,9 @@ package com.tovo.erp.recrutement.controller;
+ 
+ import com.tovo.erp.recrutement.dto.EvaluationCandidatDto;
+ import com.tovo.erp.recrutement.dto.RecrutementRequests;
++import com.tovo.erp.recrutement.dto.SyntheseEvaluationDto;
+ import com.tovo.erp.recrutement.service.EvaluationDecisionService;
++import com.tovo.erp.recrutement.service.SyntheseEvaluationService;
+ import com.tovo.erp.shared.Roles;
+ import com.tovo.erp.shared.UtilisateurCourant;
+ import jakarta.validation.Valid;
+@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
+ import org.springframework.web.bind.annotation.PostMapping;
+ import org.springframework.web.bind.annotation.RequestBody;
+ import org.springframework.web.bind.annotation.RequestMapping;
++import org.springframework.web.bind.annotation.RequestParam;
+ import org.springframework.web.bind.annotation.RestController;
+ 
+ import java.util.List;
+@@ -22,11 +25,14 @@ import java.util.List;
+ public class EvaluationCandidatController {
+ 
+     private final EvaluationDecisionService evaluations;
++    private final SyntheseEvaluationService syntheses;
+     private final UtilisateurCourant utilisateurCourant;
+ 
+     public EvaluationCandidatController(EvaluationDecisionService evaluations,
++                                        SyntheseEvaluationService syntheses,
+                                         UtilisateurCourant utilisateurCourant) {
+         this.evaluations = evaluations;
++        this.syntheses = syntheses;
+         this.utilisateurCourant = utilisateurCourant;
+     }
+ 
+@@ -42,4 +48,19 @@ public class EvaluationCandidatController {
+     public List<EvaluationCandidatDto> parCandidature(@PathVariable Long id) {
+         return evaluations.evaluationsDe(id);
+     }
++
++    /** Notes par categorie (dossier, entretien, test) de toutes les candidatures d'une offre. */
++    @GetMapping("/offres/{idOffre}/evaluations/synthese")
++    public List<SyntheseEvaluationDto> syntheseDeLOffre(@PathVariable Long idOffre,
++                                                        @RequestParam(required = false) String statut) {
++        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION, Roles.MANAGER);
++        return syntheses.parOffre(idOffre, statut);
++    }
++
++    /** Notes par categorie d'une candidature, pour sa fiche d'evaluation. */
++    @GetMapping("/candidatures/{id}/evaluations/synthese")
++    public SyntheseEvaluationDto syntheseDeLaCandidature(@PathVariable Long id) {
++        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
++        return syntheses.pourCandidature(id);
++    }
+ }
+diff --git a/bakend/src/main/java/com/tovo/erp/recrutement/dto/SyntheseEvaluationDto.java b/bakend/src/main/java/com/tovo/erp/recrutement/dto/SyntheseEvaluationDto.java
+new file mode 100644
+index 0000000..255f1a6
+--- /dev/null
++++ b/bakend/src/main/java/com/tovo/erp/recrutement/dto/SyntheseEvaluationDto.java
+@@ -0,0 +1,104 @@
++package com.tovo.erp.recrutement.dto;
++
++import com.tovo.erp.recrutement.model.Candidature;
++import com.tovo.erp.recrutement.model.CandidatureStatut;
++import com.tovo.erp.recrutement.model.EvaluationCandidat;
++import com.tovo.erp.recrutement.model.TypeEvaluation;
++
++import java.math.BigDecimal;
++import java.math.RoundingMode;
++import java.util.ArrayList;
++import java.util.List;
++import java.util.Objects;
++import java.util.stream.Stream;
++
++/**
++ * Synthese des evaluations d'une candidature : une note par categorie (dossier, entretien, test)
++ * et une moyenne generale.
++ *
++ * <p>Les baremes pouvant differer d'une evaluation a l'autre, chaque note est ramenee sur 20 avant
++ * d'etre moyennee. La note d'une categorie est la moyenne de ses evaluations ; la note globale est
++ * la moyenne des categories qui ont une note. Une categorie sans evaluation est signalee dans
++ * {@code categoriesManquantes} et n'entre pas dans la moyenne generale.
++ */
++public record SyntheseEvaluationDto(
++        Long idCandidature,
++        CandidatDto candidat,
++        CandidatureStatut statut,
++        NoteCategorie dossier,
++        NoteCategorie entretien,
++        NoteCategorie test,
++        BigDecimal noteGlobale,
++        List<TypeEvaluation> categoriesManquantes) {
++
++    /** Bareme commun auquel toutes les notes sont ramenees. */
++    public static final BigDecimal BAREME = BigDecimal.valueOf(20);
++
++    /**
++     * Resultat d'une categorie d'evaluation.
++     *
++     * @param evaluee           au moins une evaluation de cette categorie existe
++     * @param nombreEvaluations nombre d'evaluations enregistrees
++     * @param note              moyenne sur 20, null si aucune evaluation ne porte de note
++     * @param noteMax           bareme de la note (toujours 20)
++     */
++    public record NoteCategorie(boolean evaluee, int nombreEvaluations, BigDecimal note, BigDecimal noteMax) {
++    }
++
++    public static SyntheseEvaluationDto de(Candidature candidature, List<EvaluationCandidat> evaluations) {
++        NoteCategorie dossier = categorie(evaluations, TypeEvaluation.DOSSIER);
++        NoteCategorie entretien = categorie(evaluations, TypeEvaluation.ENTRETIEN);
++        NoteCategorie test = categorie(evaluations, TypeEvaluation.TEST);
++
++        List<TypeEvaluation> manquantes = new ArrayList<>();
++        if (!dossier.evaluee()) {
++            manquantes.add(TypeEvaluation.DOSSIER);
++        }
++        if (!entretien.evaluee()) {
++            manquantes.add(TypeEvaluation.ENTRETIEN);
++        }
++        if (!test.evaluee()) {
++            manquantes.add(TypeEvaluation.TEST);
++        }
++
++        BigDecimal noteGlobale = moyenne(Stream.of(dossier, entretien, test)
++                .map(NoteCategorie::note)
++                .filter(Objects::nonNull)
++                .toList());
++
++        return new SyntheseEvaluationDto(
++                candidature.getIdCandidature(),
++                CandidatDto.de(candidature.getCandidat()),
++                candidature.getStatut(),
++                dossier, entretien, test,
++                noteGlobale,
++                List.copyOf(manquantes));
++    }
++
++    private static NoteCategorie categorie(List<EvaluationCandidat> evaluations, TypeEvaluation type) {
++        List<EvaluationCandidat> deCeType = evaluations.stream()
++                .filter(evaluation -> evaluation.getTypeEvaluation() == type)
++                .toList();
++        List<BigDecimal> notes = deCeType.stream()
++                .map(SyntheseEvaluationDto::surVingt)
++                .filter(Objects::nonNull)
++                .toList();
++        return new NoteCategorie(!deCeType.isEmpty(), deCeType.size(), moyenne(notes), BAREME);
++    }
++
++    private static BigDecimal surVingt(EvaluationCandidat evaluation) {
++        if (evaluation.getNote() == null || evaluation.getNoteMax() == null
++                || evaluation.getNoteMax().signum() <= 0) {
++            return null;
++        }
++        return evaluation.getNote().multiply(BAREME).divide(evaluation.getNoteMax(), 4, RoundingMode.HALF_UP);
++    }
++
++    private static BigDecimal moyenne(List<BigDecimal> notes) {
++        if (notes.isEmpty()) {
++            return null;
++        }
++        BigDecimal somme = notes.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
++        return somme.divide(BigDecimal.valueOf(notes.size()), 2, RoundingMode.HALF_UP);
++    }
++}
+diff --git a/bakend/src/main/java/com/tovo/erp/recrutement/repository/EvaluationCandidatRepository.java b/bakend/src/main/java/com/tovo/erp/recrutement/repository/EvaluationCandidatRepository.java
+index 5ccfd69..850d588 100644
+--- a/bakend/src/main/java/com/tovo/erp/recrutement/repository/EvaluationCandidatRepository.java
++++ b/bakend/src/main/java/com/tovo/erp/recrutement/repository/EvaluationCandidatRepository.java
+@@ -8,5 +8,7 @@ import java.util.List;
+ public interface EvaluationCandidatRepository extends JpaRepository<EvaluationCandidat, Long> {
+     @EntityGraph(attributePaths = {"candidature", "entretien", "passage"})
+     List<EvaluationCandidat> findByCandidatureIdCandidature(Long idCandidature);
++    @EntityGraph(attributePaths = {"candidature", "entretien", "passage"})
++    List<EvaluationCandidat> findByCandidatureOffreIdOffre(Long idOffre);
+     List<EvaluationCandidat> findByTypeEvaluation(TypeEvaluation typeEvaluation);
+ }
+diff --git a/bakend/src/main/java/com/tovo/erp/recrutement/service/SyntheseEvaluationService.java b/bakend/src/main/java/com/tovo/erp/recrutement/service/SyntheseEvaluationService.java
+new file mode 100644
+index 0000000..ac273a1
+--- /dev/null
++++ b/bakend/src/main/java/com/tovo/erp/recrutement/service/SyntheseEvaluationService.java
+@@ -0,0 +1,69 @@
++package com.tovo.erp.recrutement.service;
++
++import com.tovo.erp.recrutement.dto.SyntheseEvaluationDto;
++import com.tovo.erp.recrutement.model.Candidature;
++import com.tovo.erp.recrutement.model.CandidatureStatut;
++import com.tovo.erp.recrutement.model.EvaluationCandidat;
++import com.tovo.erp.recrutement.repository.CandidatureRepository;
++import com.tovo.erp.recrutement.repository.EvaluationCandidatRepository;
++import com.tovo.erp.shared.BusinessException;
++import org.springframework.stereotype.Service;
++import org.springframework.transaction.annotation.Transactional;
++
++import java.util.List;
++import java.util.Locale;
++import java.util.Map;
++import java.util.stream.Collectors;
++
++/** Calcule les notes par categorie d'evaluation (dossier, entretien, test) des candidatures. */
++@Service
++public class SyntheseEvaluationService {
++
++    private final EvaluationCandidatRepository evaluations;
++    private final CandidatureRepository candidatures;
++
++    public SyntheseEvaluationService(EvaluationCandidatRepository evaluations,
++                                     CandidatureRepository candidatures) {
++        this.evaluations = evaluations;
++        this.candidatures = candidatures;
++    }
++
++    /** Synthese de toutes les candidatures d'une offre, filtrees par statut si demande. */
++    @Transactional(readOnly = true)
++    public List<SyntheseEvaluationDto> parOffre(Long idOffre, String statut) {
++        CandidatureStatut filtre = statutDepuis(statut);
++        List<Candidature> liste = filtre == null
++                ? candidatures.findByOffreIdOffre(idOffre)
++                : candidatures.findByOffreIdOffreAndStatut(idOffre, filtre);
++
++        Map<Long, List<EvaluationCandidat>> evaluationsParCandidature = evaluations
++                .findByCandidatureOffreIdOffre(idOffre).stream()
++                .collect(Collectors.groupingBy(e -> e.getCandidature().getIdCandidature()));
++
++        return liste.stream()
++                .map(candidature -> SyntheseEvaluationDto.de(candidature,
++                        evaluationsParCandidature.getOrDefault(candidature.getIdCandidature(), List.of())))
++                .toList();
++    }
++
++    /** Synthese d'une seule candidature, pour sa fiche d'evaluation. */
++    @Transactional(readOnly = true)
++    public SyntheseEvaluationDto pourCandidature(Long idCandidature) {
++        Candidature candidature = candidatures.findById(idCandidature)
++                .orElseThrow(() -> BusinessException.notFound(
++                        "La candidature " + idCandidature + " n'existe pas."));
++        return SyntheseEvaluationDto.de(candidature,
++                evaluations.findByCandidatureIdCandidature(idCandidature));
++    }
++
++    private CandidatureStatut statutDepuis(String statut) {
++        if (statut == null || statut.isBlank()) {
++            return null;
++        }
++        try {
++            return CandidatureStatut.valueOf(statut.trim().toUpperCase(Locale.ROOT));
++        } catch (IllegalArgumentException ex) {
++            throw new BusinessException("STATUT_INVALIDE", "Statut de candidature inconnu : " + statut);
++        }
++    }
++}
+diff --git a/bakend/src/test/java/com/tovo/erp/recrutement/dto/SyntheseEvaluationDtoTest.java b/bakend/src/test/java/com/tovo/erp/recrutement/dto/SyntheseEvaluationDtoTest.java
+new file mode 100644
+index 0000000..4a08dd0
+--- /dev/null
++++ b/bakend/src/test/java/com/tovo/erp/recrutement/dto/SyntheseEvaluationDtoTest.java
+@@ -0,0 +1,75 @@
++package com.tovo.erp.recrutement.dto;
++
++import com.tovo.erp.recrutement.model.Candidat;
++import com.tovo.erp.recrutement.model.Candidature;
++import com.tovo.erp.recrutement.model.EvaluationCandidat;
++import com.tovo.erp.recrutement.model.TypeEvaluation;
++import org.junit.jupiter.api.Test;
++
++import java.math.BigDecimal;
++import java.util.List;
++
++import static org.junit.jupiter.api.Assertions.*;
++
++class SyntheseEvaluationDtoTest {
++
++    private Candidature candidature() {
++        Candidat candidat = new Candidat();
++        candidat.setIdCandidat(2L);
++        candidat.setNom("Rakoto");
++        candidat.setPrenom("Mamy");
++        candidat.setEmail("mamy@example.com");
++        Candidature candidature = new Candidature();
++        candidature.setIdCandidature(10L);
++        candidature.setCandidat(candidat);
++        return candidature;
++    }
++
++    private EvaluationCandidat evaluation(TypeEvaluation type, String note, String noteMax) {
++        EvaluationCandidat evaluation = new EvaluationCandidat();
++        evaluation.setTypeEvaluation(type);
++        evaluation.setNote(note == null ? null : new BigDecimal(note));
++        evaluation.setNoteMax(new BigDecimal(noteMax));
++        return evaluation;
++    }
++
++    @Test
++    void signaleLesCategoriesSansEvaluation() {
++        SyntheseEvaluationDto synthese = SyntheseEvaluationDto.de(candidature(), List.of());
++
++        assertFalse(synthese.dossier().evaluee());
++        assertFalse(synthese.entretien().evaluee());
++        assertFalse(synthese.test().evaluee());
++        assertNull(synthese.noteGlobale());
++        assertEquals(List.of(TypeEvaluation.DOSSIER, TypeEvaluation.ENTRETIEN, TypeEvaluation.TEST),
++                synthese.categoriesManquantes());
++    }
++
++    @Test
++    void ramenePlusieursBaremesSurVingtEtMoyenne() {
++        SyntheseEvaluationDto synthese = SyntheseEvaluationDto.de(candidature(), List.of(
++                evaluation(TypeEvaluation.DOSSIER, "15", "20"),
++                evaluation(TypeEvaluation.ENTRETIEN, "8", "10"),
++                evaluation(TypeEvaluation.ENTRETIEN, "12", "20")));
++
++        assertEquals(new BigDecimal("15.00"), synthese.dossier().note());
++        // (8/10 -> 16) et (12/20 -> 12) : moyenne 14.
++        assertEquals(new BigDecimal("14.00"), synthese.entretien().note());
++        assertEquals(2, synthese.entretien().nombreEvaluations());
++        assertFalse(synthese.test().evaluee());
++        assertEquals(List.of(TypeEvaluation.TEST), synthese.categoriesManquantes());
++        // La moyenne generale ne compte que les categories notees : (15 + 14) / 2.
++        assertEquals(new BigDecimal("14.50"), synthese.noteGlobale());
++    }
++
++    @Test
++    void uneEvaluationSansNoteCompteCommeFaiteMaisSansNote() {
++        SyntheseEvaluationDto synthese = SyntheseEvaluationDto.de(candidature(), List.of(
++                evaluation(TypeEvaluation.TEST, null, "20")));
++
++        assertTrue(synthese.test().evaluee());
++        assertNull(synthese.test().note());
++        assertNull(synthese.noteGlobale());
++        assertFalse(synthese.categoriesManquantes().contains(TypeEvaluation.TEST));
++    }
++}
+diff --git a/frontend/src/modules/recrutement/components/NoteEvaluation.vue b/frontend/src/modules/recrutement/components/NoteEvaluation.vue
+new file mode 100644
+index 0000000..8cbbb53
+--- /dev/null
++++ b/frontend/src/modules/recrutement/components/NoteEvaluation.vue
+@@ -0,0 +1,24 @@
++<script setup>
++import Tag from 'primevue/tag'
++import { formatNote } from '../utils/notes'
++
++/**
++ * Affiche la note d'une catégorie d'évaluation (dossier, entretien, test) sur 20,
++ * ou précise pourquoi elle est absente : jamais évaluée, ou évaluée sans note.
++ */
++defineProps({
++  categorie: { type: Object, default: null },
++})
++</script>
++
++<template>
++  <Tag v-if="!categorie?.evaluee" value="Non évalué" severity="warn" />
++  <Tag v-else-if="categorie.note === null || categorie.note === undefined" value="Sans note" severity="secondary" />
++  <span v-else class="whitespace-nowrap">
++    <strong>{{ formatNote(categorie.note) }}</strong>
++    <span class="text-muted-color"> / {{ formatNote(categorie.noteMax ?? 20) }}</span>
++    <span v-if="categorie.nombreEvaluations > 1" class="ml-1 text-xs text-muted-color">
++      ({{ categorie.nombreEvaluations }} éval.)
++    </span>
++  </span>
++</template>
+diff --git a/frontend/src/modules/recrutement/utils/notes.js b/frontend/src/modules/recrutement/utils/notes.js
+new file mode 100644
+index 0000000..46c363a
+--- /dev/null
++++ b/frontend/src/modules/recrutement/utils/notes.js
+@@ -0,0 +1,38 @@
++/**
++ * Libellés et formatage des évaluations de candidats (dossier, entretien, test).
++ */
++
++export const TYPES_EVALUATION = [
++  { valeur: 'DOSSIER', libelle: 'Dossier' },
++  { valeur: 'ENTRETIEN', libelle: 'Entretien' },
++  { valeur: 'TEST', libelle: 'Test' },
++]
++
++/** Valeurs acceptées par la base (contrainte chk_b2_evaluation_appreciation). */
++export const APPRECIATIONS = [
++  { valeur: 'FAVORABLE', libelle: 'Favorable', severite: 'success' },
++  { valeur: 'RESERVE', libelle: 'Réservée', severite: 'warn' },
++  { valeur: 'DEFAVORABLE', libelle: 'Défavorable', severite: 'danger' },
++]
++
++export function libelleTypeEvaluation(valeur) {
++  return TYPES_EVALUATION.find((type) => type.valeur === valeur)?.libelle || valeur || '—'
++}
++
++export function appreciation(valeur) {
++  return (
++    APPRECIATIONS.find((item) => item.valeur === valeur) || {
++      valeur,
++      libelle: valeur || '—',
++      severite: 'secondary',
++    }
++  )
++}
++
++/** Formate une note en français, sans décimales inutiles (14 ou 14,5). */
++export function formatNote(note) {
++  if (note === null || note === undefined || Number.isNaN(Number(note))) {
++    return '—'
++  }
++  return Number(note).toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
++}
+diff --git a/frontend/src/modules/recrutement/views/CandidatureEvaluationFicheView.vue b/frontend/src/modules/recrutement/views/CandidatureEvaluationFicheView.vue
+index 7b770fc..6da1185 100644
+--- a/frontend/src/modules/recrutement/views/CandidatureEvaluationFicheView.vue
++++ b/frontend/src/modules/recrutement/views/CandidatureEvaluationFicheView.vue
+@@ -1,5 +1,5 @@
+ <script setup>
+-import { computed, onMounted, reactive, ref } from 'vue'
++import { computed, onMounted, reactive, ref, watch } from 'vue'
+ import { useRoute } from 'vue-router'
+ import Card from 'primevue/card'
+ import Button from 'primevue/button'
+@@ -10,13 +10,20 @@ import Tag from 'primevue/tag'
+ import StatusBadge from '@/shared/components/StatusBadge.vue'
+ import EmptyState from '@/shared/components/EmptyState.vue'
+ import { useNotificationStore } from '@/shared/store/useNotificationStore'
++import { formatDateHeure } from '@/shared/utils/format'
+ import { recrutementApi as api, ErreurApi } from '../api/recrutementApi'
++import NoteEvaluation from '../components/NoteEvaluation.vue'
++import { APPRECIATIONS, TYPES_EVALUATION, appreciation, libelleTypeEvaluation } from '../utils/notes'
+ 
+ const route = useRoute()
+ const notifications = useNotificationStore()
+ const candidature = ref(null)
+ const offre = ref(null)
+ const evaluations = ref([])
++const synthese = ref(null)
++const entretiens = ref([])
++const passages = ref([])
++const tests = ref([])
+ const historique = ref([])
+ const candidats = ref([])
+ const loading = ref(false)
+@@ -24,11 +31,50 @@ const saving = ref(false)
+ 
+ const evaluation = reactive({
+   typeEvaluation: 'DOSSIER',
++  idEntretien: null,
++  idPassage: null,
+   note: null,
+   noteMax: 20,
+-  appreciation: 'MOYENNE',
++  appreciation: null,
+   commentaire: '',
+ })
++
++// Un entretien ou un test n'est évalué qu'à travers son entretien / son passage : on repart de zéro au changement de type.
++watch(
++  () => evaluation.typeEvaluation,
++  () => {
++    evaluation.idEntretien = null
++    evaluation.idPassage = null
++  },
++)
++
++const titresTests = computed(() => Object.fromEntries(tests.value.map((test) => [test.idTest, test.titre])))
++const optionsEntretiens = computed(() =>
++  entretiens.value.map((entretien) => ({
++    valeur: entretien.idEntretien,
++    libelle: `${entretien.typeEntretien} · ${formatDateHeure(entretien.dateDebut)}`,
++  })),
++)
++const optionsPassages = computed(() =>
++  passages.value.map((passage) => ({
++    valeur: passage.idPassage,
++    libelle: `${titresTests.value[passage.idTest] || `Test n°${passage.idTest}`} · tentative ${passage.numeroTentative}`,
++  })),
++)
++
++/** Évaluations enregistrées, regroupées par catégorie dans l'ordre dossier, entretien, test. */
++const evaluationsParType = computed(() =>
++  TYPES_EVALUATION.map((type) => ({
++    ...type,
++    elements: evaluations.value
++      .filter((item) => item.typeEvaluation === type.valeur)
++      .sort((a, b) => String(b.dateEvaluation).localeCompare(String(a.dateEvaluation))),
++  })).filter((groupe) => groupe.elements.length > 0),
++)
++
++const categoriesManquantes = computed(() =>
++  (synthese.value?.categoriesManquantes || []).map(libelleTypeEvaluation),
++)
+ const decision = reactive({ decision: 'RETENUE', motif: '' })
+ const idCandidature = computed(() => Number(route.params.idCandidature))
+ const statut = computed(() => String(route.query.statut || candidature.value?.statut || 'RECUE'))
+@@ -49,14 +95,23 @@ async function charger() {
+     const detail = await api.get(`/recrutement/candidatures/${idCandidature.value}`)
+     candidature.value = detail
+     offre.value = detail.offre
+-    const [liste, historiqueResultat, evaluationsResultat] = await Promise.all([
+-      api.get(`/recrutement/offres/${route.params.idOffre}/candidatures?statut=${statut.value}`),
+-      api.get(`/recrutement/candidatures/${idCandidature.value}/historique`),
+-      api.get(`/recrutement/candidatures/${idCandidature.value}/evaluations`),
+-    ])
++    const [liste, historiqueResultat, evaluationsResultat, syntheseResultat, entretiensResultat, passagesResultat, testsResultat] =
++      await Promise.all([
++        api.get(`/recrutement/offres/${route.params.idOffre}/candidatures?statut=${statut.value}`),
++        api.get(`/recrutement/candidatures/${idCandidature.value}/historique`),
++        api.get(`/recrutement/candidatures/${idCandidature.value}/evaluations`),
++        api.get(`/recrutement/candidatures/${idCandidature.value}/evaluations/synthese`),
++        api.get(`/recrutement/candidatures/${idCandidature.value}/entretiens`),
++        api.get(`/recrutement/candidatures/${idCandidature.value}/passages-tests`),
++        api.get(`/recrutement/offres/${route.params.idOffre}/tests`),
++      ])
+     candidats.value = liste
+     historique.value = historiqueResultat
+     evaluations.value = evaluationsResultat
++    synthese.value = syntheseResultat
++    entretiens.value = entretiensResultat
++    passages.value = passagesResultat
++    tests.value = testsResultat
+   } catch (cause) {
+     notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible de charger la fiche d’évaluation.')
+   } finally {
+@@ -81,15 +136,36 @@ async function modifierStatut(nouveauStatut) {
+ }
+ 
+ async function enregistrerEvaluation() {
++  if (!evaluation.appreciation) {
++    notifications.erreur('Choisissez une appréciation.')
++    return
++  }
++  if (evaluation.typeEvaluation === 'ENTRETIEN' && !evaluation.idEntretien) {
++    notifications.erreur('Choisissez l’entretien évalué.')
++    return
++  }
++  if (evaluation.typeEvaluation === 'TEST' && !evaluation.idPassage) {
++    notifications.erreur('Choisissez le passage de test évalué.')
++    return
++  }
+   saving.value = true
+   try {
+     await api.post('/recrutement/evaluations', {
+       idCandidature: idCandidature.value,
+-      ...evaluation,
++      typeEvaluation: evaluation.typeEvaluation,
++      idEntretien: evaluation.typeEvaluation === 'ENTRETIEN' ? evaluation.idEntretien : null,
++      idPassage: evaluation.typeEvaluation === 'TEST' ? evaluation.idPassage : null,
+       note: evaluation.note === null ? null : Number(evaluation.note),
+       noteMax: Number(evaluation.noteMax),
++      appreciation: evaluation.appreciation,
++      commentaire: evaluation.commentaire,
+     })
+     notifications.succes('Évaluation enregistrée.')
++    evaluation.idEntretien = null
++    evaluation.idPassage = null
++    evaluation.note = null
++    evaluation.appreciation = null
++    evaluation.commentaire = ''
+     await charger()
+   } catch (cause) {
+     notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible d’enregistrer l’évaluation.')
+@@ -169,6 +245,39 @@ onMounted(charger)
+       </header>
+ 
+       <div class="grid gap-5 lg:grid-cols-2">
++        <Card class="lg:col-span-2">
++          <template #title>Synthèse des notes</template>
++          <template #content>
++            <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
++              <div>
++                <dt class="text-sm text-muted-color">Note dossier</dt>
++                <dd class="m-0 text-lg"><NoteEvaluation :categorie="synthese?.dossier" /></dd>
++              </div>
++              <div>
++                <dt class="text-sm text-muted-color">Note entretien</dt>
++                <dd class="m-0 text-lg"><NoteEvaluation :categorie="synthese?.entretien" /></dd>
++              </div>
++              <div>
++                <dt class="text-sm text-muted-color">Note test</dt>
++                <dd class="m-0 text-lg"><NoteEvaluation :categorie="synthese?.test" /></dd>
++              </div>
++              <div>
++                <dt class="text-sm text-muted-color">Moyenne</dt>
++                <dd class="m-0 text-lg">
++                  <NoteEvaluation
++                    :categorie="{ evaluee: synthese?.noteGlobale != null, note: synthese?.noteGlobale ?? null, noteMax: 20 }"
++                  />
++                </dd>
++              </div>
++            </dl>
++            <p v-if="categoriesManquantes.length" class="mt-4 mb-0 text-sm text-muted-color">
++              <i class="pi pi-info-circle mr-1" />
++              Pas encore évalué : {{ categoriesManquantes.join(', ') }}.
++            </p>
++            <p v-else class="mt-4 mb-0 text-sm text-muted-color">Toutes les catégories ont été évaluées.</p>
++          </template>
++        </Card>
++
+         <Card>
+           <template #title>Offre d’emploi</template>
+           <template #content>
+@@ -208,12 +317,55 @@ onMounted(charger)
+           <template #title>Nouvelle évaluation</template>
+           <template #content>
+             <form class="grid gap-3" @submit.prevent="enregistrerEvaluation">
+-              <Select v-model="evaluation.typeEvaluation" :options="['DOSSIER', 'ENTRETIEN', 'TEST']" placeholder="Type d’évaluation" />
++              <Select
++                v-model="evaluation.typeEvaluation"
++                :options="TYPES_EVALUATION"
++                option-label="libelle"
++                option-value="valeur"
++                placeholder="Type d’évaluation"
++              />
++              <template v-if="evaluation.typeEvaluation === 'ENTRETIEN'">
++                <Select
++                  v-model="evaluation.idEntretien"
++                  :options="optionsEntretiens"
++                  option-label="libelle"
++                  option-value="valeur"
++                  placeholder="Entretien évalué"
++                />
++                <p v-if="!optionsEntretiens.length" class="m-0 text-sm text-muted-color">
++                  Aucun entretien n’est planifié pour ce candidat : planifiez-en un avant de l’évaluer.
++                </p>
++              </template>
++              <template v-if="evaluation.typeEvaluation === 'TEST'">
++                <Select
++                  v-model="evaluation.idPassage"
++                  :options="optionsPassages"
++                  option-label="libelle"
++                  option-value="valeur"
++                  placeholder="Passage de test évalué"
++                />
++                <p v-if="!optionsPassages.length" class="m-0 text-sm text-muted-color">
++                  Aucun passage de test n’est planifié pour ce candidat : planifiez-en un avant de l’évaluer.
++                </p>
++              </template>
+               <div class="grid grid-cols-2 gap-3">
+-                <InputNumber v-model="evaluation.note" :min="0" :max="evaluation.noteMax" placeholder="Note" />
+-                <InputNumber v-model="evaluation.noteMax" :min="1" placeholder="Note maximale" />
++                <InputNumber
++                  v-model="evaluation.note"
++                  :min="0"
++                  :max="evaluation.noteMax"
++                  :min-fraction-digits="0"
++                  :max-fraction-digits="2"
++                  placeholder="Note"
++                />
++                <InputNumber v-model="evaluation.noteMax" :min="1" :max-fraction-digits="2" placeholder="Note maximale" />
+               </div>
+-              <Select v-model="evaluation.appreciation" :options="['INSUFFISANTE', 'MOYENNE', 'BONNE', 'EXCELLENTE']" placeholder="Appréciation" />
++              <Select
++                v-model="evaluation.appreciation"
++                :options="APPRECIATIONS"
++                option-label="libelle"
++                option-value="valeur"
++                placeholder="Appréciation"
++              />
+               <Textarea v-model="evaluation.commentaire" rows="4" placeholder="Commentaire obligatoire" required />
+               <Button type="submit" label="Enregistrer l’évaluation" icon="pi pi-save" :loading="saving" />
+             </form>
+@@ -231,6 +383,33 @@ onMounted(charger)
+           </template>
+         </Card>
+ 
++        <Card class="lg:col-span-2">
++          <template #title>Évaluations enregistrées</template>
++          <template #content>
++            <p v-if="!evaluationsParType.length" class="m-0 text-muted-color">
++              Aucune évaluation n’a encore été enregistrée pour ce candidat.
++            </p>
++            <div v-for="groupe in evaluationsParType" :key="groupe.valeur" class="mb-4 last:mb-0">
++              <h3 class="mt-0 mb-2 text-base font-semibold">{{ groupe.libelle }}</h3>
++              <div
++                v-for="item in groupe.elements"
++                :key="item.idEvaluation"
++                class="border-b border-surface py-3 last:border-0"
++              >
++                <div class="flex flex-wrap items-center gap-3">
++                  <strong v-if="item.note !== null && item.note !== undefined">
++                    {{ item.note }} <span class="font-normal text-muted-color">/ {{ item.noteMax }}</span>
++                  </strong>
++                  <Tag v-else value="Sans note" severity="secondary" />
++                  <Tag :value="appreciation(item.appreciation).libelle" :severity="appreciation(item.appreciation).severite" />
++                  <span class="text-sm text-muted-color">{{ formatDateHeure(item.dateEvaluation) }}</span>
++                </div>
++                <p class="m-0 mt-2 whitespace-pre-line text-sm">{{ item.commentaire }}</p>
++              </div>
++            </div>
++          </template>
++        </Card>
++
+         <Card>
+           <template #title>Historique</template>
+           <template #content>
+diff --git a/frontend/src/modules/recrutement/views/CandidatureEvaluationListeView.vue b/frontend/src/modules/recrutement/views/CandidatureEvaluationListeView.vue
+index a44e5d3..95999cc 100644
+--- a/frontend/src/modules/recrutement/views/CandidatureEvaluationListeView.vue
++++ b/frontend/src/modules/recrutement/views/CandidatureEvaluationListeView.vue
+@@ -16,6 +16,7 @@ import StatusBadge from '@/shared/components/StatusBadge.vue'
+ import { useNotificationStore } from '@/shared/store/useNotificationStore'
+ import { formatDateHeure } from '@/shared/utils/format'
+ import { recrutementApi as api, ErreurApi } from '../api/recrutementApi'
++import NoteEvaluation from '../components/NoteEvaluation.vue'
+ import { STATUTS_CANDIDATURE } from '../utils/statutsCandidature'
+ 
+ const notifications = useNotificationStore()
+@@ -23,6 +24,7 @@ const route = useRoute()
+ const idOffre = computed(() => String(route.params.idOffre || ''))
+ const offre = ref(null)
+ const candidatures = ref([])
++const syntheses = ref({})
+ const statutActif = ref(String(route.query.statut || 'TOUTES'))
+ const loading = ref(false)
+ 
+@@ -37,9 +39,17 @@ const compter = (valeur) =>
+     : candidatures.value.filter((candidature) => candidature.statut === valeur).length
+ 
+ const candidaturesPour = (valeur) =>
+-  valeur === 'TOUTES'
++  (valeur === 'TOUTES'
+     ? candidatures.value
+     : candidatures.value.filter((candidature) => candidature.statut === valeur)
++  ).map((candidature) => ({ ...candidature, synthese: syntheses.value[candidature.idCandidature] || null }))
++
++/** La moyenne générale n'existe que si au moins une catégorie a reçu une note. */
++const moyenneDe = (synthese) => ({
++  evaluee: synthese?.noteGlobale !== null && synthese?.noteGlobale !== undefined,
++  note: synthese?.noteGlobale ?? null,
++  noteMax: 20,
++})
+ 
+ function lienEvaluation(candidature) {
+   return {
+@@ -52,16 +62,19 @@ function lienEvaluation(candidature) {
+ async function chargerCandidatures() {
+   if (!idOffre.value) {
+     candidatures.value = []
++    syntheses.value = {}
+     return
+   }
+   loading.value = true
+   try {
+-    const [offres, listeCandidatures] = await Promise.all([
++    const [offres, listeCandidatures, listeSyntheses] = await Promise.all([
+       api.get('/recrutement/offres'),
+       api.get(`/recrutement/offres/${idOffre.value}/candidatures`),
++      api.get(`/recrutement/offres/${idOffre.value}/evaluations/synthese`),
+     ])
+     offre.value = offres.find((item) => String(item.idOffre ?? item.id) === idOffre.value) || null
+     candidatures.value = listeCandidatures
++    syntheses.value = Object.fromEntries(listeSyntheses.map((synthese) => [synthese.idCandidature, synthese]))
+   } catch (cause) {
+     notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible de charger les candidatures.')
+   } finally {
+@@ -159,6 +172,18 @@ watch([idOffre, () => route.query.statut], () => {
+                   <Column field="statut" header="Statut" sortable>
+                     <template #body="{ data }"><StatusBadge :valeur="data.statut" /></template>
+                   </Column>
++                  <Column header="Note dossier" sortable sort-field="synthese.dossier.note">
++                    <template #body="{ data }"><NoteEvaluation :categorie="data.synthese?.dossier" /></template>
++                  </Column>
++                  <Column header="Note entretien" sortable sort-field="synthese.entretien.note">
++                    <template #body="{ data }"><NoteEvaluation :categorie="data.synthese?.entretien" /></template>
++                  </Column>
++                  <Column header="Note test" sortable sort-field="synthese.test.note">
++                    <template #body="{ data }"><NoteEvaluation :categorie="data.synthese?.test" /></template>
++                  </Column>
++                  <Column header="Moyenne" sortable sort-field="synthese.noteGlobale">
++                    <template #body="{ data }"><NoteEvaluation :categorie="moyenneDe(data.synthese)" /></template>
++                  </Column>
+                   <Column field="dateCandidature" header="Reçue le" sortable>
+                     <template #body="{ data }">{{ formatDateHeure(data.dateCandidature) }}</template>
+                   </Column>
