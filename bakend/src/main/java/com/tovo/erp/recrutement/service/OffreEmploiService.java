@@ -77,6 +77,7 @@ public class OffreEmploiService {
     private OffreEmploi versEntite(OffreEmploiDto.Request request) {
         OffreEmploi offre = new OffreEmploi();
         offre.setIdDemandePoste(request.idDemandePoste());
+        offre.setReference(request.reference());
         offre.setTitre(request.titre());
         offre.setDescription(request.description());
         offre.setProfilRecherche(request.profilRecherche());
@@ -93,6 +94,7 @@ public class OffreEmploiService {
     @Transactional
     public OffreEmploi creer(OffreEmploi offre) {
         verifierDemandeAcceptee(offre.getIdDemandePoste());
+        verifierReferenceUnique(offre.getReference(), null);
         offre.setStatut(OffreStatut.BROUILLON);
         OffreEmploi sauvegardee = offres.save(offre);
         enregistrerHistorique(sauvegardee, null, OffreStatut.BROUILLON, offre.getIdUtilisateurCreateur());
@@ -106,7 +108,9 @@ public class OffreEmploiService {
             throw new IllegalStateException("Seule une offre BROUILLON peut être modifiée");
         }
         verifierDemandeAcceptee(modifications.getIdDemandePoste());
+        verifierReferenceUnique(modifications.getReference(), idOffre);
         offre.setIdDemandePoste(modifications.getIdDemandePoste());
+        offre.setReference(modifications.getReference());
         offre.setTitre(modifications.getTitre());
         offre.setDescription(modifications.getDescription());
         offre.setProfilRecherche(modifications.getProfilRecherche());
@@ -200,6 +204,14 @@ public class OffreEmploiService {
     private OffreEmploi charger(Long idOffre) {
         return offres.findById(idOffre)
                 .orElseThrow(() -> new IllegalArgumentException("Offre introuvable: " + idOffre));
+    }
+
+    private void verifierReferenceUnique(String reference, Long idOffreCourante) {
+        offres.findByReference(reference).ifPresent(existante -> {
+            if (!existante.getIdOffre().equals(idOffreCourante)) {
+                throw new IllegalStateException("Une offre avec la référence « " + reference + " » existe déjà");
+            }
+        });
     }
 
     private void verifierDemandeAcceptee(Long idDemandePoste) {
