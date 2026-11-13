@@ -1,22 +1,26 @@
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
-import InputNumber from 'primevue/inputnumber'
-import Select from 'primevue/select'
-import Textarea from 'primevue/textarea'
+import Dialog from 'primevue/dialog'
+import Message from 'primevue/message'
 import Tag from 'primevue/tag'
+import Textarea from 'primevue/textarea'
 import StatusBadge from '@/shared/components/StatusBadge.vue'
 import EmptyState from '@/shared/components/EmptyState.vue'
 import { useNotificationStore } from '@/shared/store/useNotificationStore'
 import { formatDateHeure } from '@/shared/utils/format'
 import { recrutementApi as api, ErreurApi } from '../api/recrutementApi'
 import NoteEvaluation from '../components/NoteEvaluation.vue'
-import { APPRECIATIONS, TYPES_EVALUATION, appreciation, libelleTypeEvaluation } from '../utils/notes'
+import SaisieEvaluationForm from '../components/SaisieEvaluationForm.vue'
+import SaisieDecisionForm from '../components/SaisieDecisionForm.vue'
+import { TYPES_EVALUATION, appreciation, libelleTypeEvaluation } from '../utils/notes'
+import { TRANSITIONS_CANDIDATURE, libelleStatut } from '../utils/statutsCandidature'
 
 const route = useRoute()
 const notifications = useNotificationStore()
+
 const candidature = ref(null)
 const offre = ref(null)
 const evaluations = ref([])
@@ -27,41 +31,20 @@ const tests = ref([])
 const historique = ref([])
 const candidats = ref([])
 const loading = ref(false)
-const saving = ref(false)
 
-const evaluation = reactive({
-  typeEvaluation: 'DOSSIER',
-  idEntretien: null,
-  idPassage: null,
-  note: null,
-  noteMax: 20,
-  appreciation: null,
-  commentaire: '',
-})
+// Gestion du refus via Dialog (comme dans la fiche candidature)
+const motifDialog = ref(false)
+const motif = ref('')
+const motifManquant = ref(false)
 
-watch(
-  () => evaluation.typeEvaluation,
-  (nouveauType) => {
-    if (nouveauType !== 'ENTRETIEN') evaluation.idEntretien = null
-    if (nouveauType !== 'TEST') evaluation.idPassage = null
-  },
-)
+const idCandidature = computed(() => Number(route.params.idCandidature))
+const statut = computed(() => String(route.query.statut || candidature.value?.statut || 'RECUE'))
+const actions = computed(() => TRANSITIONS_CANDIDATURE[candidature.value?.statut] || [])
 
-const titresTests = computed(() => Object.fromEntries(tests.value.map((test) => [test.idTest, test.titre])))
-const optionsEntretiens = computed(() =>
-  entretiens.value.map((entretien) => ({
-    valeur: entretien.idEntretien,
-    libelle: `${entretien.typeEntretien} · ${formatDateHeure(entretien.dateDebut)}`,
-  })),
-)
-const optionsPassages = computed(() =>
-  passages.value.map((passage) => ({
-    valeur: passage.idPassage,
-    libelle: `${titresTests.value[passage.idTest] || `Test n°${passage.idTest}`} · tentative ${passage.numeroTentative}`,
-  })),
-)
+const index = computed(() => candidats.value.findIndex((item) => item.idCandidature === idCandidature.value))
+const precedent = computed(() => (index.value > 0 ? candidats.value[index.value - 1] : null))
+const suivant = computed(() => (index.value >= 0 && index.value < candidats.value.length - 1 ? candidats.value[index.value + 1] : null))
 
-/** Évaluations enregistrées, regroupées par catégorie dans l'ordre dossier, entretien, test. */
 const evaluationsParType = computed(() =>
   TYPES_EVALUATION.map((type) => ({
     ...type,
@@ -71,26 +54,10 @@ const evaluationsParType = computed(() =>
   })).filter((groupe) => groupe.elements.length > 0),
 )
 
-// Vérification robuste basée sur le tableau des évaluations réelles reçues de l'API
 const aEvalue = (typeVal) => evaluations.value.some((item) => item.typeEvaluation === typeVal)
-
 const categoriesManquantes = computed(() =>
   TYPES_EVALUATION.filter((type) => !aEvalue(type.valeur)).map((type) => libelleTypeEvaluation(type.valeur)),
 )
-
-const decision = reactive({ decision: 'RETENUE', motif: '' })
-const idCandidature = computed(() => Number(route.params.idCandidature))
-const statut = computed(() => String(route.query.statut || candidature.value?.statut || 'RECUE'))
-const index = computed(() => candidats.value.findIndex((item) => item.idCandidature === idCandidature.value))
-const precedent = computed(() => index.value > 0 ? candidats.value[index.value - 1] : null)
-const suivant = computed(() => index.value >= 0 && index.value < candidats.value.length - 1 ? candidats.value[index.value + 1] : null)
-const transitions = computed(() => ({
-  RECUE: ['EN_ETUDE'],
-  EN_ETUDE: ['PRESELECTIONNEE', 'REFUSEE'],
-  PRESELECTIONNEE: ['EN_EVALUATION', 'REFUSEE'],
-  EN_EVALUATION: ['RETENUE', 'LISTE_ATTENTE', 'REFUSEE'],
-  LISTE_ATTENTE: ['RETENUE', 'REFUSEE'],
-}[candidature.value?.statut] || []))
 
 async function charger() {
   loading.value = true
@@ -122,72 +89,37 @@ async function charger() {
   }
 }
 
-async function modifierStatut(nouveauStatut) {
-  saving.value = true
+async function changerStatut(nouveauStatut, commentaire) {
   try {
     await api.patch(`/recrutement/candidatures/${idCandidature.value}/statut`, {
       statut: nouveauStatut,
-      commentaire: `Évaluation : passage au statut ${nouveauStatut}`,
+      commentaire,
     })
-    notifications.succes('Statut mis à jour.')
+    notifications.succes('Statut de la candidature mis à jour.')
     await charger()
   } catch (cause) {
     notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible de modifier le statut.')
-  } finally {
-    saving.value = false
   }
 }
 
-async function enregistrerEvaluation() {
-  if (!evaluation.appreciation) {
-    notifications.erreur('Choisissez une appréciation.')
+function appliquer(action) {
+  if (action.statut !== 'REFUSEE') {
+    changerStatut(action.statut, action.libelle)
     return
   }
-  if (evaluation.typeEvaluation === 'ENTRETIEN' && !evaluation.idEntretien) {
-    notifications.erreur('Choisissez l’entretien évalué.')
-    return
-  }
-  if (evaluation.typeEvaluation === 'TEST' && !evaluation.idPassage) {
-    notifications.erreur('Choisissez le passage de test évalué.')
-    return
-  }
-  saving.value = true
-  try {
-    await api.post('/recrutement/evaluations', {
-      idCandidature: idCandidature.value,
-      typeEvaluation: evaluation.typeEvaluation,
-      idEntretien: evaluation.typeEvaluation === 'ENTRETIEN' ? evaluation.idEntretien : null,
-      idPassage: evaluation.typeEvaluation === 'TEST' ? evaluation.idPassage : null,
-      note: evaluation.note === null ? null : Number(evaluation.note),
-      noteMax: Number(evaluation.noteMax),
-      appreciation: evaluation.appreciation,
-      commentaire: evaluation.commentaire,
-    })
-    notifications.succes('Évaluation enregistrée.')
-    evaluation.idEntretien = null
-    evaluation.idPassage = null
-    evaluation.note = null
-    evaluation.appreciation = null
-    evaluation.commentaire = ''
-    await charger()
-  } catch (cause) {
-    notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible d’enregistrer l’évaluation.')
-  } finally {
-    saving.value = false
-  }
+  motif.value = ''
+  motifManquant.value = false
+  motifDialog.value = true
 }
 
-async function enregistrerDecision() {
-  saving.value = true
-  try {
-    await api.post('/recrutement/decisions', { idCandidature: idCandidature.value, ...decision })
-    notifications.succes('Décision enregistrée.')
-    await charger()
-  } catch (cause) {
-    notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible d’enregistrer la décision.')
-  } finally {
-    saving.value = false
+async function confirmerRefus() {
+  const texte = motif.value.trim()
+  if (!texte) {
+    motifManquant.value = true
+    return
   }
+  await changerStatut('REFUSEE', texte)
+  motifDialog.value = false
 }
 
 function lienVers(candidat) {
@@ -206,7 +138,8 @@ onMounted(charger)
     <div v-if="loading" class="py-8 text-center text-muted-color">Chargement de l’évaluation...</div>
     <EmptyState v-else-if="!candidature" titre="Candidature introuvable" message="Cette candidature n’est plus disponible." />
     <template v-else>
-      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <!-- Barre de navigation -->
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <Button
           label="Retour à l’évaluation de l’offre"
           icon="pi pi-arrow-left"
@@ -221,33 +154,49 @@ onMounted(charger)
             label="Précédent"
             icon="pi pi-chevron-left"
             variant="outlined"
+            size="small"
             as="router-link"
             :to="lienVers(precedent)"
           />
-          <Button v-else label="Précédent" icon="pi pi-chevron-left" variant="outlined" disabled />
+          <Button v-else label="Précédent" icon="pi pi-chevron-left" variant="outlined" size="small" disabled />
           <Button
             v-if="suivant"
             label="Suivant"
             icon="pi pi-chevron-right"
             icon-pos="right"
             variant="outlined"
+            size="small"
             as="router-link"
             :to="lienVers(suivant)"
           />
-          <Button v-else label="Suivant" icon="pi pi-chevron-right" icon-pos="right" variant="outlined" disabled />
+          <Button v-else label="Suivant" icon="pi pi-chevron-right" icon-pos="right" variant="outlined" size="small" disabled />
         </div>
       </div>
 
+      <!-- En-tête avec statut et boutons d'actions de transition -->
       <header class="mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-start">
         <div>
           <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-primary">Fiche d’évaluation</p>
           <h1 class="m-0 text-2xl font-bold">{{ candidature.candidat?.prenom }} {{ candidature.candidat?.nom }}</h1>
           <p class="mt-1 text-muted-color">{{ candidature.candidat?.email }} · {{ offre?.reference }} · {{ offre?.titre }}</p>
         </div>
-        <StatusBadge :valeur="candidature.statut" />
+        <div class="flex flex-wrap items-center gap-2">
+          <StatusBadge :valeur="candidature.statut" />
+          <Button
+            v-for="action in actions"
+            :key="action.statut"
+            :label="action.libelle"
+            :icon="action.icone"
+            :severity="action.severite"
+            size="small"
+            variant="outlined"
+            @click="appliquer(action)"
+          />
+        </div>
       </header>
 
       <div class="grid gap-5 lg:grid-cols-2">
+        <!-- Synthèse des notes -->
         <Card class="lg:col-span-2">
           <template #title>Synthèse des notes</template>
           <template #content>
@@ -281,6 +230,19 @@ onMounted(charger)
           </template>
         </Card>
 
+        <!-- Composants spécifiques affichés UNIQUEMENT au statut EN_EVALUATION -->
+        <template v-if="candidature.statut === 'EN_EVALUATION'">
+          <SaisieEvaluationForm
+            :id-candidature="idCandidature"
+            :entretiens="entretiens"
+            :passages="passages"
+            :tests="tests"
+            @saved="charger"
+          />
+          <SaisieDecisionForm :id-candidature="idCandidature" @saved="charger" />
+        </template>
+
+        <!-- Détails offre & candidat -->
         <Card>
           <template #title>Offre d’emploi</template>
           <template #content>
@@ -306,88 +268,8 @@ onMounted(charger)
           </template>
         </Card>
 
+        <!-- Évaluations enregistrées -->
         <Card>
-          <template #title>Action sur le statut</template>
-          <template #content>
-            <div class="flex flex-wrap gap-2">
-              <Button v-for="transition in transitions" :key="transition" :label="transition" :disabled="saving" @click="modifierStatut(transition)" />
-            </div>
-            <p v-if="!transitions.length" class="m-0 text-sm text-muted-color">Ce statut ne permet plus de transition.</p>
-          </template>
-        </Card>
-
-        <!-- Formulaire affiché UNIQUEMENT si le statut est EN_EVALUATION -->
-        <Card v-if="candidature.statut === 'EN_EVALUATION'">
-          <template #title>Nouvelle évaluation</template>
-          <template #content>
-            <form class="grid gap-3" @submit.prevent="enregistrerEvaluation">
-              <Select
-                v-model="evaluation.typeEvaluation"
-                :options="TYPES_EVALUATION"
-                option-label="libelle"
-                option-value="valeur"
-                placeholder="Type d’évaluation"
-              />
-              <template v-if="evaluation.typeEvaluation === 'ENTRETIEN'">
-                <Select
-                  v-model="evaluation.idEntretien"
-                  :options="optionsEntretiens"
-                  option-label="libelle"
-                  option-value="valeur"
-                  placeholder="Entretien évalué"
-                />
-                <p v-if="!optionsEntretiens.length" class="m-0 text-sm text-muted-color">
-                  Aucun entretien n’est planifié pour ce candidat : planifiez-en un avant de l’évaluer.
-                </p>
-              </template>
-              <template v-if="evaluation.typeEvaluation === 'TEST'">
-                <Select
-                  v-model="evaluation.idPassage"
-                  :options="optionsPassages"
-                  option-label="libelle"
-                  option-value="valeur"
-                  placeholder="Passage de test évalué"
-                />
-                <p v-if="!optionsPassages.length" class="m-0 text-sm text-muted-color">
-                  Aucun passage de test n’est planifié pour ce candidat : planifiez-en un avant de l’évaluer.
-                </p>
-              </template>
-              <div class="grid grid-cols-2 gap-3">
-                <InputNumber
-                  v-model="evaluation.note"
-                  :min="0"
-                  :max="evaluation.noteMax"
-                  :min-fraction-digits="0"
-                  :max-fraction-digits="2"
-                  placeholder="Note"
-                />
-                <InputNumber v-model="evaluation.noteMax" :min="1" :max-fraction-digits="2" placeholder="Note maximale" />
-              </div>
-              <Select
-                v-model="evaluation.appreciation"
-                :options="APPRECIATIONS"
-                option-label="libelle"
-                option-value="valeur"
-                placeholder="Appréciation"
-              />
-              <Textarea v-model="evaluation.commentaire" rows="4" placeholder="Commentaire obligatoire" required />
-              <Button type="submit" label="Enregistrer l’évaluation" icon="pi pi-save" :loading="saving" />
-            </form>
-          </template>
-        </Card>
-
-        <Card>
-          <template #title>Décision</template>
-          <template #content>
-            <form class="grid gap-3" @submit.prevent="enregistrerDecision">
-              <Select v-model="decision.decision" :options="['RETENUE', 'LISTE_ATTENTE', 'REFUSEE']" />
-              <Textarea v-model="decision.motif" rows="4" placeholder="Motif obligatoire" required />
-              <Button type="submit" label="Enregistrer la décision" severity="success" :loading="saving" />
-            </form>
-          </template>
-        </Card>
-
-        <Card class="lg:col-span-2">
           <template #title>Évaluations enregistrées</template>
           <template #content>
             <p v-if="!evaluationsParType.length" class="m-0 text-muted-color">
@@ -414,17 +296,33 @@ onMounted(charger)
           </template>
         </Card>
 
+        <!-- Historique -->
         <Card>
           <template #title>Historique</template>
           <template #content>
             <div v-for="item in historique" :key="item.idHistorique" class="border-b border-surface py-2 last:border-0">
-              <Tag :value="item.nouveauStatut" />
+              <Tag :value="libelleStatut(item.nouveauStatut)" />
               <p class="m-0 mt-1 text-sm text-muted-color">{{ item.commentaire || 'Changement de statut' }}</p>
             </div>
             <p v-if="!historique.length" class="m-0 text-muted-color">Aucun historique.</p>
           </template>
         </Card>
       </div>
+
+      <!-- Modale de refus -->
+      <Dialog v-model:visible="motifDialog" modal header="Écarter la candidature" :style="{ width: '28rem' }">
+        <div class="flex flex-col gap-2">
+          <label for="motif-refus" class="text-sm font-semibold text-muted-color">Motif du refus</label>
+          <Textarea id="motif-refus" v-model="motif" rows="4" auto-resize />
+          <Message v-if="motifManquant" severity="error" size="small" :closable="false">
+            Le motif du refus est obligatoire.
+          </Message>
+        </div>
+        <template #footer>
+          <Button label="Annuler" severity="secondary" variant="outlined" @click="motifDialog = false" />
+          <Button label="Confirmer" icon="pi pi-check" severity="danger" @click="confirmerRefus" />
+        </template>
+      </Dialog>
     </template>
   </section>
 </template>
