@@ -257,16 +257,15 @@ public class ValidationService {
 
     /**
      * Evaluation du RH : les valeurs de la decision priment, a defaut on garde celles deja portees
-     * par la ligne (cas d'une ligne revenue apres correction). Le budget reste obligatoire.
+     * par la ligne (cas d'une ligne revenue apres correction). Le salaire maximum, qui fait
+     * office de budget, reste obligatoire.
      */
     private void definirEvaluationRh(DemandeRecrutementPoste ligne, ValidationDto.DecisionRequest decision) {
         BigDecimal salaireMin = decision.salaireMinEstime() != null
                 ? decision.salaireMinEstime() : ligne.getSalaireMinEstime();
         BigDecimal salaireMax = decision.salaireMaxEstime() != null
                 ? decision.salaireMaxEstime() : ligne.getSalaireMaxEstime();
-        BigDecimal budget = decision.budgetEstime() != null
-                ? decision.budgetEstime() : ligne.getBudgetEstime();
-        ligneRegles.appliquerEvaluationRh(ligne, salaireMin, salaireMax, budget);
+        ligneRegles.appliquerEvaluationRh(ligne, salaireMin, salaireMax);
     }
 
     /** Finance et Direction ne peuvent statuer que sur une ligne dont le RH a defini le budget. */

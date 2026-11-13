@@ -36,8 +36,8 @@ const commentaire = ref('')
 const montantVerifie = ref(null)
 const enregistrement = ref(false)
 
-/** Evaluation saisie par le RH a son etape : budget du profil et fourchette salariale. */
-const evaluationRh = ref({ budgetEstime: null, salaireMinEstime: null, salaireMaxEstime: null })
+/** Evaluation saisie par le RH a son etape : fourchette salariale (le maximum fait office de budget). */
+const evaluationRh = ref({ salaireMinEstime: null, salaireMaxEstime: null })
 
 const ligneEnCorrection = ref(null)
 const correction = ref({
@@ -72,7 +72,7 @@ const budgetTotal = computed(() => {
   return budgets.length === 0 ? null : budgets.reduce((somme, budget) => somme + Number(budget), 0)
 })
 
-/** Le RH approuve : il doit alors fixer le budget du profil. */
+/** Le RH approuve : il doit alors fixer la fourchette salariale (le maximum = budget). */
 const saisieEvaluationRh = computed(
   () => action.value?.etapeCourante === 'RH' && decision.value === 'APPROUVE',
 )
@@ -146,7 +146,6 @@ function ouvrirDecision(ligne) {
   commentaire.value = ''
   montantVerifie.value = null
   evaluationRh.value = {
-    budgetEstime: ligne.budgetEstime ?? null,
     salaireMinEstime: ligne.salaireMinEstime ?? null,
     salaireMaxEstime: ligne.salaireMaxEstime ?? null,
   }
@@ -166,14 +165,13 @@ async function enregistrerDecision() {
     montantVerifie: nombreOuNull(montantVerifie.value),
   }
   if (saisieEvaluationRh.value) {
-    const budget = nombreOuNull(evaluationRh.value.budgetEstime)
-    if (budget === null) {
-      notifications.erreur('Definissez le budget du profil avant de l\'approuver.')
+    const salaireMax = nombreOuNull(evaluationRh.value.salaireMaxEstime)
+    if (salaireMax === null) {
+      notifications.erreur('Definissez le salaire maximum (budget du profil) avant de l\'approuver.')
       return
     }
-    corps.budgetEstime = budget
     corps.salaireMinEstime = nombreOuNull(evaluationRh.value.salaireMinEstime)
-    corps.salaireMaxEstime = nombreOuNull(evaluationRh.value.salaireMaxEstime)
+    corps.salaireMaxEstime = salaireMax
   }
   enregistrement.value = true
   try {
@@ -461,23 +459,9 @@ async function enregistrerCorrection() {
 
       <template v-if="saisieEvaluationRh">
         <div class="rounded-lg border p-3 text-sm border-blue-200 bg-blue-50 text-blue-700 mb-4">
-          Examinez le dossier (profil, description, effectif) puis definissez le budget et la
-          fourchette salariale de ce profil.
-        </div>
-
-        <div class="flex flex-col gap-2 mb-4">
-          <label class="text-sm font-semibold text-muted-color" for="rh-budget"
-            >Budget du profil (Ar) <span class="text-red-500">*</span></label
-          >
-          <PrimeInputText
-            id="rh-budget"
-            v-model.number="evaluationRh.budgetEstime"
-            class="w-full"
-            type="number"
-            min="0"
-            step="1000"
-          />
-          <span class="text-xs text-muted-color">Verifie ensuite par la Finance (disponibilite budgetaire).</span>
+          Examinez le dossier (profil, description, effectif) puis definissez la fourchette
+          salariale de ce profil. Le salaire maximum fait office de budget ; il sera verifie par la
+          Finance (disponibilite budgetaire).
         </div>
 
         <div class="grid grid-cols-1 gap-x-4 md:grid-cols-2">
@@ -493,7 +477,9 @@ async function enregistrerCorrection() {
             />
           </div>
           <div class="flex flex-col gap-2 mb-4">
-            <label class="text-sm font-semibold text-muted-color" for="rh-salaire-max">Salaire maximum (Ar)</label>
+            <label class="text-sm font-semibold text-muted-color" for="rh-salaire-max"
+              >Salaire maximum = budget (Ar) <span class="text-red-500">*</span></label
+            >
             <PrimeInputText
               id="rh-salaire-max"
               v-model.number="evaluationRh.salaireMaxEstime"

@@ -262,13 +262,13 @@ verif "file de validation FINANCE limitee a son etape (RM-039)" '[ "$STATUS" = 2
 api POST "/validation/lignes/$LIGNE1/decision" "$FIN" '{"decision":"APPROUVE","commentaire":"par finance"}'
 verif "validation refusee si mauvais role (RM-039)" '[ "$STATUS" = 403 ]' "$BODY"
 
-api POST "/validation/lignes/$LIGNE1/decision" "$RH" '{"decision":"APPROUVE","commentaire":"RH sans budget"}'
-verif "approbation RH sans budget refusee (budget defini par le RH)" '[ "$STATUS" = 400 ]' "$BODY"
+api POST "/validation/lignes/$LIGNE1/decision" "$RH" '{"decision":"APPROUVE","commentaire":"RH sans salaire max"}'
+verif "approbation RH sans salaire max refusee (le max fait office de budget)" '[ "$STATUS" = 400 ]' "$BODY"
 
-api POST "/validation/lignes/$LIGNE1/decision" "$RH" '{"decision":"APPROUVE","commentaire":"RH salaires incoherents","budgetEstime":1500000,"salaireMinEstime":3000000,"salaireMaxEstime":1000000}'
+api POST "/validation/lignes/$LIGNE1/decision" "$RH" '{"decision":"APPROUVE","commentaire":"RH salaires incoherents","salaireMinEstime":3000000,"salaireMaxEstime":1000000}'
 verif "approbation RH avec salaires incoherents refusee" '[ "$STATUS" = 400 ]' "$BODY"
 
-api POST "/validation/lignes/$LIGNE1/decision" "$RH" '{"decision":"APPROUVE","commentaire":"RH valide","budgetEstime":1500000,"salaireMinEstime":1200000,"salaireMaxEstime":2500000}'
+api POST "/validation/lignes/$LIGNE1/decision" "$RH" '{"decision":"APPROUVE","commentaire":"RH valide","salaireMinEstime":1200000,"salaireMaxEstime":1500000}'
 verif "validation RH acceptee" '[ "$STATUS" = 200 ] && [ "$(json_get "$BODY" statut)" = EN_ATTENTE_FINANCE ]' "$BODY"
 
 api POST "/validation/lignes/$LIGNE1/decision" "$RH" '{"decision":"APPROUVE","commentaire":"doublon"}'
@@ -301,7 +301,7 @@ GROS_ID=$(json_get "$BODY" id)
 api POST "/demandes/$GROS_ID/soumettre" "$MGR" >/dev/null
 api GET "/demandes/$GROS_ID" "$RH"
 GROS_LIGNE=$(json_get "$BODY" lignes.0.id)
-api POST "/validation/lignes/$GROS_LIGNE/decision" "$RH" '{"decision":"APPROUVE","commentaire":"RH","budgetEstime":900000000}' >/dev/null
+api POST "/validation/lignes/$GROS_LIGNE/decision" "$RH" '{"decision":"APPROUVE","commentaire":"RH","salaireMaxEstime":900000000}' >/dev/null
 api POST "/validation/lignes/$GROS_LIGNE/decision" "$FIN" '{"decision":"APPROUVE","commentaire":"Finance"}'
 verif "budget insuffisant refuse (RM-051)" '([ "$STATUS" = 400 ] || [ "$STATUS" = 409 ]) && [ "$(json_contains "$BODY" . budget)" = true ]' "$BODY"
 api GET "/demandes/$GROS_ID" "$FIN"
