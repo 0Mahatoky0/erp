@@ -34,6 +34,18 @@ public final class EmployeDto {
         }
     }
 
+    /** Vue minimale autorisee aux roles autres que RH (bloc 5, confidentialite). */
+    public record Minimal(Long id, String matricule, String nom, String prenom,
+                          Long idPoste, String poste, Long idService, String service,
+                          String statut) {
+
+        public static Minimal de(EmployeDto.Liste liste) {
+            return new Minimal(liste.id(), liste.matricule(), liste.nom(), liste.prenom(),
+                    liste.idPoste(), liste.poste(), liste.idService(), liste.service(),
+                    liste.statut());
+        }
+    }
+
     /** Reference minimale d'un salarie actif, pour les modules qui calculent des variables. */
     public record Actif(Long id, String nom, String prenom, Long idService, LocalDate dateEmbauche) {
 

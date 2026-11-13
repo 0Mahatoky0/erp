@@ -4,6 +4,8 @@ import com.tovo.erp.besoin.dto.ReferentielDto;
 import com.tovo.erp.besoin.service.ReferentielService;
 import com.tovo.erp.employe.dto.EmployeDto;
 import com.tovo.erp.employe.service.EmployeService;
+import com.tovo.erp.shared.Roles;
+import com.tovo.erp.shared.UtilisateurCourant;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -18,11 +20,14 @@ public class ReferentielController {
 
     private final ReferentielService referentielService;
     private final EmployeService employeService;
+    private final UtilisateurCourant utilisateurCourant;
 
     public ReferentielController(ReferentielService referentielService,
-                                 EmployeService employeService) {
+                                 EmployeService employeService,
+                                 UtilisateurCourant utilisateurCourant) {
         this.referentielService = referentielService;
         this.employeService = employeService;
+        this.utilisateurCourant = utilisateurCourant;
     }
 
     @GetMapping("/departements")
@@ -36,10 +41,14 @@ public class ReferentielController {
     }
 
     @GetMapping("/employes")
-    public List<EmployeDto.Liste> employes(
+    public List<?> employes(
             @RequestParam(required = false) String statut,
             @RequestParam(required = false) Long idService,
             @RequestParam(required = false) String recherche) {
-        return employeService.lister(statut, idService, recherche);
+        List<EmployeDto.Liste> liste = employeService.lister(statut, idService, recherche);
+        if (utilisateurCourant.aLeRole(Roles.RH)) {
+            return liste;
+        }
+        return liste.stream().map(EmployeDto.Minimal::de).toList();
     }
 }
