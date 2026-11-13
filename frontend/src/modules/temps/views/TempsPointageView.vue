@@ -14,6 +14,8 @@ const notifications = useNotificationStore()
 const auth = useAuthStore()
 const idEmploye = ref('')
 const periodesCloturees = ref([])
+const joursFeries = ref([])
+const jourFerieForm = ref({ date: new Date().toISOString().slice(0, 10), libelle: '', recurrent: true })
 const mois = ref(new Date().toISOString().slice(0, 7))
 const planning = ref([])
 const pointages = ref([])
@@ -137,6 +139,39 @@ async function chargerPeriodes() {
   }
 }
 
+async function chargerJoursFeries() {
+  try {
+    joursFeries.value = await tempsApi.joursFeries(new Date().getFullYear())
+  } catch (e) {
+    notifications.erreur(e.message)
+  }
+}
+
+async function ajouterJourFerie() {
+  if (!jourFerieForm.value.libelle.trim()) {
+    notifications.erreur('Renseignez le libelle du jour ferie.')
+    return
+  }
+  try {
+    await tempsApi.creerJourFerie(jourFerieForm.value)
+    notifications.succes('Jour ferie ajoute.')
+    jourFerieForm.value.libelle = ''
+    await chargerJoursFeries()
+  } catch (e) {
+    notifications.erreur(e.message)
+  }
+}
+
+async function supprimerJourFerie(item) {
+  try {
+    await tempsApi.supprimerJourFerie(item.id)
+    notifications.succes('Jour ferie supprime.')
+    await chargerJoursFeries()
+  } catch (e) {
+    notifications.erreur(e.message)
+  }
+}
+
 async function cloturerPeriode() {
   const [annee, moisCloture] = mois.value.split('-').map(Number)
   try {
@@ -154,6 +189,7 @@ function formatHeure(value) {
 
 onMounted(() => {
   idEmploye.value = ''
+  chargerJoursFeries()
   if (auth.estRh || auth.estDirection) chargerPeriodes()
 })
 </script>
@@ -195,6 +231,30 @@ onMounted(() => {
         <PrimeButton label="Entree" icon="pi pi-sign-in" severity="secondary" variant="outlined" @click="pointer('pointerEntree')" />
         <PrimeButton label="Sortie" icon="pi pi-sign-out" severity="secondary" variant="outlined" @click="pointer('pointerSortie')" />
       </div>
+    </section>
+
+    <section class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+      <div class="mb-4">
+        <h2>Jours feries</h2>
+        <p class="mt-1 text-sm text-muted-color">Calendrier utilise pour le decompte des conges et le pointage.</p>
+      </div>
+      <div v-if="auth.estRh || auth.estDirection" class="mb-4 grid gap-3 md:grid-cols-4">
+        <PrimeInputText v-model="jourFerieForm.date" type="date" />
+        <PrimeInputText v-model="jourFerieForm.libelle" placeholder="Libelle" />
+        <label class="flex items-center gap-2 text-sm"><input v-model="jourFerieForm.recurrent" type="checkbox" /> Recurrent</label>
+        <PrimeButton label="Ajouter" icon="pi pi-plus" @click="ajouterJourFerie" />
+      </div>
+      <DataTable :value="joursFeries" striped-rows size="small">
+        <Column field="date" header="Date" />
+        <Column field="libelle" header="Libelle" />
+        <Column header="Recurrent"><template #body="{ data }">{{ data.recurrent ? 'Oui' : 'Non' }}</template></Column>
+        <Column v-if="auth.estRh || auth.estDirection" header="">
+          <template #body="{ data }">
+            <PrimeButton icon="pi pi-trash" severity="danger" text rounded aria-label="Supprimer"
+              @click="supprimerJourFerie(data)" />
+          </template>
+        </Column>
+      </DataTable>
     </section>
 
     <section class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">

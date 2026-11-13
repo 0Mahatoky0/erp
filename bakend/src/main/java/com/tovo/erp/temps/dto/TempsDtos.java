@@ -1,11 +1,18 @@
 package com.tovo.erp.temps.dto;
 
+import com.tovo.erp.temps.model.AffectationRegime;
 import com.tovo.erp.temps.model.AnomaliePointage;
 import com.tovo.erp.temps.model.HeureSupplementaire;
+import com.tovo.erp.temps.model.HoraireTravail;
 import com.tovo.erp.temps.model.JourTravaille;
 import com.tovo.erp.temps.model.PlanningTravail;
+import com.tovo.erp.temps.model.RegimeTravail;
+import com.tovo.erp.temps.model.TypeRegimeTravail;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -135,6 +142,19 @@ public final class TempsDtos {
         }
     }
 
+    public record JourFerieRequest(
+            @jakarta.validation.constraints.NotNull LocalDate date,
+            @jakarta.validation.constraints.NotBlank String libelle,
+            boolean recurrent) {
+    }
+
+    public record JourFerieDto(Long id, LocalDate date, String libelle, boolean recurrent) {
+        public static JourFerieDto de(com.tovo.erp.temps.model.JourFerie jour) {
+            return new JourFerieDto(jour.getId(), jour.getDate(), jour.getLibelle(),
+                    jour.isRecurrent());
+        }
+    }
+
     public record HeureSupplementaireDto(
             Long id,
             Long idEmploye,
@@ -153,6 +173,86 @@ public final class TempsDtos {
                     heureSup.getMinutesTotal(), heureSup.getMinutesHs30(), heureSup.getMinutesHs50(),
                     heureSup.getMinutesNuit(), heureSup.getMinutesDimanche(), heureSup.getMinutesFerie(),
                     heureSup.getStatut().name(), heureSup.isAlertePlafond(), heureSup.getDateCalcul());
+        }
+    }
+
+    public record RegimeRequest(
+            @NotBlank @Size(max = 40) String code,
+            @NotBlank @Size(max = 120) String libelle,
+            TypeRegimeTravail type,
+            @Min(1) @Max(80) Integer heuresHebdo,
+            @Size(max = 100) String joursTravailles,
+            @Min(0) @Max(120) Integer toleranceRetardMin,
+            @Min(0) @Max(120) Integer toleranceDepartMin,
+            @Min(0) @Max(240) Integer pauseMinutes,
+            Boolean pausePayee,
+            Boolean decompteHeuresSup) {
+    }
+
+    public record HoraireRequest(
+            @NotBlank @Size(max = 20) String jourSemaine,
+            @NotNull LocalTime heureDebut,
+            @NotNull LocalTime heureFin,
+            LocalTime pauseDebut,
+            LocalTime pauseFin) {
+    }
+
+    public record HoraireDto(
+            Long id,
+            Long idRegime,
+            String jourSemaine,
+            LocalTime heureDebut,
+            LocalTime heureFin,
+            LocalTime pauseDebut,
+            LocalTime pauseFin) {
+        public static HoraireDto de(HoraireTravail horaire) {
+            return new HoraireDto(horaire.getId(), horaire.getIdRegime(), horaire.getJourSemaine(),
+                    horaire.getHeureDebut(), horaire.getHeureFin(), horaire.getPauseDebut(),
+                    horaire.getPauseFin());
+        }
+    }
+
+    public record RegimeDto(
+            Long id,
+            String code,
+            String libelle,
+            TypeRegimeTravail type,
+            int heuresHebdo,
+            String joursTravailles,
+            int toleranceRetardMin,
+            int toleranceDepartMin,
+            int pauseMinutes,
+            boolean pausePayee,
+            boolean decompteHeuresSup,
+            List<HoraireDto> horaires) {
+        public static RegimeDto de(RegimeTravail regime, List<HoraireTravail> horaires) {
+            return new RegimeDto(regime.getId(), regime.getCode(), regime.getLibelle(), regime.getType(),
+                    regime.getHeuresHebdo(), regime.getJoursTravailles(), regime.getToleranceRetardMin(),
+                    regime.getToleranceDepartMin(), regime.getPauseMinutes(), regime.isPausePayee(),
+                    regime.isDecompteHeuresSup(), horaires.stream().map(HoraireDto::de).toList());
+        }
+    }
+
+    public record AffectationRegimeRequest(
+            @NotNull Long idRegime,
+            @NotNull LocalDate dateDebut,
+            LocalDate dateFin,
+            Boolean appliquerPlanning) {
+    }
+
+    public record AffectationRegimeDto(
+            Long id,
+            Long idEmploye,
+            Long idRegime,
+            String codeRegime,
+            String libelleRegime,
+            LocalDate dateDebut,
+            LocalDate dateFin,
+            Long idPlanning) {
+        public static AffectationRegimeDto de(AffectationRegime affectation, RegimeTravail regime) {
+            return new AffectationRegimeDto(affectation.getId(), affectation.getIdEmploye(),
+                    affectation.getIdRegime(), regime.getCode(), regime.getLibelle(),
+                    affectation.getDateDebut(), affectation.getDateFin(), affectation.getIdPlanning());
         }
     }
 }

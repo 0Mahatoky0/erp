@@ -58,6 +58,7 @@ const sections = computed(() => {
   const temps = []
   if (auth.estRh || auth.estDirection || auth.estManager) {
     temps.push({ nom: 'temps-pointage-liste', label: 'Temps et pointage', icon: 'pi pi-clock' })
+    temps.push({ nom: 'temps-regimes', label: 'Régimes et horaires', icon: 'pi pi-calendar-clock' })
   }
 
   const conges = []

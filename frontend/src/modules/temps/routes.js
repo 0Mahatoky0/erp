@@ -9,6 +9,12 @@ export const tempsRoutes = [
         component: () => import('./views/TempsPointageView.vue'),
         meta: { titre: 'Temps de travail et pointage · Bloc 6', roles: ['RH', 'DIRECTION', 'MANAGER'] },
       },
+      {
+        path: 'regimes',
+        name: 'temps-regimes',
+        component: () => import('./views/RegimesTravailView.vue'),
+        meta: { titre: 'Régimes et horaires · Bloc 6', roles: ['RH', 'DIRECTION', 'MANAGER'] },
+      },
     ],
   },
 ]
