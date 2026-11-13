@@ -88,19 +88,29 @@ public class LigneRegles {
     /**
      * Applique l'evaluation du RH sur une ligne : fourchette salariale (RM-017, RM-018).
      *
-     * <p>Le salaire maximum est obligatoire et fait office de budget de la ligne. Le salaire
-     * minimum est facultatif mais doit rester coherent avec le maximum.
+     * <p>Le salaire maximum fait office de budget de la ligne. S'il n'est pas ressaisi par le RH,
+     * on reprend celui deja present sur la ligne (salaire maximum, a defaut budget). L'erreur n'est
+     * levee que si aucune des deux valeurs n'existe. Le salaire minimum est facultatif mais doit
+     * rester coherent avec le maximum ; il n'est pas ecrase par {@code null} s'il n'est pas fourni.
      */
     public void appliquerEvaluationRh(DemandeRecrutementPoste ligne, BigDecimal salaireMin,
                                       BigDecimal salaireMax) {
-        if (salaireMax == null) {
+        BigDecimal max = salaireMax;
+        if (max == null) {
+            max = ligne.getSalaireMaxEstime() != null
+                    ? ligne.getSalaireMaxEstime()
+                    : ligne.getBudgetEstime();
+        }
+        if (max == null) {
             throw new BusinessException("SALAIRE_MAX_RH_MANQUANT",
                     "Le RH doit definir le salaire maximum du profil '" + ligne.getIntituleDemande()
                             + "' (il fait office de budget) avant de l'approuver.");
         }
-        ligne.setSalaireMinEstime(salaireMin);
-        ligne.setSalaireMaxEstime(salaireMax);
-        ligne.setBudgetEstime(salaireMax);
+        if (salaireMin != null) {
+            ligne.setSalaireMinEstime(salaireMin);
+        }
+        ligne.setSalaireMaxEstime(max);
+        ligne.setBudgetEstime(max);
         controlerSalaires(ligne);
         controlerBudget(ligne);
     }

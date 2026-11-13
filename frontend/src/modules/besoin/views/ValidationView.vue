@@ -25,17 +25,26 @@ const commentaire = ref('')
 const montantVerifie = ref(null)
 const enregistrement = ref(false)
 
-/** Evaluation saisie par le RH a son etape : fourchette salariale (le maximum fait office de budget). */
+/** Evaluation saisie par le RH seulement si le budget n'est pas deja connu (le maximum fait office de budget). */
 const evaluationRh = ref({ salaireMinEstime: null, salaireMaxEstime: null })
 
-/** Le RH approuve : il doit alors fixer la fourchette salariale (le maximum = budget). */
+/** Le budget d'une ligne est son salaire maximum, deja defini cote backend. */
+function budgetDe(ligne) {
+  return ligne?.budgetEstime ?? ligne?.salaireMaxEstime ?? null
+}
+
+const budgetConnu = computed(() => budgetDe(action.value) !== null)
+
+/** Le formulaire de fourchette salariale n'apparait que si le budget n'est pas deja connu. */
 const saisieEvaluationRh = computed(
-  () => action.value?.etapeCourante === 'RH' && decision.value === 'APPROUVE',
+  () =>
+    action.value?.etapeCourante === 'RH' &&
+    decision.value === 'APPROUVE' &&
+    !budgetConnu.value,
 )
 
-/** Un budget absent signifie que le RH n'a pas encore statue. */
 function montantRh(montant) {
-  return montant === null || montant === undefined ? 'A definir par le RH' : formatMontant(montant)
+  return montant === null || montant === undefined ? 'Non defini' : formatMontant(montant)
 }
 
 function nombreOuNull(valeur) {
@@ -84,7 +93,7 @@ function ouvrir(ligne) {
   // Le budget d'une ligne est son salaire maximum : on le reprend s'il est deja defini.
   evaluationRh.value = {
     salaireMinEstime: null,
-    salaireMaxEstime: ligne.budgetEstime ?? null,
+    salaireMaxEstime: budgetDe(ligne),
   }
 }
 
@@ -155,7 +164,7 @@ async function enregistrer() {
           <Column field="service" header="Service" />
           <Column header="Type de besoin"><template #body="{ data }"><StatusBadge :valeur="data.typeBesoin" /></template></Column>
           <Column field="effectif" header="Effectif" />
-          <Column header="Budget"><template #body="{ data }">{{ montantRh(data.budgetEstime) }}</template></Column>
+          <Column header="Budget"><template #body="{ data }">{{ montantRh(budgetDe(data)) }}</template></Column>
           <Column header="Etape"><template #body="{ data }"><StatusBadge :valeur="data.etapeCourante" /></template></Column>
           <Column header="Derniere mise a jour"><template #body="{ data }">{{ formatDateHeure(data.dateModification) }}</template></Column>
           <Column header=""><template #body="{ data }"><PrimeButton label="Traiter" severity="primary" size="small" :disabled="data.etapeCourante !== auth.role" @click="ouvrir(data)" /></template></Column>
@@ -172,7 +181,7 @@ async function enregistrer() {
     >
       <div class="rounded-lg border p-3 text-sm border-blue-200 bg-blue-50 text-blue-700">
         Etape en cours : <strong>{{ action.etapeCourante }}</strong> · budget :
-        <strong>{{ montantRh(action.budgetEstime) }}</strong>
+        <strong>{{ montantRh(budgetDe(action)) }}</strong>
         <template v-if="action.etapeCourante === 'RH'">
           ·
           <RouterLink :to="{ name: 'demande-detail', params: { id: action.idDemande } }" class="underline">
@@ -188,8 +197,8 @@ async function enregistrer() {
 
       <template v-if="saisieEvaluationRh">
         <div class="rounded-lg border p-3 text-sm border-blue-200 bg-blue-50 text-blue-700 mb-4">
-          Definissez la fourchette salariale de ce profil. Le salaire maximum fait office de budget ;
-          il sera verifie par la Finance (disponibilite budgetaire).
+          Le budget de ce profil n'est pas encore defini. Saisissez la fourchette salariale : le salaire
+          maximum fait office de budget et sera verifie par la Finance (disponibilite budgetaire).
         </div>
 
         <div class="grid grid-cols-1 gap-x-4 md:grid-cols-2">
@@ -229,7 +238,7 @@ async function enregistrer() {
           type="number"
           min="0"
           step="1000"
-          :placeholder="String(action.budgetEstime ?? '')"
+          :placeholder="String(budgetDe(action) ?? '')"
         />
         <span class="text-xs text-muted-color">La disponibilite budgetaire est verifiee automatiquement.</span>
       </div>
