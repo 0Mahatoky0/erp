@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface DemandeRecrutementPosteRepository extends JpaRepository<DemandeRecrutementPoste, Long> {
@@ -46,6 +47,18 @@ public interface DemandeRecrutementPosteRepository extends JpaRepository<Demande
             """)
     List<DemandeRecrutementPoste> findFileAttente(
             @Param("etape") com.tovo.erp.besoin.model.EtapeValidation etape);
+
+    /** Lignes en validation dont la derniere action depasse le delai cible (RG-B1-13). */
+    @Query("""
+            select l from DemandeRecrutementPoste l
+            join fetch l.demande d
+            where l.statut in (com.tovo.erp.besoin.model.StatutLigne.EN_ATTENTE_RH,
+                               com.tovo.erp.besoin.model.StatutLigne.EN_ATTENTE_FINANCE,
+                               com.tovo.erp.besoin.model.StatutLigne.EN_ATTENTE_DIRECTION)
+              and l.dateModification < :limite
+            order by l.dateModification
+            """)
+    List<DemandeRecrutementPoste> findEnValidationAvant(@Param("limite") LocalDateTime limite);
 
     /** Lignes rattachees a une demande, avec les jointures utiles au detail. */
     @Query("""

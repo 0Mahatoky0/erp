@@ -4,6 +4,7 @@ import com.tovo.erp.shared.UtilisateurCourant;
 import com.tovo.erp.besoin.service.DemandeService;
 import com.tovo.erp.besoin.dto.DemandeDto;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -51,6 +52,7 @@ public class DemandeController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('MANAGER', 'RH', 'DIRECTION')")
     public ResponseEntity<DemandeDto.Resume> creer(@Valid @RequestBody DemandeDto.Creation demande) {
         return ResponseEntity.ok(demandeService.creer(utilisateurCourant.exiger(), demande));
     }

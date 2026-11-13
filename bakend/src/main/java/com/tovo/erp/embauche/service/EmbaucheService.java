@@ -164,7 +164,7 @@ public class EmbaucheService {
                         idUtilisateur == null ? proposition.getIdUtilisateurCreateur() : idUtilisateur));
 
         if (candidature.idDemandePoste() != null) {
-            demandes.enregistrerEmbauche(candidature.idDemandePoste());
+            demandes.enregistrerEmbauche(candidature.idDemandePoste(), idUtilisateur);
         }
         candidatures.marquerEmbaucheePar(proposition.getIdCandidature(),
                 auteurType == AuteurProposition.CANDIDAT ? "CANDIDAT" : "UTILISATEUR",

@@ -63,7 +63,7 @@ public final class DemandeDto {
     }
 
     /** Resume d'une demande pour les listes. */
-    public record Resume(Long id, String motif, LocalDate dateSouhaitee, StatutDemande statut,
+    public record Resume(Long id, String reference, String motif, LocalDate dateSouhaitee, StatutDemande statut,
                           LocalDateTime dateCreation, LocalDateTime dateSoumission,
                           String demandeur, Long idDemandeur, int nombreLignes,
                           int lignesAcceptees, int lignesEnValidation, int lignesACorriger,
@@ -97,7 +97,7 @@ public final class DemandeDto {
     }
 
     /** Detail complet d'une demande. */
-    public record Detail(Long id, String motif, LocalDate dateSouhaitee, StatutDemande statut,
+    public record Detail(Long id, String reference, String motif, LocalDate dateSouhaitee, StatutDemande statut,
                          LocalDateTime dateCreation, LocalDateTime dateModification,
                          LocalDateTime dateSoumission,
                          String demandeur, Long idDemandeur,
@@ -110,6 +110,7 @@ public final class DemandeDto {
                                     String demandeur, Long idDemandeur) {
         return new Resume(
                 demande.getId(),
+                demande.getReference(),
                 demande.getMotif(),
                 demande.getDateSouhaitee(),
                 demande.getStatut(),
