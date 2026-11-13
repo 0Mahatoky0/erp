@@ -10,7 +10,6 @@ import com.tovo.erp.besoin.model.TypeRemplacement;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -32,7 +31,12 @@ public final class DemandeDto {
     public record Modification(@NotBlank String motif, @NotNull LocalDate dateSouhaitee) {
     }
 
-    /** Contenu d'une ligne de demande (RM-015, RM-022 a RM-030). */
+    /**
+     * Contenu d'une ligne de demande (RM-015, RM-022 a RM-030).
+     *
+     * <p>Le manager exprime seulement le besoin : la fourchette salariale et le budget
+     * sont definis par le RH lors de sa validation (voir {@link ValidationDto.DecisionRequest}).
+     */
     public record LigneCreation(@NotNull Long idService,
                                  Long idPoste,
                                  @NotNull TypeBesoin typeBesoin,
@@ -44,10 +48,7 @@ public final class DemandeDto {
                                  @NotBlank String intituleDemande,
                                  String descriptionPoste,
                                  String profilRecherche,
-                                 @PositiveOrZero BigDecimal salaireMinEstime,
-                                 @PositiveOrZero BigDecimal salaireMaxEstime,
-                                 @NotNull @Positive Integer effectif,
-                                 @NotNull @PositiveOrZero BigDecimal budgetEstime) {
+                                 @NotNull @Positive Integer effectif) {
     }
 
     /** Modification d'une ligne : uniquement possible tant que la demande est BROUILLON. */
@@ -58,10 +59,7 @@ public final class DemandeDto {
                                      @NotBlank String intituleDemande,
                                      String descriptionPoste,
                                      String profilRecherche,
-                                     @PositiveOrZero BigDecimal salaireMinEstime,
-                                     @PositiveOrZero BigDecimal salaireMaxEstime,
-                                     @NotNull @Positive Integer effectif,
-                                     @NotNull @PositiveOrZero BigDecimal budgetEstime) {
+                                     @NotNull @Positive Integer effectif) {
     }
 
     /** Resume d'une demande pour les listes. */
@@ -123,7 +121,9 @@ public final class DemandeDto {
                 (int) lignes.stream().filter(l -> l.getStatut() == StatutLigne.ACCEPTEE).count(),
                 (int) lignes.stream().filter(l -> l.getStatut().estEnValidation()).count(),
                 (int) lignes.stream().filter(l -> l.getStatut() == StatutLigne.A_CORRIGER).count(),
+                // Les lignes que le RH n'a pas encore chiffrees n'ont pas de budget.
                 lignes.stream().map(DemandeRecrutementPoste::getBudgetEstime)
+                        .filter(java.util.Objects::nonNull)
                         .reduce(BigDecimal.ZERO, BigDecimal::add));
     }
 }

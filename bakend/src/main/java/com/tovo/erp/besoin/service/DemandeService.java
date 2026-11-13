@@ -467,10 +467,7 @@ public class DemandeService {
             throw new BusinessException("LIGNE_INCOMPLETE",
                     "L'effectif de la ligne '" + ligne.getIntituleDemande() + "' doit etre superieur a zero.");
         }
-        if (ligne.getBudgetEstime() == null || ligne.getBudgetEstime().compareTo(java.math.BigDecimal.ZERO) < 0) {
-            throw new BusinessException("LIGNE_INCOMPLETE",
-                    "Le budget estime de la ligne '" + ligne.getIntituleDemande() + "' est invalide.");
-        }
+        // Le budget n'est pas exige a la soumission : il est defini par le RH a sa validation.
         if (ligne.getTypeBesoin() == TypeBesoin.REMPLACEMENT) {
             if (ligne.getTypeRemplacement() == null) {
                 throw new BusinessException("LIGNE_INCOMPLETE",

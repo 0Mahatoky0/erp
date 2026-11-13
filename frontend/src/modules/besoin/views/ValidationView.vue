@@ -25,6 +25,23 @@ const commentaire = ref('')
 const montantVerifie = ref(null)
 const enregistrement = ref(false)
 
+/** Evaluation saisie par le RH a son etape : fourchette salariale (le maximum fait office de budget). */
+const evaluationRh = ref({ salaireMinEstime: null, salaireMaxEstime: null })
+
+/** Le RH approuve : il doit alors fixer la fourchette salariale (le maximum = budget). */
+const saisieEvaluationRh = computed(
+  () => action.value?.etapeCourante === 'RH' && decision.value === 'APPROUVE',
+)
+
+/** Un budget absent signifie que le RH n'a pas encore statue. */
+function montantRh(montant) {
+  return montant === null || montant === undefined ? 'A definir par le RH' : formatMontant(montant)
+}
+
+function nombreOuNull(valeur) {
+  return valeur === null || valeur === undefined || valeur === '' ? null : Number(valeur)
+}
+
 const DECISIONS = [
   { valeur: 'APPROUVE', libelle: 'Approuver' },
   { valeur: 'A_CORRIGER', libelle: 'Demander une correction' },
@@ -64,19 +81,34 @@ function ouvrir(ligne) {
   decision.value = 'APPROUVE'
   commentaire.value = ''
   montantVerifie.value = null
+  // Le budget d'une ligne est son salaire maximum : on le reprend s'il est deja defini.
+  evaluationRh.value = {
+    salaireMinEstime: null,
+    salaireMaxEstime: ligne.budgetEstime ?? null,
+  }
 }
 
 async function enregistrer() {
   if (!action.value) {
     return
   }
+  const corps = {
+    decision: decision.value,
+    commentaire: commentaire.value.trim() || null,
+    montantVerifie: nombreOuNull(montantVerifie.value),
+  }
+  if (saisieEvaluationRh.value) {
+    const salaireMax = nombreOuNull(evaluationRh.value.salaireMaxEstime)
+    if (salaireMax === null) {
+      notifications.erreur('Definissez le salaire maximum (budget du profil) avant de l\'approuver.')
+      return
+    }
+    corps.salaireMinEstime = nombreOuNull(evaluationRh.value.salaireMinEstime)
+    corps.salaireMaxEstime = salaireMax
+  }
   enregistrement.value = true
   try {
-    await api.post(`/validation/lignes/${action.value.id}/decision`, {
-      decision: decision.value,
-      commentaire: commentaire.value.trim() || null,
-      montantVerifie: montantVerifie.value === null ? null : Number(montantVerifie.value),
-    })
+    await api.post(`/validation/lignes/${action.value.id}/decision`, corps)
     notifications.succes('Decision enregistree.')
     action.value = null
     await charger()
@@ -123,7 +155,7 @@ async function enregistrer() {
           <Column field="service" header="Service" />
           <Column header="Type de besoin"><template #body="{ data }"><StatusBadge :valeur="data.typeBesoin" /></template></Column>
           <Column field="effectif" header="Effectif" />
-          <Column header="Budget"><template #body="{ data }">{{ formatMontant(data.budgetEstime) }}</template></Column>
+          <Column header="Budget"><template #body="{ data }">{{ montantRh(data.budgetEstime) }}</template></Column>
           <Column header="Etape"><template #body="{ data }"><StatusBadge :valeur="data.etapeCourante" /></template></Column>
           <Column header="Derniere mise a jour"><template #body="{ data }">{{ formatDateHeure(data.dateModification) }}</template></Column>
           <Column header=""><template #body="{ data }"><PrimeButton label="Traiter" severity="primary" size="small" :disabled="data.etapeCourante !== auth.role" @click="ouvrir(data)" /></template></Column>
@@ -139,14 +171,54 @@ async function enregistrer() {
       @fermer="action = null"
     >
       <div class="rounded-lg border p-3 text-sm border-blue-200 bg-blue-50 text-blue-700">
-        Etape en cours : <strong>{{ action.etapeCourante }}</strong> · budget demande :
-        <strong>{{ formatMontant(action.budgetEstime) }}</strong>
+        Etape en cours : <strong>{{ action.etapeCourante }}</strong> · budget :
+        <strong>{{ montantRh(action.budgetEstime) }}</strong>
+        <template v-if="action.etapeCourante === 'RH'">
+          ·
+          <RouterLink :to="{ name: 'demande-detail', params: { id: action.idDemande } }" class="underline">
+            Consulter le dossier complet
+          </RouterLink>
+        </template>
       </div>
 
       <div class="flex flex-col gap-2 mb-4">
         <label class="text-sm font-semibold text-muted-color" for="decision-file">Decision</label>
         <PrimeSelect id="decision-file" v-model="decision" class="w-full" :options="DECISIONS" option-label="libelle" option-value="valeur" />
       </div>
+
+      <template v-if="saisieEvaluationRh">
+        <div class="rounded-lg border p-3 text-sm border-blue-200 bg-blue-50 text-blue-700 mb-4">
+          Definissez la fourchette salariale de ce profil. Le salaire maximum fait office de budget ;
+          il sera verifie par la Finance (disponibilite budgetaire).
+        </div>
+
+        <div class="grid grid-cols-1 gap-x-4 md:grid-cols-2">
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" for="rh-salaire-min-file">Salaire minimum (Ar)</label>
+            <PrimeInputText
+              id="rh-salaire-min-file"
+              v-model.number="evaluationRh.salaireMinEstime"
+              class="w-full"
+              type="number"
+              min="0"
+              step="1000"
+            />
+          </div>
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" for="rh-salaire-max-file"
+              >Salaire maximum = budget (Ar) <span class="text-red-500">*</span></label
+            >
+            <PrimeInputText
+              id="rh-salaire-max-file"
+              v-model.number="evaluationRh.salaireMaxEstime"
+              class="w-full"
+              type="number"
+              min="0"
+              step="1000"
+            />
+          </div>
+        </div>
+      </template>
 
       <div v-if="action.etapeCourante === 'FINANCE'" class="flex flex-col gap-2 mb-4">
         <label class="text-sm font-semibold text-muted-color" for="montant-file">Montant verifie (Ar)</label>
@@ -157,7 +229,7 @@ async function enregistrer() {
           type="number"
           min="0"
           step="1000"
-          :placeholder="String(action.budgetEstime)"
+          :placeholder="String(action.budgetEstime ?? '')"
         />
         <span class="text-xs text-muted-color">La disponibilite budgetaire est verifiee automatiquement.</span>
       </div>

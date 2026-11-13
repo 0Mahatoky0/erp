@@ -36,19 +36,46 @@ const commentaire = ref('')
 const montantVerifie = ref(null)
 const enregistrement = ref(false)
 
+/** Evaluation saisie par le RH a son etape : fourchette salariale (le maximum fait office de budget). */
+const evaluationRh = ref({ salaireMinEstime: null, salaireMaxEstime: null })
+
 const ligneEnCorrection = ref(null)
 const correction = ref({
   intituleDemande: '',
   effectif: 1,
-  budgetEstime: 0,
-  salaireMinEstime: null,
-  salaireMaxEstime: null,
   profilRecherche: '',
   descriptionPoste: '',
 })
 const enregistrementCorrection = ref(false)
 
 const idDemande = computed(() => Number(route.params.id))
+
+const A_DEFINIR = 'A definir par le RH'
+
+/** Un budget ou salaire absent signifie que le RH n'a pas encore statue. */
+function montantRh(montant) {
+  return montant === null || montant === undefined ? A_DEFINIR : formatMontant(montant)
+}
+
+function fourchetteSalaire(ligne) {
+  if (ligne.salaireMinEstime == null && ligne.salaireMaxEstime == null) {
+    return A_DEFINIR
+  }
+  return `${formatMontant(ligne.salaireMinEstime)} — ${formatMontant(ligne.salaireMaxEstime)}`
+}
+
+/** Somme des budgets deja definis par le RH ; null si aucune ligne n'est encore chiffree. */
+const budgetTotal = computed(() => {
+  const budgets = (demande.value?.lignes ?? [])
+    .map((ligne) => ligne.budgetEstime)
+    .filter((budget) => budget !== null && budget !== undefined)
+  return budgets.length === 0 ? null : budgets.reduce((somme, budget) => somme + Number(budget), 0)
+})
+
+/** Le RH approuve : il doit alors fixer la fourchette salariale (le maximum = budget). */
+const saisieEvaluationRh = computed(
+  () => action.value?.etapeCourante === 'RH' && decision.value === 'APPROUVE',
+)
 
 /** Le demandeur peut-il agir sur la demande ? */
 const estDemandeur = computed(() => demande.value?.idDemandeur === auth.profil?.id)
@@ -118,19 +145,37 @@ function ouvrirDecision(ligne) {
   decision.value = 'APPROUVE'
   commentaire.value = ''
   montantVerifie.value = null
+  evaluationRh.value = {
+    salaireMinEstime: ligne.salaireMinEstime ?? null,
+    salaireMaxEstime: ligne.salaireMaxEstime ?? null,
+  }
+}
+
+function nombreOuNull(valeur) {
+  return valeur === null || valeur === undefined || valeur === '' ? null : Number(valeur)
 }
 
 async function enregistrerDecision() {
   if (!action.value) {
     return
   }
+  const corps = {
+    decision: decision.value,
+    commentaire: commentaire.value.trim() || null,
+    montantVerifie: nombreOuNull(montantVerifie.value),
+  }
+  if (saisieEvaluationRh.value) {
+    const salaireMax = nombreOuNull(evaluationRh.value.salaireMaxEstime)
+    if (salaireMax === null) {
+      notifications.erreur('Definissez le salaire maximum (budget du profil) avant de l\'approuver.')
+      return
+    }
+    corps.salaireMinEstime = nombreOuNull(evaluationRh.value.salaireMinEstime)
+    corps.salaireMaxEstime = salaireMax
+  }
   enregistrement.value = true
   try {
-    await api.post(`/validation/lignes/${action.value.id}/decision`, {
-      decision: decision.value,
-      commentaire: commentaire.value.trim() || null,
-      montantVerifie: montantVerifie.value === null ? null : Number(montantVerifie.value),
-    })
+    await api.post(`/validation/lignes/${action.value.id}/decision`, corps)
     notifications.succes('Decision enregistree.')
     action.value = null
     await charger()
@@ -149,9 +194,6 @@ function ouvrirCorrection(ligne) {
   correction.value = {
     intituleDemande: ligne.intituleDemande ?? '',
     effectif: ligne.effectif ?? 1,
-    budgetEstime: ligne.budgetEstime ?? 0,
-    salaireMinEstime: ligne.salaireMinEstime ?? null,
-    salaireMaxEstime: ligne.salaireMaxEstime ?? null,
     profilRecherche: ligne.profilRecherche ?? '',
     descriptionPoste: ligne.descriptionPoste ?? '',
   }
@@ -167,11 +209,6 @@ async function enregistrerCorrection() {
     await api.put(`/demandes/${idDemande.value}/lignes/${ligneEnCorrection.value.id}`, {
       intituleDemande: correction.value.intituleDemande,
       effectif: Number(correction.value.effectif),
-      budgetEstime: Number(correction.value.budgetEstime),
-      salaireMinEstime:
-        correction.value.salaireMinEstime === null ? null : Number(correction.value.salaireMinEstime),
-      salaireMaxEstime:
-        correction.value.salaireMaxEstime === null ? null : Number(correction.value.salaireMaxEstime),
       profilRecherche: correction.value.profilRecherche || null,
       descriptionPoste: correction.value.descriptionPoste || null,
     })
@@ -234,9 +271,7 @@ async function enregistrerCorrection() {
             </div>
             <div>
               <div class="text-sm text-muted-color">Budget total</div>
-              <div class="font-medium">
-                {{ formatMontant(demande.lignes.reduce((s, l) => s + Number(l.budgetEstime || 0), 0)) }}
-              </div>
+              <div class="font-medium">{{ montantRh(budgetTotal) }}</div>
             </div>
           </div>
         </div>
@@ -308,14 +343,12 @@ async function enregistrerCorrection() {
               <div class="font-medium">{{ ligne.effectif }}</div>
             </div>
             <div>
-              <div class="text-sm text-muted-color">Budget estime</div>
-              <div class="font-medium">{{ formatMontant(ligne.budgetEstime) }}</div>
+              <div class="text-sm text-muted-color">Budget (defini par le RH)</div>
+              <div class="font-medium">{{ montantRh(ligne.budgetEstime) }}</div>
             </div>
             <div>
-              <div class="text-sm text-muted-color">Salaire estime</div>
-              <div class="font-medium">
-                {{ formatMontant(ligne.salaireMinEstime) }} — {{ formatMontant(ligne.salaireMaxEstime) }}
-              </div>
+              <div class="text-sm text-muted-color">Fourchette salariale (definie par le RH)</div>
+              <div class="font-medium">{{ fourchetteSalaire(ligne) }}</div>
             </div>
             <div>
               <div class="text-sm text-muted-color">Poste rattache</div>
@@ -424,6 +457,41 @@ async function enregistrerCorrection() {
         <PrimeSelect id="decision" v-model="decision" class="w-full" :options="DECISIONS" option-label="libelle" option-value="valeur" />
       </div>
 
+      <template v-if="saisieEvaluationRh">
+        <div class="rounded-lg border p-3 text-sm border-blue-200 bg-blue-50 text-blue-700 mb-4">
+          Examinez le dossier (profil, description, effectif) puis definissez la fourchette
+          salariale de ce profil. Le salaire maximum fait office de budget ; il sera verifie par la
+          Finance (disponibilite budgetaire).
+        </div>
+
+        <div class="grid grid-cols-1 gap-x-4 md:grid-cols-2">
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" for="rh-salaire-min">Salaire minimum (Ar)</label>
+            <PrimeInputText
+              id="rh-salaire-min"
+              v-model.number="evaluationRh.salaireMinEstime"
+              class="w-full"
+              type="number"
+              min="0"
+              step="1000"
+            />
+          </div>
+          <div class="flex flex-col gap-2 mb-4">
+            <label class="text-sm font-semibold text-muted-color" for="rh-salaire-max"
+              >Salaire maximum = budget (Ar) <span class="text-red-500">*</span></label
+            >
+            <PrimeInputText
+              id="rh-salaire-max"
+              v-model.number="evaluationRh.salaireMaxEstime"
+              class="w-full"
+              type="number"
+              min="0"
+              step="1000"
+            />
+          </div>
+        </div>
+      </template>
+
       <div v-if="action.etapeCourante === 'FINANCE'" class="flex flex-col gap-2 mb-4">
         <label class="text-sm font-semibold text-muted-color" for="montantVerifie">Montant verifie (Ar)</label>
         <PrimeInputText
@@ -433,9 +501,9 @@ async function enregistrerCorrection() {
           type="number"
           min="0"
           step="1000"
-          :placeholder="String(action.budgetEstime)"
+          :placeholder="String(action.budgetEstime ?? '')"
         />
-        <span class="text-xs text-muted-color">Doit correspondre au montant soumis ({{ formatMontant(action.budgetEstime) }}).</span>
+        <span class="text-xs text-muted-color">Doit correspondre au budget defini par le RH ({{ montantRh(action.budgetEstime) }}).</span>
       </div>
 
       <div class="flex flex-col gap-2 mb-4">
@@ -473,42 +541,6 @@ async function enregistrerCorrection() {
           type="number"
           min="1"
           step="1"
-        />
-      </div>
-
-      <div class="flex flex-col gap-2 mb-4">
-        <label class="text-sm font-semibold text-muted-color" for="corrige-budget">Budget estime (Ar)</label>
-        <PrimeInputText
-          id="corrige-budget"
-          v-model.number="correction.budgetEstime"
-          class="w-full"
-          type="number"
-          min="0"
-          step="1000"
-        />
-      </div>
-
-      <div class="flex flex-col gap-2 mb-4">
-        <label class="text-sm font-semibold text-muted-color" for="corrige-salaire-min">Salaire minimum estime (Ar)</label>
-        <PrimeInputText
-          id="corrige-salaire-min"
-          v-model.number="correction.salaireMinEstime"
-          class="w-full"
-          type="number"
-          min="0"
-          step="1000"
-        />
-      </div>
-
-      <div class="flex flex-col gap-2 mb-4">
-        <label class="text-sm font-semibold text-muted-color" for="corrige-salaire-max">Salaire maximum estime (Ar)</label>
-        <PrimeInputText
-          id="corrige-salaire-max"
-          v-model.number="correction.salaireMaxEstime"
-          class="w-full"
-          type="number"
-          min="0"
-          step="1000"
         />
       </div>
 

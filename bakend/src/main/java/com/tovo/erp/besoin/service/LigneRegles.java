@@ -49,13 +49,10 @@ public class LigneRegles {
         ligne.setIntituleDemande(source.intituleDemande().trim());
         ligne.setDescriptionPoste(source.descriptionPoste());
         ligne.setProfilRecherche(source.profilRecherche());
-        ligne.setSalaireMinEstime(source.salaireMinEstime());
-        ligne.setSalaireMaxEstime(source.salaireMaxEstime());
         ligne.setEffectif(source.effectif());
-        ligne.setBudgetEstime(source.budgetEstime());
 
-        controlerSalaires(ligne);
-        controlerEffectifEtBudget(ligne);
+        // Salaires et budget ne sont pas saisis par le manager : le RH les definit a sa validation.
+        controlerEffectif(ligne);
 
         if (source.typeBesoin() == TypeBesoin.REMPLACEMENT) {
             controlerRemplacement(ligne, source);
@@ -72,13 +69,9 @@ public class LigneRegles {
         ligne.setIntituleDemande(source.intituleDemande().trim());
         ligne.setDescriptionPoste(source.descriptionPoste());
         ligne.setProfilRecherche(source.profilRecherche());
-        ligne.setSalaireMinEstime(source.salaireMinEstime());
-        ligne.setSalaireMaxEstime(source.salaireMaxEstime());
         ligne.setEffectif(source.effectif());
-        ligne.setBudgetEstime(source.budgetEstime());
 
-        controlerSalaires(ligne);
-        controlerEffectifEtBudget(ligne);
+        controlerEffectif(ligne);
 
         if (ligne.getTypeBesoin() == TypeBesoin.REMPLACEMENT) {
             ligne.setMotifRemplacement(source.motifRemplacement());
@@ -92,6 +85,26 @@ public class LigneRegles {
         controlerCoherenceService(ligne);
     }
 
+    /**
+     * Applique l'evaluation du RH sur une ligne : fourchette salariale (RM-017, RM-018).
+     *
+     * <p>Le salaire maximum est obligatoire et fait office de budget de la ligne. Le salaire
+     * minimum est facultatif mais doit rester coherent avec le maximum.
+     */
+    public void appliquerEvaluationRh(DemandeRecrutementPoste ligne, BigDecimal salaireMin,
+                                      BigDecimal salaireMax) {
+        if (salaireMax == null) {
+            throw new BusinessException("SALAIRE_MAX_RH_MANQUANT",
+                    "Le RH doit definir le salaire maximum du profil '" + ligne.getIntituleDemande()
+                            + "' (il fait office de budget) avant de l'approuver.");
+        }
+        ligne.setSalaireMinEstime(salaireMin);
+        ligne.setSalaireMaxEstime(salaireMax);
+        ligne.setBudgetEstime(salaireMax);
+        controlerSalaires(ligne);
+        controlerBudget(ligne);
+    }
+
     // ------------------------------------------------------------------
     // Regles internes
     // ------------------------------------------------------------------
@@ -101,12 +114,16 @@ public class LigneRegles {
                 .orElseThrow(() -> BusinessException.notFound("Le service " + idService + " n'existe pas."));
     }
 
-    /** RM-016 et RM-018. */
-    private void controlerEffectifEtBudget(DemandeRecrutementPoste ligne) {
+    /** RM-016. */
+    private void controlerEffectif(DemandeRecrutementPoste ligne) {
         if (ligne.getEffectif() == null || ligne.getEffectif() <= 0) {
             throw new BusinessException("EFFECTIF_INVALIDE",
                     "L'effectif doit etre strictement superieur a zero.");
         }
+    }
+
+    /** RM-018. */
+    private void controlerBudget(DemandeRecrutementPoste ligne) {
         if (ligne.getBudgetEstime() == null || ligne.getBudgetEstime().compareTo(BigDecimal.ZERO) < 0) {
             throw new BusinessException("BUDGET_INVALIDE",
                     "Le budget estime doit etre positif ou nul.");
