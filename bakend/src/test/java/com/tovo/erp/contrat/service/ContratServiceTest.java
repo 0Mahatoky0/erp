@@ -403,6 +403,22 @@ class ContratServiceTest {
     }
 
     @Test
+    void uneRuptureDeContinuiteEntreContratsDeclencheUneAlerteRh() {
+        Contrat precedent = contrat(4L, TypeContrat.CDD, ContratEtat.VALIDE,
+                LocalDate.now().minusYears(1), LocalDate.now().minusMonths(2));
+        Contrat suivant = contrat(5L, TypeContrat.CDI, ContratEtat.VALIDE,
+                LocalDate.now().minusMonths(1), null);
+        suivant.setIdContratPrecedent(4L);
+        suivant.setRang(2);
+        when(contrats.findAllByOrderByDateCreationDesc()).thenReturn(List.of(suivant, precedent));
+        when(onboardings.findByIdContratIn(any())).thenReturn(List.of());
+
+        List<ContratDtos.AlerteDto> alertes = service.alertes();
+
+        assertTrue(alertes.stream().anyMatch(a -> "CONTINUITE".equals(a.categorie())));
+    }
+
+    @Test
     void lePlanificateurActiveLesContratsDontLaDateEstArrivee() {
         Contrat contrat = contrat(5L, TypeContrat.CDI, ContratEtat.VALIDE,
                 LocalDate.now(), null);
