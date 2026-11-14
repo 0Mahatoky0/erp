@@ -97,6 +97,11 @@ public class OffreEmploiService {
         offre.setSalaireMin(request.salaireMin());
         offre.setSalaireMax(request.salaireMax());
         offre.setModeSelection(request.modeSelection());
+        offre.setCriteresEliminatoires(request.criteresEliminatoires());
+        offre.setGrilleEvaluation(request.grilleEvaluation());
+        offre.setPoidsDossier(request.poidsDossier() == null ? 1 : request.poidsDossier());
+        offre.setPoidsEntretien(request.poidsEntretien() == null ? 1 : request.poidsEntretien());
+        offre.setPoidsTest(request.poidsTest() == null ? 1 : request.poidsTest());
         offre.setDateLimiteCandidature(request.dateLimiteCandidature());
         return offre;
     }
@@ -130,6 +135,11 @@ public class OffreEmploiService {
         offre.setSalaireMin(modifications.getSalaireMin());
         offre.setSalaireMax(modifications.getSalaireMax());
         offre.setModeSelection(modifications.getModeSelection());
+        offre.setCriteresEliminatoires(modifications.getCriteresEliminatoires());
+        offre.setGrilleEvaluation(modifications.getGrilleEvaluation());
+        offre.setPoidsDossier(modifications.getPoidsDossier());
+        offre.setPoidsEntretien(modifications.getPoidsEntretien());
+        offre.setPoidsTest(modifications.getPoidsTest());
         offre.setDateLimiteCandidature(modifications.getDateLimiteCandidature());
         return offres.save(offre);
     }

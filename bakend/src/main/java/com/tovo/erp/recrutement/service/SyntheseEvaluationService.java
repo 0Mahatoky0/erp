@@ -42,7 +42,9 @@ public class SyntheseEvaluationService {
 
         return liste.stream()
                 .map(candidature -> SyntheseEvaluationDto.de(candidature,
-                        evaluationsParCandidature.getOrDefault(candidature.getIdCandidature(), List.of())))
+                        evaluationsParCandidature.getOrDefault(candidature.getIdCandidature(), List.of()),
+                        poids(candidature, "dossier"), poids(candidature, "entretien"),
+                        poids(candidature, "test")))
                 .toList();
     }
 
@@ -53,7 +55,21 @@ public class SyntheseEvaluationService {
                 .orElseThrow(() -> BusinessException.notFound(
                         "La candidature " + idCandidature + " n'existe pas."));
         return SyntheseEvaluationDto.de(candidature,
-                evaluations.findByCandidatureIdCandidature(idCandidature));
+                evaluations.findByCandidatureIdCandidature(idCandidature),
+                poids(candidature, "dossier"), poids(candidature, "entretien"),
+                poids(candidature, "test"));
+    }
+
+    private Integer poids(Candidature candidature, String categorie) {
+        if (candidature.getOffre() == null) {
+            return 1;
+        }
+        return switch (categorie) {
+            case "dossier" -> candidature.getOffre().getPoidsDossier();
+            case "entretien" -> candidature.getOffre().getPoidsEntretien();
+            case "test" -> candidature.getOffre().getPoidsTest();
+            default -> 1;
+        };
     }
 
     private CandidatureStatut statutDepuis(String statut) {

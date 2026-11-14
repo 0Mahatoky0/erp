@@ -35,6 +35,11 @@ const form = ref({
   typeContrat: '',
   effectifRecherche: 1,
   modeSelection: '',
+  criteresEliminatoires: '',
+  grilleEvaluation: '',
+  poidsDossier: 1,
+  poidsEntretien: 1,
+  poidsTest: 1,
   salaireMin: null,
   salaireMax: null,
   dateLimiteCandidature: null,
@@ -139,6 +144,11 @@ const enregistrer = async () => {
       typeContrat: form.value.typeContrat || null,
       effectifRecherche: Number(form.value.effectifRecherche),
       modeSelection: form.value.modeSelection,
+      criteresEliminatoires: form.value.criteresEliminatoires || null,
+      grilleEvaluation: form.value.grilleEvaluation || null,
+      poidsDossier: Number(form.value.poidsDossier) || 1,
+      poidsEntretien: Number(form.value.poidsEntretien) || 1,
+      poidsTest: Number(form.value.poidsTest) || 1,
       salaireMin: form.value.salaireMin !== null ? Number(form.value.salaireMin) : null,
       salaireMax: form.value.salaireMax !== null ? Number(form.value.salaireMax) : null,
       dateLimiteCandidature: dateLimiteFormatee,
@@ -391,6 +401,32 @@ onMounted(() => {
                       <PrimeInputText id="lieuTravail" v-model="form.lieuTravail" maxlength="255" placeholder="Ville, site..." />
                     </label>
                   </div>
+                </div>
+
+                <div class="flex flex-col gap-4 p-3 bg-surface-50/50 dark:bg-surface-900/50 border border-surface rounded-lg">
+                  <span class="text-xs font-bold text-muted-color uppercase tracking-wider">Grille d'évaluation et critères éliminatoires</span>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <label for="poidsDossier" class="flex flex-col gap-1 text-sm font-semibold">
+                      Poids dossier
+                      <PrimeInputNumber id="poidsDossier" v-model="form.poidsDossier" :min="1" :max="100" />
+                    </label>
+                    <label for="poidsEntretien" class="flex flex-col gap-1 text-sm font-semibold">
+                      Poids entretien
+                      <PrimeInputNumber id="poidsEntretien" v-model="form.poidsEntretien" :min="1" :max="100" />
+                    </label>
+                    <label for="poidsTest" class="flex flex-col gap-1 text-sm font-semibold">
+                      Poids test
+                      <PrimeInputNumber id="poidsTest" v-model="form.poidsTest" :min="1" :max="100" />
+                    </label>
+                  </div>
+                  <label for="criteresEliminatoires" class="flex flex-col gap-1 text-sm font-semibold">
+                    Critères éliminatoires
+                    <PrimeTextarea id="criteresEliminatoires" v-model="form.criteresEliminatoires" rows="3" auto-resize placeholder="Diplôme requis, expérience minimale, langues..." />
+                  </label>
+                  <label for="grilleEvaluation" class="flex flex-col gap-1 text-sm font-semibold">
+                    Détail de la grille d'évaluation
+                    <PrimeTextarea id="grilleEvaluation" v-model="form.grilleEvaluation" rows="3" auto-resize placeholder="Critères, barèmes et pondérations..." />
+                  </label>
                 </div>
 
                 <div class="flex flex-col gap-4 p-3 bg-surface-50/50 dark:bg-surface-900/50 border border-surface rounded-lg">

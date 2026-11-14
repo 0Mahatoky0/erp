@@ -16,6 +16,8 @@ public class EvaluationCandidat {
     @Positive @Column(name = "note_max", nullable = false) private BigDecimal noteMax = BigDecimal.valueOf(20);
     @NotBlank @Column(nullable = false) private String appreciation;
     @NotBlank @Column(nullable = false, columnDefinition = "TEXT") private String commentaire;
+    @Column(columnDefinition = "TEXT") private String criteres;
+    @Column(name = "note_globale") private BigDecimal noteGlobale;
     @Column(nullable = false, updatable = false) private LocalDateTime dateEvaluation;
     @PrePersist void onCreate() { dateEvaluation = LocalDateTime.now(); }
 

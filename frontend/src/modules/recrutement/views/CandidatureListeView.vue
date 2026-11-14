@@ -142,6 +142,12 @@ onMounted(charger)
           <Column field="statut" header="Statut" sortable>
             <template #body="{ data }"><StatusBadge :valeur="data.statut" /></template>
           </Column>
+          <Column field="scoreGlobal" header="Score global" sortable>
+            <template #body="{ data }">{{ data.scoreGlobal ?? '—' }}</template>
+          </Column>
+          <Column field="rang" header="Rang" sortable>
+            <template #body="{ data }">{{ data.rang ?? '—' }}</template>
+          </Column>
           <Column header="Action">
             <template #body="{ data }">
               <Button

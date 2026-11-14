@@ -3,6 +3,7 @@ package com.tovo.erp.recrutement.dto;
 import com.tovo.erp.recrutement.model.Candidature;
 import com.tovo.erp.recrutement.model.CandidatureStatut;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /** Representation sans cycle de la candidature et de ses relations utiles a l'UI. */
@@ -13,6 +14,9 @@ public record CandidatureDto(
         String messageCandidat,
         String source,
         CandidatureStatut statut,
+        BigDecimal scoreDossier,
+        BigDecimal scoreGlobal,
+        Integer rang,
         LocalDateTime dateCandidature,
         LocalDateTime dateModification) {
 
@@ -25,6 +29,9 @@ public record CandidatureDto(
                 candidature.getMessageCandidat(),
                 candidature.getSource(),
                 candidature.getStatut(),
+                candidature.getScoreDossier(),
+                candidature.getScoreGlobal(),
+                candidature.getRang(),
                 candidature.getDateCandidature(),
                 candidature.getDateModification());
     }

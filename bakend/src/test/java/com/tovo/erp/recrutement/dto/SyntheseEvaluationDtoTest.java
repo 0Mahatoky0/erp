@@ -63,6 +63,28 @@ class SyntheseEvaluationDtoTest {
     }
 
     @Test
+    void appliqueLesPoidsDeLaGrilleDeLOffre() {
+        SyntheseEvaluationDto synthese = SyntheseEvaluationDto.de(candidature(), List.of(
+                evaluation(TypeEvaluation.DOSSIER, "10", "20"),
+                evaluation(TypeEvaluation.ENTRETIEN, "20", "20")), 1, 3, 1);
+
+        assertEquals(new BigDecimal("1"), synthese.dossier().poids());
+        assertEquals(new BigDecimal("3"), synthese.entretien().poids());
+        // (10 * 1 + 20 * 3) / 4 = 17,50.
+        assertEquals(new BigDecimal("17.50"), synthese.noteGlobale());
+    }
+
+    @Test
+    void utiliseLaNoteGlobaleDesCriteresQuandElleExiste() {
+        EvaluationCandidat evaluation = evaluation(TypeEvaluation.ENTRETIEN, "5", "20");
+        evaluation.setNoteGlobale(new BigDecimal("16.50"));
+
+        SyntheseEvaluationDto synthese = SyntheseEvaluationDto.de(candidature(), List.of(evaluation));
+
+        assertEquals(new BigDecimal("16.50"), synthese.entretien().note());
+    }
+
+    @Test
     void uneEvaluationSansNoteCompteCommeFaiteMaisSansNote() {
         SyntheseEvaluationDto synthese = SyntheseEvaluationDto.de(candidature(), List.of(
                 evaluation(TypeEvaluation.TEST, null, "20")));
