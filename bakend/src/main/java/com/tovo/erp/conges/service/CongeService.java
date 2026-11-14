@@ -513,7 +513,23 @@ public class CongeService {
 
     @Transactional(readOnly = true)
     public boolean estEnCongeValide(Long idEmploye, LocalDate date) {
-        return !planningConges(idEmploye, date, date).isEmpty();
+        return !planningConges(idEmploye, date, date).isEmpty()
+                || absences.existeChevauchement(idEmploye, date, date, List.of(StatutAbsence.JUSTIFIEE));
+    }
+
+    @Transactional
+    public void declarerAbsenceNonJustifiee(Long idEmploye, LocalDate date) {
+        if (absences.existeChevauchement(idEmploye, date, date,
+                List.of(StatutAbsence.A_JUSTIFIER, StatutAbsence.JUSTIFIEE))) {
+            return;
+        }
+        Absence absence = new Absence();
+        absence.setIdEmploye(idEmploye);
+        absence.setDateDebut(date);
+        absence.setDateFin(date);
+        absence.setMotif("Absence non pointee - a qualifier");
+        absence.setStatut(StatutAbsence.A_JUSTIFIER);
+        absences.save(absence);
     }
 
     // ------------------------------------------------------------------

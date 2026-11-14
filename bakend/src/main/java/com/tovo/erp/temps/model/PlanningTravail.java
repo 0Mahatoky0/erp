@@ -48,6 +48,21 @@ public class PlanningTravail {
     @Column(name = "tolerance_minutes", nullable = false)
     private int toleranceMinutes = 5;
 
+    @Column(name = "origine", nullable = false, length = 20)
+    private String origine = "MANUEL";
+
+    @Column(name = "statut", nullable = false, length = 20)
+    private String statut = "PLANIFIE";
+
+    @Column(name = "publie_le")
+    private LocalDateTime publieLe;
+
+    @Column(name = "motif_modification", length = 500)
+    private String motifModification;
+
+    @Column(name = "date_modification")
+    private LocalDateTime dateModification;
+
     @Column(name = "date_creation", nullable = false)
     private LocalDateTime dateCreation = LocalDateTime.now();
 }

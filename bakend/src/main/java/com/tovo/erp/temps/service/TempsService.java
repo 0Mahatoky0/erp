@@ -8,12 +8,15 @@ import com.tovo.erp.temps.model.JourTravaille;
 import com.tovo.erp.temps.model.PlanningTravail;
 import com.tovo.erp.temps.model.PeriodeTempsClose;
 import com.tovo.erp.temps.model.Pointage;
+import com.tovo.erp.temps.model.RegimeTravail;
+import com.tovo.erp.temps.repository.AffectationRegimeRepository;
 import com.tovo.erp.temps.repository.AnomaliePointageRepository;
 import com.tovo.erp.temps.repository.HeureSupplementaireRepository;
 import com.tovo.erp.temps.repository.JourTravailleRepository;
 import com.tovo.erp.temps.repository.PlanningTravailRepository;
 import com.tovo.erp.temps.repository.PeriodeTempsCloseRepository;
 import com.tovo.erp.temps.repository.PointageRepository;
+import com.tovo.erp.temps.repository.RegimeTravailRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +37,8 @@ public class TempsService {
     private static final int PLAFOND_HS_HEBDO_MINUTES = 20 * 60;
     private static final int SEUIL_PAUSE_MINUTES = 6 * 60;
     private static final int DUREE_EXCESSIVE_MINUTES = 12 * 60;
+    private static final int DUREE_MAX_QUOTIDIENNE_MINUTES = 10 * 60;
+    private static final int REPOS_QUOTIDIEN_MINUTES = 10 * 60;
     private static final int ARRONDI_HS_MINUTES = 15;
 
     private final PlanningTravailRepository planningRepository;
@@ -42,22 +47,30 @@ public class TempsService {
     private final AnomaliePointageRepository anomaliesRepository;
     private final HeureSupplementaireRepository heuresSupRepository;
     private final IndisponibiliteProvider indisponibilites;
+    private final AbsenceDeclarationProvider absences;
     private final CalendrierTempsService calendrier;
     private final PeriodeTempsCloseRepository periodesCloses;
+    private final AffectationRegimeRepository affectations;
+    private final RegimeTravailRepository regimes;
 
     public TempsService(PlanningTravailRepository planningRepository, PointageRepository pointageRepository,
                         JourTravailleRepository joursRepository, AnomaliePointageRepository anomaliesRepository,
                         HeureSupplementaireRepository heuresSupRepository,
-                        IndisponibiliteProvider indisponibilites, CalendrierTempsService calendrier,
-                        PeriodeTempsCloseRepository periodesCloses) {
+                        IndisponibiliteProvider indisponibilites, AbsenceDeclarationProvider absences,
+                        CalendrierTempsService calendrier,
+                        PeriodeTempsCloseRepository periodesCloses,
+                        AffectationRegimeRepository affectations, RegimeTravailRepository regimes) {
         this.planningRepository = planningRepository;
         this.pointageRepository = pointageRepository;
         this.joursRepository = joursRepository;
         this.anomaliesRepository = anomaliesRepository;
         this.heuresSupRepository = heuresSupRepository;
         this.indisponibilites = indisponibilites;
+        this.absences = absences;
         this.calendrier = calendrier;
         this.periodesCloses = periodesCloses;
+        this.affectations = affectations;
+        this.regimes = regimes;
     }
 
     @Transactional(readOnly = true)
@@ -79,7 +92,52 @@ public class TempsService {
         if (demande.dateFin() != null) {
             verifierPeriodeOuverte(demande.dateFin());
         }
+        verifierIndisponibilites(demande);
         PlanningTravail planning = new PlanningTravail();
+        planning.setIdEmploye(demande.idEmploye());
+        planning.setJoursTravailles(demande.joursTravailles().trim());
+        planning.setHeureDebut(demande.heureDebut());
+        planning.setHeureFin(demande.heureFin());
+        planning.setDateDebut(demande.dateDebut());
+        planning.setDateFin(demande.dateFin());
+        planning.setOrigine("MANUEL");
+        planning.setStatut("PLANIFIE");
+        if (demande.pauseMinutes() != null) {
+            if (demande.pauseMinutes() < 0) {
+                throw new BusinessException("PAUSE_INVALIDE", "La pause ne peut pas etre negative.");
+            }
+            planning.setPauseMinutes(demande.pauseMinutes());
+        }
+        if (demande.toleranceMinutes() != null) {
+            if (demande.toleranceMinutes() < 0) {
+                throw new BusinessException("TOLERANCE_INVALIDE", "La tolerance ne peut pas etre negative.");
+            }
+            planning.setToleranceMinutes(demande.toleranceMinutes());
+        }
+        return TempsDtos.PlanningDto.de(planningRepository.save(planning));
+    }
+
+    @Transactional
+    public TempsDtos.PlanningDto modifierPlanning(Long id, TempsDtos.PlanningRequest demande, String motif) {
+        PlanningTravail planning = planningRepository.findById(id)
+                .orElseThrow(() -> BusinessException.notFound("Planning introuvable."));
+        if (!demande.heureFin().isAfter(demande.heureDebut())) {
+            throw new BusinessException("HORAIRES_INVALIDES", "L'heure de fin doit etre posterieure a l'heure de debut.");
+        }
+        if (demande.dateFin() != null && demande.dateFin().isBefore(demande.dateDebut())) {
+            throw new BusinessException("DATES_INVALIDES", "La date de fin doit etre posterieure ou egale a la date de debut.");
+        }
+        verifierPeriodeOuverte(demande.dateDebut());
+        if (demande.dateFin() != null) {
+            verifierPeriodeOuverte(demande.dateFin());
+        }
+        verifierIndisponibilites(demande);
+        if ("PUBLIE".equals(planning.getStatut())
+                && planning.getDateDebut().isBefore(LocalDate.now().plusDays(2))
+                && (motif == null || motif.isBlank())) {
+            throw new BusinessException("MOTIF_MODIFICATION_REQUIS",
+                    "Une modification a moins de 48 h d'un planning publie exige un motif.");
+        }
         planning.setIdEmploye(demande.idEmploye());
         planning.setJoursTravailles(demande.joursTravailles().trim());
         planning.setHeureDebut(demande.heureDebut());
@@ -98,6 +156,20 @@ public class TempsService {
             }
             planning.setToleranceMinutes(demande.toleranceMinutes());
         }
+        planning.setOrigine("MANUEL");
+        planning.setStatut("MODIFIE");
+        planning.setMotifModification(motif);
+        planning.setDateModification(LocalDateTime.now());
+        return TempsDtos.PlanningDto.de(planningRepository.save(planning));
+    }
+
+    @Transactional
+    public TempsDtos.PlanningDto publierPlanning(Long id) {
+        PlanningTravail planning = planningRepository.findById(id)
+                .orElseThrow(() -> BusinessException.notFound("Planning introuvable."));
+        planning.setStatut("PUBLIE");
+        planning.setPublieLe(LocalDateTime.now());
+        planning.setDateModification(LocalDateTime.now());
         return TempsDtos.PlanningDto.de(planningRepository.save(planning));
     }
 
@@ -172,6 +244,9 @@ public class TempsService {
             if (planning == null) {
                 return null;
             }
+            if (!jour.isAfter(LocalDate.now())) {
+                absences.declarerAbsenceNonJustifiee(idEmploye, jour);
+            }
             return enregistrer(idEmploye, jour, planning, null, JourTravaille.Statut.ABSENT,
                     List.of(anomalie(idEmploye, jour, "ABSENCE_NON_JUSTIFIEE", "HAUTE")));
         }
@@ -238,6 +313,20 @@ public class TempsService {
             }
         }
 
+        if (travaillees > DUREE_MAX_QUOTIDIENNE_MINUTES) {
+            anomalies.add(anomalie(idEmploye, jour, "DUREE_QUOTIDIENNE_EXCESSIVE", "HAUTE"));
+        }
+        if (entree != null) {
+            pointageRepository.findByIdEmployeAndDatePointage(idEmploye, jour.minusDays(1))
+                    .filter(prev -> prev.getHeureSortie() != null)
+                    .ifPresent(prev -> {
+                        LocalDateTime finPrecedente = prev.getDatePointage().atTime(prev.getHeureSortie());
+                        long repos = Duration.between(finPrecedente, jour.atTime(entree)).toMinutes();
+                        if (repos < REPOS_QUOTIDIEN_MINUTES) {
+                            anomalies.add(anomalie(idEmploye, jour, "REPOS_QUOTIDIEN_INSUFFISANT", "HAUTE"));
+                        }
+                    });
+        }
         int hs = Math.max(0, travaillees - theoriques);
         JourTravaille.Statut statut = anomalies.isEmpty()
                 ? JourTravaille.Statut.A_VALIDER : JourTravaille.Statut.ANOMALIE;
@@ -306,6 +395,7 @@ public class TempsService {
         int nuit = 0;
         int dimanche = 0;
         int ferie = 0;
+        int joursTravailles = 0;
         for (int i = 0; i < 7; i++) {
             TempsDtos.JourTravailleDto jour = calculerJour(idEmploye, semaine.plusDays(i));
             if (jour != null) {
@@ -313,9 +403,15 @@ public class TempsService {
                 nuit += jour.minutesNuit();
                 dimanche += jour.minutesDimanche();
                 ferie += jour.minutesFerie();
+                if (jour.minutesTravaillees() > 0) {
+                    joursTravailles++;
+                }
             }
         }
-        int hs = Math.max(0, total - HEURES_HEBDO * 60);
+        if (joursTravailles == 7) {
+            signalerReposHebdomadaireInsuffisant(idEmploye, semaine.plusDays(6));
+        }
+        int hs = decompteHeuresSup(idEmploye, semaine) ? Math.max(0, total - HEURES_HEBDO * 60) : 0;
         hs = (hs / ARRONDI_HS_MINUTES) * ARRONDI_HS_MINUTES;
         int hs30 = Math.min(hs, 8 * 60);
         int hs50 = Math.max(0, hs - 8 * 60);
@@ -405,6 +501,37 @@ public class TempsService {
         periode.setDateFin(fin);
         periode.setIdUtilisateur(idUtilisateur);
         return TempsDtos.PeriodeCloseDto.de(periodesCloses.save(periode));
+    }
+
+    private void verifierIndisponibilites(TempsDtos.PlanningRequest demande) {
+        LocalDate fin = demande.dateFin() == null ? demande.dateDebut() : demande.dateFin();
+        for (LocalDate date = demande.dateDebut(); !date.isAfter(fin); date = date.plusDays(1)) {
+            if (indisponibilites.estIndisponible(demande.idEmploye(), date)) {
+                throw new BusinessException("CONGE_PLANIFIE",
+                        "Le planning chevauche un conge ou une absence approuvee le " + date + ".");
+            }
+        }
+    }
+
+    private boolean decompteHeuresSup(Long idEmploye, LocalDate semaine) {
+        return affectations.courantes(idEmploye, semaine).stream()
+                .findFirst()
+                .flatMap(affectation -> regimes.findById(affectation.getIdRegime()))
+                .map(RegimeTravail::isDecompteHeuresSup)
+                .orElse(true);
+    }
+
+    private void signalerReposHebdomadaireInsuffisant(Long idEmploye, LocalDate dimanche) {
+        joursRepository.findByIdEmployeAndDateJour(idEmploye, dimanche).ifPresent(jour -> {
+            if (anomaliesRepository.existsByIdEmployeAndDateAnomalieAndTypeAndStatutNot(
+                    idEmploye, dimanche, "REPOS_HEBDOMADAIRE_INSUFFISANT", AnomaliePointage.Statut.OUVERTE)) {
+                return;
+            }
+            AnomaliePointage anomalie = anomalie(idEmploye, dimanche,
+                    "REPOS_HEBDOMADAIRE_INSUFFISANT", "HAUTE");
+            anomalie.setIdJourTravaille(jour.getId());
+            anomaliesRepository.save(anomalie);
+        });
     }
 
     private void verifierPeriodeOuverte(LocalDate date) {
