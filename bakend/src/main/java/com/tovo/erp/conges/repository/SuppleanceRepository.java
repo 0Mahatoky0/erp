@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -38,4 +39,7 @@ public interface SuppleanceRepository extends JpaRepository<Suppleance, Long> {
     List<Suppleance> findByIdEmployeAbsentOrderByDateDebutDesc(Long idEmployeAbsent);
 
     List<Suppleance> findAllByOrderByDateDebutDesc();
+
+    List<Suppleance> findByStatutAndDateCreationBefore(StatutSuppleance statut,
+                                                       LocalDateTime seuil);
 }

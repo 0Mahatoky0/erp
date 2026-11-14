@@ -6,6 +6,7 @@ import com.tovo.erp.conges.repository.*;
 import com.tovo.erp.employe.dto.EmployeDto;
 import com.tovo.erp.employe.service.EmployeService;
 import com.tovo.erp.shared.BusinessException;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,10 +15,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /** Matrice de remplacement et file FIFO des suppleances (RG-B7-22 a RG-B7-28). */
 @Service
@@ -114,6 +117,14 @@ public class SuppleanceService {
         }
         List<Candidat> eligibles = candidats(demande.getIdEmploye(), demande.getNombreJours(),
                 demande.getDateDebut(), demande.getDateFin());
+        if (request == null || request.idRemplacant() == null) {
+            Set<Long> dejaProposes = new HashSet<>();
+            suppleances.findByIdDemandeCongeOrderByDateCreationDesc(idDemande)
+                    .forEach(s -> dejaProposes.add(s.getIdEmployeRemplacant()));
+            eligibles = eligibles.stream()
+                    .filter(c -> !dejaProposes.contains(c.employe().id()))
+                    .toList();
+        }
         Candidat choisi;
         if (request != null && request.idRemplacant() != null) {
             choisi = eligibles.stream()
@@ -160,8 +171,39 @@ public class SuppleanceService {
                 d.setIdRemplacant(idRemplacant);
                 demandes.save(d);
             });
+        } else if (cible == StatutSuppleance.REFUSEE) {
+            proposerSuivant(enregistree.getIdDemandeConge());
         }
         return CongeDtos.SuppleanceDto.de(enregistree);
+    }
+
+    /**
+     * Sans reponse sous 24 h, la proposition est classee sans suite et le
+     * remplacant suivant de la file FIFO est sollicite (RG-B7-25).
+     */
+    @Scheduled(fixedDelayString = "${erp.conges.suppleance-verification-ms:3600000}")
+    @Transactional
+    public void relancerPropositionsExpirees() {
+        LocalDateTime seuil = LocalDateTime.now().minusHours(24);
+        for (Suppleance suppleance : suppleances.findByStatutAndDateCreationBefore(
+                StatutSuppleance.PROPOSEE, seuil)) {
+            suppleance.setStatut(StatutSuppleance.REFUSEE);
+            suppleance.setDateReponse(LocalDateTime.now());
+            suppleance.setMotif("Delai de reponse de 24 h depasse.");
+            suppleances.save(suppleance);
+            proposerSuivant(suppleance.getIdDemandeConge());
+        }
+    }
+
+    private void proposerSuivant(Long idDemande) {
+        if (idDemande == null) {
+            return;
+        }
+        try {
+            proposer(idDemande, null);
+        } catch (BusinessException ignored) {
+            // Aucun remplacant eligible : la demande reste bloquee pour la RH.
+        }
     }
 
     @Transactional

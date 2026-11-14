@@ -176,6 +176,9 @@ public final class TempsDtos {
         }
     }
 
+    public record HeureSupplementaireStatutRequest(@NotBlank String statut) {
+    }
+
     public record RegimeRequest(
             @NotBlank @Size(max = 40) String code,
             @NotBlank @Size(max = 120) String libelle,

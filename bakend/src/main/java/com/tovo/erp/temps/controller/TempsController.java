@@ -98,6 +98,14 @@ public class TempsController {
         return temps.calculerSemaine(idEmploye, semaine);
     }
 
+    @PostMapping("/heures-supplementaires/{id}/statut")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    public TempsDtos.HeureSupplementaireDto changerStatutHeureSupplementaire(
+            @PathVariable Long id,
+            @Valid @RequestBody TempsDtos.HeureSupplementaireStatutRequest demande) {
+        return temps.changerStatutHeureSupplementaire(id, demande.statut());
+    }
+
     @GetMapping("/periodes-cloturees")
     @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION')")
     public List<TempsDtos.PeriodeCloseDto> periodesCloturees() {

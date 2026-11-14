@@ -192,6 +192,39 @@ class TempsServiceTest {
     }
 
     @Test
+    void arronditLesHeuresSupplementairesAuQuartDHeureInferieur() {
+        LocalDate lundi = LocalDate.of(2026, 6, 8);
+        for (int i = 0; i < 5; i++) {
+            LocalDate jour = lundi.plusDays(i);
+            pointagesParDate.put(jour, pointage(jour, LocalTime.of(8, 0), LocalTime.of(19, 20)));
+        }
+
+        TempsDtos.HeureSupplementaireDto dto = service.calculerSemaine(7L, lundi);
+
+        assertEquals(3100, dto.minutesTotal());
+        assertEquals(690, dto.minutesHs30() + dto.minutesHs50());
+        assertEquals(480, dto.minutesHs30());
+        assertEquals(210, dto.minutesHs50());
+    }
+
+    @Test
+    void lesHeuresSupplementairesSuiventLesTransitionsAutorisees() {
+        HeureSupplementaire heureSup = new HeureSupplementaire();
+        heureSup.setId(11L);
+        heureSup.setIdEmploye(7L);
+        heureSup.setSemaineDebut(LocalDate.of(2026, 6, 8));
+        heureSup.setStatut(HeureSupplementaire.Statut.DETECTEE);
+        when(heuresSup.findById(11L)).thenReturn(Optional.of(heureSup));
+
+        TempsDtos.HeureSupplementaireDto validee = service
+                .changerStatutHeureSupplementaire(11L, "VALIDEE");
+
+        assertEquals("VALIDEE", validee.statut());
+        assertThrows(BusinessException.class,
+                () -> service.changerStatutHeureSupplementaire(11L, "DETECTEE"));
+    }
+
+    @Test
     void ignoreLesJoursNonTravaillesDuPlanning() {
         LocalDate samedi = LocalDate.of(2026, 6, 13);
 

@@ -34,6 +34,7 @@ public class TempsService {
     private static final int PLAFOND_HS_HEBDO_MINUTES = 20 * 60;
     private static final int SEUIL_PAUSE_MINUTES = 6 * 60;
     private static final int DUREE_EXCESSIVE_MINUTES = 12 * 60;
+    private static final int ARRONDI_HS_MINUTES = 15;
 
     private final PlanningTravailRepository planningRepository;
     private final PointageRepository pointageRepository;
@@ -315,6 +316,7 @@ public class TempsService {
             }
         }
         int hs = Math.max(0, total - HEURES_HEBDO * 60);
+        hs = (hs / ARRONDI_HS_MINUTES) * ARRONDI_HS_MINUTES;
         int hs30 = Math.min(hs, 8 * 60);
         int hs50 = Math.max(0, hs - 8 * 60);
         HeureSupplementaire heureSup = heuresSupRepository
@@ -340,6 +342,36 @@ public class TempsService {
         return heuresSupRepository.findByIdEmployeAndSemaineDebut(idEmploye, lundi)
                 .map(TempsDtos.HeureSupplementaireDto::de)
                 .orElseGet(() -> calculerSemaine(idEmploye, lundi));
+    }
+
+    @Transactional
+    public TempsDtos.HeureSupplementaireDto changerStatutHeureSupplementaire(Long id, String statut) {
+        HeureSupplementaire heureSup = heuresSupRepository.findById(id)
+                .orElseThrow(() -> BusinessException.notFound("Heures supplementaires introuvables."));
+        HeureSupplementaire.Statut cible;
+        try {
+            cible = HeureSupplementaire.Statut.valueOf(statut.trim().toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException ex) {
+            throw new BusinessException("STATUT_HS_INVALIDE", "Statut d'heures supplementaires invalide.");
+        }
+        HeureSupplementaire.Statut actuel = heureSup.getStatut();
+        boolean transitionAutorisee = switch (actuel) {
+            case DETECTEE -> cible == HeureSupplementaire.Statut.DEMANDEE
+                    || cible == HeureSupplementaire.Statut.VALIDEE
+                    || cible == HeureSupplementaire.Statut.REFUSEE;
+            case DEMANDEE -> cible == HeureSupplementaire.Statut.VALIDEE
+                    || cible == HeureSupplementaire.Statut.REFUSEE;
+            case VALIDEE -> cible == HeureSupplementaire.Statut.PAYEE
+                    || cible == HeureSupplementaire.Statut.RECUPEREE;
+            default -> false;
+        };
+        if (!transitionAutorisee) {
+            throw new BusinessException("TRANSITION_HS_INVALIDE",
+                    "Transition d'heures supplementaires non autorisee : " + actuel + " -> " + cible + ".");
+        }
+        heureSup.setStatut(cible);
+        heureSup.setDateCalcul(LocalDateTime.now());
+        return TempsDtos.HeureSupplementaireDto.de(heuresSupRepository.save(heureSup));
     }
 
     @Transactional(readOnly = true)
