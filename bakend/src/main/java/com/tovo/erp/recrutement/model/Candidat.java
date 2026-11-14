@@ -17,6 +17,10 @@ public class Candidat {
     @Column(columnDefinition = "TEXT") private String adresse;
     @Size(max = 50) private String cin;
     private LocalDate dateNaissance;
+    @Column(name = "consentement_donnees", nullable = false)
+    private boolean consentementDonnees = false;
+    @Column(name = "date_consentement")
+    private LocalDateTime dateConsentement;
     @Enumerated(EnumType.STRING) @Column(nullable = false)
     private StatutCandidat statut = StatutCandidat.CANDIDAT;
     @Column(nullable = false, updatable = false) private LocalDateTime dateCreation;

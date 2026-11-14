@@ -81,6 +81,10 @@ public class CandidatureService {
             throw new IllegalStateException("L'offre n'est pas ouverte aux candidatures");
         Candidat existant = candidats.findByIdUtilisateur(utilisateur.getId())
                 .orElseThrow(() -> new IllegalStateException("Le profil candidat est introuvable"));
+        if (!existant.isConsentementDonnees()) {
+            throw new BusinessException("CONSENTEMENT_REQUIS",
+                    "Le candidat doit avoir consenti au traitement de ses donnees personnelles.");
+        }
         if (candidatures.existsByOffreIdOffreAndCandidatIdCandidat(idOffre, existant.getIdCandidat()))
             throw new IllegalStateException("Le candidat a déjà postulé à cette offre");
         Candidature candidature = new Candidature();
@@ -108,6 +112,11 @@ public class CandidatureService {
                 .orElseThrow(() -> new IllegalArgumentException("Offre introuvable"));
         if (offre.getStatut() != OffreStatut.PUBLIEE)
             throw new IllegalStateException("L'offre n'est pas ouverte aux candidatures");
+        candidat.setEmail(normaliserEmail(candidat.getEmail()));
+        if (!candidat.isConsentementDonnees()) {
+            candidat.setConsentementDonnees(true);
+            candidat.setDateConsentement(LocalDateTime.now());
+        }
         Candidat existant = candidats.findByEmailIgnoreCase(candidat.getEmail())
                 .orElseGet(() -> candidats.save(candidat));
         if (candidatures.existsByOffreIdOffreAndCandidatIdCandidat(idOffre, existant.getIdCandidat()))
@@ -295,15 +304,47 @@ public class CandidatureService {
 
     @Transactional
     public void enregistrerProfilCandidat(Long idUtilisateur, String nom, String prenom,
-                                          String email, String telephone, String adresse) {
+                                          String email, String telephone, String adresse,
+                                          boolean consentementDonnees) {
         Candidat candidat = candidats.findByIdUtilisateur(idUtilisateur).orElseGet(Candidat::new);
         candidat.setIdUtilisateur(idUtilisateur);
         candidat.setNom(nom == null ? null : nom.trim());
         candidat.setPrenom(prenom == null ? null : prenom.trim());
-        candidat.setEmail(email == null ? null : email.trim());
+        candidat.setEmail(normaliserEmail(email));
         candidat.setTelephone(telephone);
         candidat.setAdresse(adresse);
+        candidat.setConsentementDonnees(consentementDonnees);
+        candidat.setDateConsentement(consentementDonnees ? LocalDateTime.now() : null);
         candidats.save(candidat);
+    }
+
+    /**
+     * Anonymise definitivement les donnees personnelles d'un candidat tout en
+     * conservant ses candidatures pour les statistiques et la tracabilite.
+     */
+    @Transactional
+    public void anonymiser(Long idCandidat) {
+        Candidat candidat = candidats.findById(idCandidat)
+                .orElseThrow(() -> BusinessException.notFound(
+                        "Le candidat " + idCandidat + " n'existe pas."));
+        if (candidat.getStatut() == StatutCandidat.ANONYMISE) {
+            return;
+        }
+        candidat.setNom("Anonyme");
+        candidat.setPrenom("Anonyme");
+        candidat.setEmail("anonyme-" + idCandidat + "@supprime.invalid");
+        candidat.setTelephone(null);
+        candidat.setAdresse(null);
+        candidat.setCin(null);
+        candidat.setDateNaissance(null);
+        candidat.setConsentementDonnees(false);
+        candidat.setDateConsentement(null);
+        candidat.setStatut(StatutCandidat.ANONYMISE);
+        candidats.save(candidat);
+    }
+
+    private String normaliserEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
     @Transactional

@@ -1,6 +1,7 @@
 package com.tovo.erp.recrutement.dto;
 
 import com.tovo.erp.recrutement.model.Candidat;
+import com.tovo.erp.recrutement.model.StatutCandidat;
 
 import java.time.LocalDateTime;
 
@@ -12,6 +13,9 @@ public record CandidatDto(
         String email,
         String telephone,
         String adresse,
+        boolean consentementDonnees,
+        LocalDateTime dateConsentement,
+        StatutCandidat statut,
         LocalDateTime dateCreation,
         LocalDateTime dateModification) {
 
@@ -23,6 +27,9 @@ public record CandidatDto(
                 candidat.getEmail(),
                 candidat.getTelephone(),
                 candidat.getAdresse(),
+                candidat.isConsentementDonnees(),
+                candidat.getDateConsentement(),
+                candidat.getStatut(),
                 candidat.getDateCreation(),
                 candidat.getDateModification());
     }

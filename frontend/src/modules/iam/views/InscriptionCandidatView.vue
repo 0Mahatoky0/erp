@@ -8,7 +8,7 @@ import { ErreurApi } from '@/shared/api/axios'
 
 const auth = useAuthStore()
 const router = useRouter()
-const formulaire = ref({ nom: '', prenom: '', email: '', telephone: '', adresse: '', motDePasse: '' })
+const formulaire = ref({ nom: '', prenom: '', email: '', telephone: '', adresse: '', motDePasse: '', consentementDonnees: false })
 const erreur = ref('')
 const envoi = ref(false)
 
@@ -39,6 +39,10 @@ async function inscrire() {
         <label class="grid gap-2">Téléphone<PrimeInputText v-model="formulaire.telephone" maxlength="30" /></label>
         <label class="grid gap-2">Adresse<PrimeInputText v-model="formulaire.adresse" /></label>
         <label class="grid gap-2">Mot de passe<PrimeInputText v-model="formulaire.motDePasse" required type="password" minlength="6" /></label>
+        <label class="flex items-start gap-2 text-sm">
+          <input v-model="formulaire.consentementDonnees" type="checkbox" required class="mt-1" />
+          <span>J’accepte que mes données personnelles soient traitées pour la gestion de mes candidatures.</span>
+        </label>
         <PrimeButton type="submit" :label="envoi ? 'Création...' : 'Créer mon compte'" :disabled="envoi" />
       </form>
       <RouterLink class="mt-4 block text-center text-primary" :to="{ name: 'connexion-candidat' }">J’ai déjà un compte</RouterLink>

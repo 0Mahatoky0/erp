@@ -34,6 +34,10 @@ public class EvaluationDecisionService {
         decision.setIdUtilisateur(idUtilisateur);
         decision.setDecision(request.decision());
         decision.setMotif(request.motif());
+        if (request.decision() == DecisionType.LISTE_ATTENTE) {
+            decision.setRangListeAttente(
+                    decisions.dernierRangListeAttente(DecisionType.LISTE_ATTENTE) + 1);
+        }
         return DecisionCandidatureDto.de(decider(decision));
     }
 
