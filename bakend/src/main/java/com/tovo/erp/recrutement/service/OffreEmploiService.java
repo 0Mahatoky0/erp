@@ -70,6 +70,16 @@ public class OffreEmploiService {
     }
 
     @Transactional
+    public OffreEmploiDto suspendreDto(Long idOffre, Long idUtilisateur) {
+        return OffreEmploiDto.de(suspendre(idOffre, idUtilisateur));
+    }
+
+    @Transactional
+    public OffreEmploiDto reprendreDto(Long idOffre, Long idUtilisateur) {
+        return OffreEmploiDto.de(reprendre(idOffre, idUtilisateur));
+    }
+
+    @Transactional
     public OffreEmploiDto annulerDto(Long idOffre, Long idUtilisateur) {
         return OffreEmploiDto.de(annuler(idOffre, idUtilisateur));
     }
@@ -93,7 +103,7 @@ public class OffreEmploiService {
 
     @Transactional
     public OffreEmploi creer(OffreEmploi offre) {
-        verifierDemandeAcceptee(offre.getIdDemandePoste());
+        verifierDemandeAcceptee(offre.getIdDemandePoste(), offre.getEffectifRecherche());
         verifierReferenceUnique(offre.getReference(), null);
         offre.setStatut(OffreStatut.BROUILLON);
         OffreEmploi sauvegardee = offres.save(offre);
@@ -107,7 +117,7 @@ public class OffreEmploiService {
         if (offre.getStatut() != OffreStatut.BROUILLON) {
             throw new IllegalStateException("Seule une offre BROUILLON peut être modifiée");
         }
-        verifierDemandeAcceptee(modifications.getIdDemandePoste());
+        verifierDemandeAcceptee(modifications.getIdDemandePoste(), modifications.getEffectifRecherche());
         verifierReferenceUnique(modifications.getReference(), idOffre);
         offre.setIdDemandePoste(modifications.getIdDemandePoste());
         offre.setReference(modifications.getReference());
@@ -157,6 +167,32 @@ public class OffreEmploiService {
         offre.setStatut(OffreStatut.CLOTUREE);
         OffreEmploi sauvegardee = offres.save(offre);
         enregistrerHistorique(sauvegardee, ancien, OffreStatut.CLOTUREE, idUtilisateur);
+        return sauvegardee;
+    }
+
+    @Transactional
+    public OffreEmploi suspendre(Long idOffre, Long idUtilisateur) {
+        OffreEmploi offre = charger(idOffre);
+        if (offre.getStatut() != OffreStatut.PUBLIEE) {
+            throw new IllegalStateException("Seule une offre PUBLIEE peut etre suspendue");
+        }
+        OffreStatut ancien = offre.getStatut();
+        offre.setStatut(OffreStatut.SUSPENDUE);
+        OffreEmploi sauvegardee = offres.save(offre);
+        enregistrerHistorique(sauvegardee, ancien, OffreStatut.SUSPENDUE, idUtilisateur);
+        return sauvegardee;
+    }
+
+    @Transactional
+    public OffreEmploi reprendre(Long idOffre, Long idUtilisateur) {
+        OffreEmploi offre = charger(idOffre);
+        if (offre.getStatut() != OffreStatut.SUSPENDUE) {
+            throw new IllegalStateException("Seule une offre SUSPENDUE peut etre reprise");
+        }
+        OffreStatut ancien = offre.getStatut();
+        offre.setStatut(OffreStatut.PUBLIEE);
+        OffreEmploi sauvegardee = offres.save(offre);
+        enregistrerHistorique(sauvegardee, ancien, OffreStatut.PUBLIEE, idUtilisateur);
         return sauvegardee;
     }
 
@@ -214,7 +250,7 @@ public class OffreEmploiService {
         });
     }
 
-    private void verifierDemandeAcceptee(Long idDemandePoste) {
+    private void verifierDemandeAcceptee(Long idDemandePoste, Integer effectifRecherche) {
         Integer count = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM demande_recrutement_poste " +
                 "WHERE id_demande_poste = ? AND statut = 'ACCEPTEE'",
@@ -222,10 +258,19 @@ public class OffreEmploiService {
         if (count == null || count != 1) {
             throw new IllegalStateException("La demande de recrutement doit être ACCEPTEE");
         }
+        Integer restant = jdbc.queryForObject(
+                "SELECT effectif - COALESCE(nombre_pourvus, 0) FROM demande_recrutement_poste " +
+                "WHERE id_demande_poste = ? AND statut = 'ACCEPTEE'",
+                Integer.class, idDemandePoste);
+        if (restant != null && effectifRecherche != null && effectifRecherche > restant) {
+            throw new IllegalStateException("Le nombre de postes demande (" + effectifRecherche
+                    + ") depasse les postes restants de la demande (" + restant + ")");
+        }
     }
 
     private void verifierTransition(OffreEmploi offre, OffreStatut cible) {
-        if (offre.getStatut() == OffreStatut.ANNULEE || offre.getStatut() == OffreStatut.CLOTUREE) {
+        if (offre.getStatut() == OffreStatut.ANNULEE || offre.getStatut() == OffreStatut.CLOTUREE
+                || offre.getStatut() == OffreStatut.POURVUE) {
             throw new IllegalStateException("Transition interdite depuis " + offre.getStatut());
         }
         if (cible == OffreStatut.CLOTUREE && offre.getStatut() != OffreStatut.PUBLIEE) {

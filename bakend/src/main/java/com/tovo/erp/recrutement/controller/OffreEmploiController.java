@@ -75,6 +75,18 @@ public class OffreEmploiController {
         return offres.cloturerDto(id, utilisateurCourant.exiger().getId());
     }
 
+    @PostMapping("/{id}/suspendre")
+    public OffreEmploiDto suspendre(@PathVariable Long id) {
+        exigerRh();
+        return offres.suspendreDto(id, utilisateurCourant.exiger().getId());
+    }
+
+    @PostMapping("/{id}/reprendre")
+    public OffreEmploiDto reprendre(@PathVariable Long id) {
+        exigerRh();
+        return offres.reprendreDto(id, utilisateurCourant.exiger().getId());
+    }
+
     @PostMapping("/{id}/annuler")
     public OffreEmploiDto annuler(@PathVariable Long id) {
         exigerRh();

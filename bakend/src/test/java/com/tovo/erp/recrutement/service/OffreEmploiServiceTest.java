@@ -45,6 +45,17 @@ class OffreEmploiServiceTest {
     }
 
     @Test
+    void refusePlusDePostesQueLesPostesRestantsDeLaDemande() {
+        when(jdbc.queryForObject(anyString(), eq(Integer.class), eq(10L))).thenReturn(1, 0);
+
+        IllegalStateException error = assertThrows(IllegalStateException.class,
+                () -> service.creer(offre(10L)));
+
+        assertTrue(error.getMessage().contains("postes restants"));
+        verify(offres, never()).save(any());
+    }
+
+    @Test
     void refuseUneDemandeNonAcceptee() {
         when(jdbc.queryForObject(anyString(), eq(Integer.class), eq(11L))).thenReturn(0);
 
@@ -68,6 +79,21 @@ class OffreEmploiServiceTest {
         assertEquals(OffreStatut.CLOTUREE, offre.getStatut());
 
         assertThrows(IllegalStateException.class, () -> service.annuler(1L, 7L));
+        verify(historiques, times(2)).save(any(HistoriqueOffre.class));
+    }
+
+    @Test
+    void suspendEtReprendUneOffrePubliee() {
+        OffreEmploi offre = offre(10L);
+        offre.setIdOffre(1L);
+        offre.setStatut(OffreStatut.PUBLIEE);
+        when(offres.findById(1L)).thenReturn(Optional.of(offre));
+        when(offres.save(offre)).thenReturn(offre);
+
+        service.suspendre(1L, 7L);
+        assertEquals(OffreStatut.SUSPENDUE, offre.getStatut());
+        service.reprendre(1L, 7L);
+        assertEquals(OffreStatut.PUBLIEE, offre.getStatut());
         verify(historiques, times(2)).save(any(HistoriqueOffre.class));
     }
 

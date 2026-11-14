@@ -418,7 +418,7 @@ public class CandidatureService {
         long embauches = candidatures.countByOffreIdOffreAndStatut(
                 offre.getIdOffre(), CandidatureStatut.EMBAUCHEE);
         if (offre.getEffectifRecherche() != null && embauches >= offre.getEffectifRecherche()) {
-            offre.setStatut(OffreStatut.CLOTUREE);
+            offre.setStatut(OffreStatut.POURVUE);
             offre.setDateCloture(LocalDateTime.now());
             offres.save(offre);
         }
