@@ -22,4 +22,7 @@ public interface PropositionEmbaucheRepository extends JpaRepository<Proposition
 
     List<PropositionEmbauche> findByActiveTrueAndStatutAndDateExpirationBefore(
             PropositionStatut statut, LocalDateTime date);
+
+    List<PropositionEmbauche> findByStatutAndRelanceEnvoyeeFalseAndDateEnvoiBefore(
+            PropositionStatut statut, LocalDateTime date);
 }

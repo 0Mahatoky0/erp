@@ -156,6 +156,8 @@ public class PropositionService {
         proposition.setTokenAcceptation(UUID.randomUUID().toString().replace("-", ""));
         proposition.setDateEnvoi(maintenant);
         proposition.setDateExpiration(maintenant.plusDays(proprietes.validitePropositionJours()));
+        proposition.setRelanceEnvoyee(false);
+        proposition.setDateRelance(null);
         changerStatut(proposition, PropositionStatut.ENVOYEE,
                 AuteurProposition.UTILISATEUR, auteur.getId(),
                 "Envoi au candidat, valable " + proprietes.validitePropositionJours() + " jours.");
@@ -289,6 +291,23 @@ public class PropositionService {
                 proposition.getHoraires(),
                 proposition.getDateExpiration(),
                 possible);
+    }
+
+    /** Job de relance : signale les propositions envoyees sans reponse a J+3 (RG-B3-05). */
+    @Scheduled(fixedDelayString = "${erp.embauche.verification-expiration-ms:3600000}")
+    @Transactional
+    public void relancerPropositions() {
+        LocalDateTime limite = LocalDateTime.now().minusDays(proprietes.relanceJours());
+        List<PropositionEmbauche> aRelancer = propositions
+                .findByStatutAndRelanceEnvoyeeFalseAndDateEnvoiBefore(
+                        PropositionStatut.ENVOYEE, limite);
+        for (PropositionEmbauche proposition : aRelancer) {
+            proposition.setRelanceEnvoyee(true);
+            proposition.setDateRelance(LocalDateTime.now());
+            propositions.save(proposition);
+            log.info("Relance de la proposition {} envoyee le {}.",
+                    proposition.getReference(), proposition.getDateEnvoi());
+        }
     }
 
     /** Job d'expiration : passe les propositions echues en EXPIREE. */
@@ -447,6 +466,8 @@ public class PropositionService {
                 proposition.getLieuTravail(),
                 proposition.getDateEnvoi(),
                 proposition.getDateExpiration(),
+                proposition.isRelanceEnvoyee(),
+                proposition.getDateRelance(),
                 proposition.getTokenAcceptation(),
                 proposition.getDateReponse(),
                 proposition.getMotifRefus(),
@@ -491,7 +512,7 @@ public class PropositionService {
         proposition.setMotifCdd(demande.motifCdd());
         proposition.setDateDebutPrevue(demande.dateDebutPrevue());
         proposition.setPeriodeEssaiMois(demande.periodeEssaiMois() == null
-                ? 1 : demande.periodeEssaiMois());
+                ? periodeEssaiParDefaut(poste.categorie()) : demande.periodeEssaiMois());
         proposition.setSalaireBrutMensuel(demande.salaireBrutMensuel());
         proposition.setDevise(demande.devise() == null || demande.devise().isBlank()
                 ? "MGA" : demande.devise());
@@ -499,6 +520,21 @@ public class PropositionService {
         proposition.setHoraires(demande.horaires());
         proposition.setLieuTravail(demande.lieuTravail());
         proposition.setDerogationFinanceDirection(derogation);
+    }
+
+    /** RG-B3-15 : ouvrier/employe 1 mois, agent de maitrise 2 mois, cadre 3 mois. */
+    private int periodeEssaiParDefaut(String categorie) {
+        if (categorie == null) {
+            return 1;
+        }
+        String normalisee = categorie.trim().toLowerCase(java.util.Locale.ROOT);
+        if (normalisee.contains("cadre")) {
+            return 3;
+        }
+        if (normalisee.contains("maitrise") || normalisee.contains("maîtrise")) {
+            return 2;
+        }
+        return 1;
     }
 
     private DemandeDto.LigneDetail ligneDe(CandidatureEmbaucheDto candidature) {

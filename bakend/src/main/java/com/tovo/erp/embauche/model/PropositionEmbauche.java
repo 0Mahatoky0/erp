@@ -98,6 +98,12 @@ public class PropositionEmbauche {
     @Column(name = "date_expiration")
     private LocalDateTime dateExpiration;
 
+    @Column(name = "relance_envoyee", nullable = false)
+    private boolean relanceEnvoyee = false;
+
+    @Column(name = "date_relance")
+    private LocalDateTime dateRelance;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "statut", nullable = false, length = 30)
     private PropositionStatut statut = PropositionStatut.BROUILLON;
