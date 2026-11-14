@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -14,6 +15,10 @@ public interface DemandeRecrutementRepository extends JpaRepository<DemandeRecru
     List<DemandeRecrutement> findByIdUtilisateurOrderByDateCreationDesc(Long idUtilisateur);
 
     List<DemandeRecrutement> findByStatutOrderByDateCreationDesc(StatutDemande statut);
+
+    /** Demandes candidates a l'expiration automatique (RG-B1-14). */
+    List<DemandeRecrutement> findByStatutInAndDateSoumissionBefore(
+            Collection<StatutDemande> statuts, LocalDateTime limite);
 
     /**
      * Demandes visibles par un utilisateur. Un MANAGER voit ses propres demandes,

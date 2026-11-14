@@ -230,7 +230,7 @@ async function enregistrerCorrection() {
     <div class="mb-4 text-sm text-muted-color">
       <RouterLink :to="{ name: 'demandes' }">Demandes</RouterLink>
       <span>/</span>
-      <span class="tabular-nums">DEM-{{ String(demande.id).padStart(4, '0') }}</span>
+      <span class="tabular-nums">{{ demande.reference || `DEM-${String(demande.id).padStart(4, '0')}` }}</span>
     </div>
 
     <div class="flex flex-col gap-4 mb-5 md:flex-row md:items-start md:justify-between">

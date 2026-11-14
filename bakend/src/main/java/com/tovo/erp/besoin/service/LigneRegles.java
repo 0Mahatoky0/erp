@@ -1,6 +1,7 @@
 package com.tovo.erp.besoin.service;
 
 import com.tovo.erp.shared.BusinessException;
+import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.besoin.model.DemandeRecrutement;
 import com.tovo.erp.besoin.model.DemandeRecrutementPoste;
 import com.tovo.erp.besoin.model.Poste;
@@ -29,20 +30,28 @@ public class LigneRegles {
     private final ServiceRepository serviceRepository;
     private final PosteRepository posteRepository;
     private final EmployeService employeService;
+    private final OccupationPosteProvider occupationPoste;
+    private final DemandeProperties proprietes;
 
     public LigneRegles(ServiceRepository serviceRepository,
                        PosteRepository posteRepository,
-                       EmployeService employeService) {
+                       EmployeService employeService,
+                       OccupationPosteProvider occupationPoste,
+                       DemandeProperties proprietes) {
         this.serviceRepository = serviceRepository;
         this.posteRepository = posteRepository;
         this.employeService = employeService;
+        this.occupationPoste = occupationPoste;
+        this.proprietes = proprietes;
     }
 
     /** Construit une ligne de demande a partir des donnees saisies et verifie sa coherence. */
-    public DemandeRecrutementPoste construire(DemandeRecrutement demande, DemandeDto.LigneCreation source) {
+    public DemandeRecrutementPoste construire(DemandeRecrutement demande, UtilisateurConnecte auteur,
+                                              DemandeDto.LigneCreation source) {
         DemandeRecrutementPoste ligne = new DemandeRecrutementPoste();
         ligne.setDemande(demande);
         ligne.setService(serviceExistant(source.idService()));
+        controlerPerimetre(auteur, ligne.getService());
 
         ligne.setTypeBesoin(source.typeBesoin());
         ligne.setTypeRemplacement(source.typeRemplacement());
@@ -61,6 +70,7 @@ public class LigneRegles {
         }
 
         controlerCoherenceService(ligne);
+        controlerCapacite(ligne);
         return ligne;
     }
 
@@ -83,6 +93,7 @@ public class LigneRegles {
         }
 
         controlerCoherenceService(ligne);
+        controlerCapacite(ligne);
     }
 
     /**
@@ -124,11 +135,23 @@ public class LigneRegles {
                 .orElseThrow(() -> BusinessException.notFound("Le service " + idService + " n'existe pas."));
     }
 
-    /** RM-016. */
+    /**
+     * RM-016 et RG-B1-05 : effectif entre 1 et le maximum parametre ; un remplacement
+     * porte toujours sur un seul poste.
+     */
     private void controlerEffectif(DemandeRecrutementPoste ligne) {
         if (ligne.getEffectif() == null || ligne.getEffectif() <= 0) {
             throw new BusinessException("EFFECTIF_INVALIDE",
                     "L'effectif doit etre strictement superieur a zero.");
+        }
+        if (ligne.getEffectif() > proprietes.effectifMaximum()) {
+            throw new BusinessException("EFFECTIF_INVALIDE",
+                    "L'effectif demande (" + ligne.getEffectif() + ") depasse le maximum autorise ("
+                            + proprietes.effectifMaximum() + ").");
+        }
+        if (ligne.getTypeBesoin() == TypeBesoin.REMPLACEMENT && ligne.getEffectif() != 1) {
+            throw new BusinessException("EFFECTIF_REMPLACEMENT_INVALIDE",
+                    "Un remplacement porte sur un seul poste (effectif = 1).");
         }
     }
 
@@ -240,6 +263,47 @@ public class LigneRegles {
                 && (motif == null || motif.isBlank())) {
             throw new BusinessException("MOTIF_REMPLACEMENT_MANQUANT",
                     "Le motif du remplacement definitif est obligatoire.");
+        }
+    }
+
+    /**
+     * RG-B1-01 : un manager ne peut demander un recrutement que pour son propre
+     * departement. Les roles RH, FINANCE et DIRECTION ne sont pas restreints.
+     */
+    private void controlerPerimetre(UtilisateurConnecte auteur, Service service) {
+        if (!"MANAGER".equalsIgnoreCase(auteur.getRoleNom())) {
+            return;
+        }
+        Long departementAuteur = auteur.getDepartement() == null ? null : auteur.getDepartement().getId();
+        Long departementService = service.getDepartement() == null
+                ? null : service.getDepartement().getId();
+        if (departementAuteur == null || !departementAuteur.equals(departementService)) {
+            throw new BusinessException("HORS_PERIMETRE",
+                    "Un manager ne peut creer une demande que pour son propre departement.");
+        }
+    }
+
+    /**
+     * RG-B1-06 : l'effectif demande ne peut depasser les places restantes du poste
+     * sur la periode consideree (affectations planifiees ou actives).
+     */
+    private void controlerCapacite(DemandeRecrutementPoste ligne) {
+        if (ligne.getPoste() == null || ligne.getPoste().getEffectifAutorise() == null) {
+            return;
+        }
+        LocalDate debut = ligne.getDateDebutRemplacement() != null
+                ? ligne.getDateDebutRemplacement()
+                : (ligne.getDemande() != null ? ligne.getDemande().getDateSouhaitee() : LocalDate.now());
+        LocalDate fin = ligne.getDateFinRemplacement() != null
+                ? ligne.getDateFinRemplacement()
+                : debut.plusYears(1);
+
+        long occupees = occupationPoste.affectationsActives(ligne.getPoste().getId(), debut, fin);
+        long places = ligne.getPoste().getEffectifAutorise() - occupees;
+        if (ligne.getEffectif() != null && ligne.getEffectif() > places) {
+            throw new BusinessException("CAPACITE_POSTE_INSUFFISANTE",
+                    "Le poste '" + ligne.getPoste().getIntitule() + "' ne dispose que de "
+                            + Math.max(places, 0) + " place(s) sur la periode demandee.");
         }
     }
 

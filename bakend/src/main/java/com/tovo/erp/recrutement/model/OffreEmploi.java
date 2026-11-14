@@ -33,6 +33,16 @@ public class OffreEmploi {
     @PositiveOrZero private BigDecimal salaireMax;
     @NotBlank @Column(name = "mode_selection", nullable = false, columnDefinition = "TEXT")
     private String modeSelection;
+    @Column(name = "criteres_eliminatoires", columnDefinition = "TEXT")
+    private String criteresEliminatoires;
+    @Column(name = "grille_evaluation", columnDefinition = "TEXT")
+    private String grilleEvaluation;
+    @NotNull @Positive @Column(name = "poids_dossier", nullable = false)
+    private Integer poidsDossier = 1;
+    @NotNull @Positive @Column(name = "poids_entretien", nullable = false)
+    private Integer poidsEntretien = 1;
+    @NotNull @Positive @Column(name = "poids_test", nullable = false)
+    private Integer poidsTest = 1;
     @Enumerated(EnumType.STRING) @Column(nullable = false) private OffreStatut statut = OffreStatut.BROUILLON;
     private LocalDateTime datePublication;
     private LocalDateTime dateLimiteCandidature;

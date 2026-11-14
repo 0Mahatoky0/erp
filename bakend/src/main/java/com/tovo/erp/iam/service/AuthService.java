@@ -55,13 +55,18 @@ public class AuthService {
 
     @Transactional
     public AuthDto.Reponse inscrireCandidat(AuthDto.Inscription demande) {
-        Utilisateur existant = utilisateurRepository.findByEmailIgnoreCase(demande.email().trim()).orElse(null);
+        if (!demande.consentementDonnees()) {
+            throw new BusinessException("CONSENTEMENT_REQUIS",
+                    "Le consentement au traitement des donnees personnelles est obligatoire.");
+        }
+        Utilisateur existant = utilisateurRepository.findByEmailIgnoreCase(emailNormalise(demande.email())).orElse(null);
         if (existant != null) {
             if (!RoleNom.CANDIDAT.name().equals(existant.getRole().getNom()) || existant.isActif()) {
                 throw new BusinessException("EMAIL_DEJA_UTILISE",
                         "Un compte existe deja avec cette adresse e-mail.");
             }
             existant.setNom(demande.prenom().trim() + " " + demande.nom().trim());
+            existant.setEmail(emailNormalise(demande.email()));
             existant.setMotDePasse(passwordEncoder.encode(demande.motDePasse()));
             existant.setActif(true);
             utilisateurRepository.save(existant);
@@ -72,7 +77,7 @@ public class AuthService {
                         "Le role candidat n'est pas configure."));
         Utilisateur utilisateur = new Utilisateur();
         utilisateur.setNom(demande.prenom().trim() + " " + demande.nom().trim());
-        utilisateur.setEmail(demande.email().trim());
+        utilisateur.setEmail(emailNormalise(demande.email()));
         utilisateur.setMotDePasse(passwordEncoder.encode(demande.motDePasse()));
         utilisateur.setRole(role);
         utilisateur.setActif(true);
@@ -101,5 +106,9 @@ public class AuthService {
                         utilisateur.getRole().getNom(), utilisateur.getIdDepartement(), departementNom),
                 jwtService.expiration(),
                 AuthDto.Profil.de(utilisateur, departementNom));
+    }
+
+    private String emailNormalise(String email) {
+        return email == null ? null : email.trim().toLowerCase(java.util.Locale.ROOT);
     }
 }

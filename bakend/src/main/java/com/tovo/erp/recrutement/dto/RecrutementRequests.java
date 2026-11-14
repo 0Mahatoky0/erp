@@ -5,6 +5,7 @@ import jakarta.validation.constraints.*;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public final class RecrutementRequests {
     private RecrutementRequests() {
@@ -42,7 +43,13 @@ public final class RecrutementRequests {
 
     public record EvaluationRequest(@NotNull Long idCandidature, @NotNull TypeEvaluation typeEvaluation,
             Long idEntretien, Long idPassage, @DecimalMin("0.0") BigDecimal note,
-            @Positive BigDecimal noteMax, @NotBlank String appreciation, @NotBlank String commentaire) {
+            @Positive BigDecimal noteMax, @NotBlank String appreciation, @NotBlank String commentaire,
+            @Valid List<CritereEvaluation> criteres) {
+    }
+
+    /** Critere note sur 20 et pondere dans la grille d'evaluation de l'offre. */
+    public record CritereEvaluation(@NotBlank String critere, @DecimalMin("0.0") BigDecimal note,
+            @Positive BigDecimal poids, String commentaire) {
     }
 
     public record TestRequest(@NotNull Long idOffre, @NotBlank @Size(max = 150) String titre,

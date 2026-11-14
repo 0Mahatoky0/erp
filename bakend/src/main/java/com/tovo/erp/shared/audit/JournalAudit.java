@@ -51,6 +51,21 @@ public class JournalAudit {
     @Column(name = "adresse_ip", length = 64)
     private String adresseIp;
 
+    @Column(name = "user_agent", length = 512)
+    private String userAgent;
+
+    @Column(name = "motif", length = 500)
+    private String motif;
+
+    @Column(name = "correlation_id", length = 64)
+    private String correlationId;
+
+    @Column(name = "hash_precedent", length = 64)
+    private String hashPrecedent;
+
+    @Column(name = "hash", length = 64)
+    private String hash;
+
     @Column(name = "date_action", nullable = false)
     private LocalDateTime dateAction = LocalDateTime.now();
 

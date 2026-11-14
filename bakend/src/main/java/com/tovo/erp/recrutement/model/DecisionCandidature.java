@@ -11,6 +11,7 @@ public class DecisionCandidature {
     @NotNull @Column(name = "id_utilisateur", nullable = false) private Long idUtilisateur;
     @Enumerated(EnumType.STRING) @Column(nullable = false) private DecisionType decision;
     @NotBlank @Column(nullable = false, columnDefinition = "TEXT") private String motif;
+    @Column(name = "rang_liste_attente") private Integer rangListeAttente;
     @Column(nullable = false, updatable = false) private LocalDateTime dateDecision;
     @PrePersist void onCreate() { dateDecision = LocalDateTime.now(); }
 }

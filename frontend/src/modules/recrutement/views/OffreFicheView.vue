@@ -145,8 +145,10 @@ watch(idOffre, charger, { immediate: true })
           <PrimeButton label="Évaluer les candidatures" icon="pi pi-file-edit" severity="secondary" outlined @click="ouvrirEvaluation()" />
           <PrimeButton v-if="offre.statut === 'BROUILLON'" label="Modifier" icon="pi pi-pencil" severity="secondary" outlined @click="formOuvert = true" />
           <PrimeButton v-if="offre.statut === 'BROUILLON'" label="Publier" icon="pi pi-send" severity="success" @click="changerStatut('publier', 'Offre publiée.')" />
+          <PrimeButton v-if="offre.statut === 'PUBLIEE'" label="Suspendre" icon="pi pi-pause" severity="warn" outlined @click="changerStatut('suspendre', 'Offre suspendue.')" />
+          <PrimeButton v-if="offre.statut === 'SUSPENDUE'" label="Reprendre" icon="pi pi-play" severity="success" outlined @click="changerStatut('reprendre', 'Offre reprise.')" />
           <PrimeButton v-if="offre.statut === 'PUBLIEE'" label="Clôturer" icon="pi pi-lock" severity="warn" @click="changerStatut('cloturer', 'Offre clôturée.')" />
-          <PrimeButton v-if="!['CLOTUREE', 'ANNULEE'].includes(offre.statut)" label="Annuler" icon="pi pi-ban" severity="danger" outlined @click="changerStatut('annuler', 'Offre annulée.')" />
+          <PrimeButton v-if="!['CLOTUREE', 'POURVUE', 'ANNULEE'].includes(offre.statut)" label="Annuler" icon="pi pi-ban" severity="danger" outlined @click="changerStatut('annuler', 'Offre annulée.')" />
           <PrimeButton v-if="offre.statut === 'BROUILLON'" label="Supprimer" icon="pi pi-trash" severity="danger" text @click="supprimer" />
         </div>
       </header>

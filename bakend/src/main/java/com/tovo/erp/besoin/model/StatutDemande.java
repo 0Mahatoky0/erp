@@ -27,5 +27,11 @@ public enum StatutDemande {
     REFUSEE,
 
     /** Toutes les lignes ont ete annulees. */
-    ANNULEE
+    ANNULEE,
+
+    /** Toutes les lignes acceptees sont pourvues : le besoin est cloture (RG-B1-15). */
+    CLOTUREE,
+
+    /** Demande finalisee sans offre publiee apres le delai parametre (RG-B1-14). */
+    EXPIREE
 }

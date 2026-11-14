@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -512,7 +513,23 @@ public class CongeService {
 
     @Transactional(readOnly = true)
     public boolean estEnCongeValide(Long idEmploye, LocalDate date) {
-        return !planningConges(idEmploye, date, date).isEmpty();
+        return !planningConges(idEmploye, date, date).isEmpty()
+                || absences.existeChevauchement(idEmploye, date, date, List.of(StatutAbsence.JUSTIFIEE));
+    }
+
+    @Transactional
+    public void declarerAbsenceNonJustifiee(Long idEmploye, LocalDate date) {
+        if (absences.existeChevauchement(idEmploye, date, date,
+                List.of(StatutAbsence.A_JUSTIFIER, StatutAbsence.JUSTIFIEE))) {
+            return;
+        }
+        Absence absence = new Absence();
+        absence.setIdEmploye(idEmploye);
+        absence.setDateDebut(date);
+        absence.setDateFin(date);
+        absence.setMotif("Absence non pointee - a qualifier");
+        absence.setStatut(StatutAbsence.A_JUSTIFIER);
+        absences.save(absence);
     }
 
     // ------------------------------------------------------------------
@@ -529,9 +546,19 @@ public class CongeService {
     @Transactional
     public int acquerirMois(int annee, int mois) {
         LocalDate dateEffet = LocalDate.of(annee, mois, 1);
+        LocalDate finMois = dateEffet.withDayOfMonth(dateEffet.lengthOfMonth());
         BigDecimal plafond = plafond();
+        Set<Long> typesSansSolde = types.findAll().stream()
+                .filter(t -> "SANS_SOLDE".equalsIgnoreCase(t.getCode()))
+                .map(TypeConge::getId)
+                .collect(Collectors.toSet());
         int credits = 0;
         for (EmployeDto.Actif employe : employes.actifs()) {
+            BigDecimal joursService = joursDeService(employe.dateEmbauche(), dateEffet, finMois);
+            BigDecimal joursNonAssimiles = joursNonAssimiles(employe.id(), employe.dateEmbauche(),
+                    dateEffet, finMois, typesSansSolde);
+            BigDecimal joursAcquisissables = joursService.subtract(joursNonAssimiles)
+                    .max(BigDecimal.ZERO);
             for (TypeConge type : types.findByActifTrueOrderByLibelleAsc()) {
                 if (type.getJoursAcquisMois() == null || type.getJoursAcquisMois().signum() <= 0) {
                     continue;
@@ -540,8 +567,15 @@ public class CongeService {
                         employe.id(), type.getId(), TypeMouvementConge.ACQUISITION, dateEffet)) {
                     continue;
                 }
+                BigDecimal acquisMois = type.getJoursAcquisMois()
+                        .multiply(joursAcquisissables)
+                        .divide(BigDecimal.valueOf(30), 2, RoundingMode.HALF_UP)
+                        .min(type.getJoursAcquisMois());
+                if (acquisMois.signum() <= 0) {
+                    continue;
+                }
                 BigDecimal total = totalPourType(employe.id(), type.getId());
-                BigDecimal credit = type.getJoursAcquisMois().min(plafond.subtract(total)).max(BigDecimal.ZERO);
+                BigDecimal credit = acquisMois.min(plafond.subtract(total)).max(BigDecimal.ZERO);
                 if (credit.signum() <= 0) {
                     continue;
                 }
@@ -554,6 +588,64 @@ public class CongeService {
             }
         }
         return credits;
+    }
+
+    private BigDecimal joursDeService(LocalDate dateEmbauche, LocalDate debut, LocalDate fin) {
+        if (dateEmbauche == null || !dateEmbauche.isAfter(debut)) {
+            return BigDecimal.valueOf(30);
+        }
+        if (dateEmbauche.isAfter(fin)) {
+            return BigDecimal.ZERO;
+        }
+        long jours = java.time.temporal.ChronoUnit.DAYS.between(dateEmbauche, fin) + 1;
+        return BigDecimal.valueOf(Math.min(30, jours));
+    }
+
+    /**
+     * Jours du mois non assimilables a du travail effectif : conges sans solde
+     * approuves et absences injustifiees (RG-B7-02).
+     */
+    private BigDecimal joursNonAssimiles(Long idEmploye, LocalDate dateEmbauche,
+                                         LocalDate debut, LocalDate fin,
+                                         Set<Long> typesSansSolde) {
+        LocalDate premierJour = dateEmbauche != null && dateEmbauche.isAfter(debut)
+                ? dateEmbauche : debut;
+        if (premierJour.isAfter(fin)) {
+            return BigDecimal.ZERO;
+        }
+        boolean ouvrables = MODE_OUVRABLES.equalsIgnoreCase(
+                parametres.texte("MODE_DECOMPTE", MODE_OUVRABLES));
+        int jours = 0;
+        for (DemandeConge demande : demandes.findByIdEmployeOrderByDateCreationDesc(idEmploye)) {
+            if (!typesSansSolde.contains(demande.getIdTypeConge())
+                    || !statutsConsommes().contains(demande.getStatut())) {
+                continue;
+            }
+            jours += joursDecomptesEntre(demande.getDateDebut(), demande.getDateFin(),
+                    premierJour, fin, ouvrables);
+        }
+        for (Absence absence : absences.findByIdEmployeOrderByDateDebutDesc(idEmploye)) {
+            if (absence.getStatut() != StatutAbsence.REFUSEE) {
+                continue;
+            }
+            jours += joursDecomptesEntre(absence.getDateDebut(), absence.getDateFin(),
+                    premierJour, fin, ouvrables);
+        }
+        return BigDecimal.valueOf(jours);
+    }
+
+    private int joursDecomptesEntre(LocalDate debut, LocalDate fin,
+                                    LocalDate borneDebut, LocalDate borneFin,
+                                    boolean ouvrables) {
+        LocalDate jour = debut.isAfter(borneDebut) ? debut : borneDebut;
+        LocalDate dernier = fin.isBefore(borneFin) ? fin : borneFin;
+        int jours = 0;
+        for (; !jour.isAfter(dernier); jour = jour.plusDays(1)) {
+            if (estJourDecompte(jour, ouvrables)) {
+                jours++;
+            }
+        }
+        return jours;
     }
 
     // ------------------------------------------------------------------

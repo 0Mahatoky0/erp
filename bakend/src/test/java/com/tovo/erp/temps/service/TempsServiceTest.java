@@ -7,12 +7,14 @@ import com.tovo.erp.temps.model.HeureSupplementaire;
 import com.tovo.erp.temps.model.JourTravaille;
 import com.tovo.erp.temps.model.PlanningTravail;
 import com.tovo.erp.temps.model.Pointage;
+import com.tovo.erp.temps.repository.AffectationRegimeRepository;
 import com.tovo.erp.temps.repository.AnomaliePointageRepository;
 import com.tovo.erp.temps.repository.HeureSupplementaireRepository;
 import com.tovo.erp.temps.repository.JourTravailleRepository;
 import com.tovo.erp.temps.repository.PlanningTravailRepository;
 import com.tovo.erp.temps.repository.PeriodeTempsCloseRepository;
 import com.tovo.erp.temps.repository.PointageRepository;
+import com.tovo.erp.temps.repository.RegimeTravailRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -39,8 +42,11 @@ class TempsServiceTest {
     @Mock AnomaliePointageRepository anomalies;
     @Mock HeureSupplementaireRepository heuresSup;
     @Mock IndisponibiliteProvider indisponibilites;
+    @Mock AbsenceDeclarationProvider absences;
     @Mock CalendrierTempsService calendrier;
     @Mock PeriodeTempsCloseRepository periodesCloses;
+    @Mock AffectationRegimeRepository affectations;
+    @Mock RegimeTravailRepository regimes;
 
     private TempsService service;
     private PlanningTravail planning;
@@ -50,7 +56,7 @@ class TempsServiceTest {
     @BeforeEach
     void setUp() {
         service = new TempsService(plannings, pointages, jours, anomalies, heuresSup,
-                indisponibilites, calendrier, periodesCloses);
+                indisponibilites, absences, calendrier, periodesCloses, affectations, regimes);
         planning = new PlanningTravail();
         planning.setId(1L);
         planning.setIdEmploye(7L);
@@ -83,6 +89,7 @@ class TempsServiceTest {
             }
             return anomalie;
         });
+        lenient().when(affectations.courantes(eq(7L), any(LocalDate.class))).thenReturn(List.of());
         lenient().when(heuresSup.findByIdEmployeAndSemaineDebut(eq(7L), any(LocalDate.class)))
                 .thenReturn(Optional.empty());
         lenient().when(heuresSup.save(any())).thenAnswer(i -> {
@@ -192,6 +199,39 @@ class TempsServiceTest {
     }
 
     @Test
+    void arronditLesHeuresSupplementairesAuQuartDHeureInferieur() {
+        LocalDate lundi = LocalDate.of(2026, 6, 8);
+        for (int i = 0; i < 5; i++) {
+            LocalDate jour = lundi.plusDays(i);
+            pointagesParDate.put(jour, pointage(jour, LocalTime.of(8, 0), LocalTime.of(19, 20)));
+        }
+
+        TempsDtos.HeureSupplementaireDto dto = service.calculerSemaine(7L, lundi);
+
+        assertEquals(3100, dto.minutesTotal());
+        assertEquals(690, dto.minutesHs30() + dto.minutesHs50());
+        assertEquals(480, dto.minutesHs30());
+        assertEquals(210, dto.minutesHs50());
+    }
+
+    @Test
+    void lesHeuresSupplementairesSuiventLesTransitionsAutorisees() {
+        HeureSupplementaire heureSup = new HeureSupplementaire();
+        heureSup.setId(11L);
+        heureSup.setIdEmploye(7L);
+        heureSup.setSemaineDebut(LocalDate.of(2026, 6, 8));
+        heureSup.setStatut(HeureSupplementaire.Statut.DETECTEE);
+        when(heuresSup.findById(11L)).thenReturn(Optional.of(heureSup));
+
+        TempsDtos.HeureSupplementaireDto validee = service
+                .changerStatutHeureSupplementaire(11L, "VALIDEE");
+
+        assertEquals("VALIDEE", validee.statut());
+        assertThrows(BusinessException.class,
+                () -> service.changerStatutHeureSupplementaire(11L, "DETECTEE"));
+    }
+
+    @Test
     void ignoreLesJoursNonTravaillesDuPlanning() {
         LocalDate samedi = LocalDate.of(2026, 6, 13);
 
@@ -207,6 +247,58 @@ class TempsServiceTest {
                 () -> service.validerJour(7L, jour));
 
         assertEquals("ANOMALIE_OUVERTE", erreur.getCode());
+    }
+
+    @Test
+    void refuseUnPlanningQuiChevaucheUnCongeOuUneAbsence() {
+        LocalDate debut = LocalDate.of(2026, 6, 8);
+        when(indisponibilites.estIndisponible(7L, debut)).thenReturn(true);
+
+        BusinessException erreur = assertThrows(BusinessException.class,
+                () -> service.creerPlanning(new TempsDtos.PlanningRequest(7L, "LUN-VEN",
+                        LocalTime.of(8, 0), LocalTime.of(17, 0), debut, debut, null, null)));
+
+        assertEquals("CONGE_PLANIFIE", erreur.getCode());
+    }
+
+    @Test
+    void exigeUnMotifPourModifierUnPlanningPublieAMoinsDe48h() {
+        LocalDate debut = LocalDate.now();
+        PlanningTravail publie = new PlanningTravail();
+        publie.setId(3L);
+        publie.setIdEmploye(7L);
+        publie.setJoursTravailles("LUN-VEN");
+        publie.setHeureDebut(LocalTime.of(8, 0));
+        publie.setHeureFin(LocalTime.of(17, 0));
+        publie.setDateDebut(debut);
+        publie.setStatut("PUBLIE");
+        when(plannings.findById(3L)).thenReturn(Optional.of(publie));
+
+        BusinessException erreur = assertThrows(BusinessException.class,
+                () -> service.modifierPlanning(3L, new TempsDtos.PlanningRequest(7L, "LUN-VEN",
+                        LocalTime.of(8, 0), LocalTime.of(17, 0), debut, debut, null, null), null));
+
+        assertEquals("MOTIF_MODIFICATION_REQUIS", erreur.getCode());
+    }
+
+    @Test
+    void neDecomptePasLesHeuresSupplementairesPourUnForfaitJours() {
+        LocalDate lundi = LocalDate.of(2026, 6, 8);
+        for (int i = 0; i < 5; i++) {
+            LocalDate jour = lundi.plusDays(i);
+            pointagesParDate.put(jour, pointage(jour, LocalTime.of(8, 0), LocalTime.of(19, 0)));
+        }
+        com.tovo.erp.temps.model.AffectationRegime affectation = new com.tovo.erp.temps.model.AffectationRegime();
+        affectation.setIdRegime(5L);
+        com.tovo.erp.temps.model.RegimeTravail regime = new com.tovo.erp.temps.model.RegimeTravail();
+        regime.setDecompteHeuresSup(false);
+        when(affectations.courantes(eq(7L), any(LocalDate.class))).thenReturn(List.of(affectation));
+        when(regimes.findById(5L)).thenReturn(Optional.of(regime));
+
+        TempsDtos.HeureSupplementaireDto dto = service.calculerSemaine(7L, lundi);
+
+        assertEquals(0, dto.minutesHs30());
+        assertEquals(0, dto.minutesHs50());
     }
 
     private Pointage pointage(LocalDate date, LocalTime entree, LocalTime sortie) {

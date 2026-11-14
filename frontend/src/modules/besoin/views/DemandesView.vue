@@ -30,6 +30,8 @@ const STATUTS = [
   { valeur: 'FINALISEE_PARTIELLE', libelle: 'Finalisee partiellement' },
   { valeur: 'REFUSEE', libelle: 'Refusee' },
   { valeur: 'ANNULEE', libelle: 'Annulee' },
+  { valeur: 'CLOTUREE', libelle: 'Cloturee' },
+  { valeur: 'EXPIREE', libelle: 'Expiree' },
 ]
 
 async function charger() {
@@ -132,7 +134,7 @@ const totalBudget = computed(() =>
         responsive-layout="scroll"
       >
         <Column header="Reference">
-          <template #body="{ data }">DEM-{{ String(data.id).padStart(4, '0') }}</template>
+          <template #body="{ data }">{{ data.reference || `DEM-${String(data.id).padStart(4, '0')}` }}</template>
         </Column>
         <Column field="motif" header="Motif" />
         <Column field="demandeur" header="Demandeur" />

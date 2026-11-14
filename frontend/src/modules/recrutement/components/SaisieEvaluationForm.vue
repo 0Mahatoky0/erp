@@ -3,6 +3,7 @@ import { computed, reactive, watch } from 'vue'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
+import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 import { useNotificationStore } from '@/shared/store/useNotificationStore'
@@ -29,7 +30,16 @@ const evaluation = reactive({
   noteMax: 20,
   appreciation: null,
   commentaire: '',
+  criteres: [],
 })
+
+function ajouterCritere() {
+  evaluation.criteres.push({ critere: '', note: null, poids: 1, commentaire: '' })
+}
+
+function retirerCritere(index) {
+  evaluation.criteres.splice(index, 1)
+}
 
 watch(
   () => evaluation.typeEvaluation,
@@ -80,6 +90,14 @@ async function enregistrerEvaluation() {
       noteMax: Number(evaluation.noteMax),
       appreciation: evaluation.appreciation,
       commentaire: evaluation.commentaire,
+      criteres: evaluation.criteres
+        .filter((critere) => critere.critere?.trim())
+        .map((critere) => ({
+          critere: critere.critere.trim(),
+          note: critere.note === null ? null : Number(critere.note),
+          poids: Number(critere.poids) || 1,
+          commentaire: critere.commentaire || null,
+        })),
     })
     notifications.succes('Évaluation enregistrée.')
     evaluation.idEntretien = null
@@ -87,6 +105,7 @@ async function enregistrerEvaluation() {
     evaluation.note = null
     evaluation.appreciation = null
     evaluation.commentaire = ''
+    evaluation.criteres = []
     emit('saved')
   } catch (cause) {
     notifications.erreur(cause instanceof ErreurApi ? cause.message : 'Impossible d’enregistrer l’évaluation.')
@@ -145,6 +164,23 @@ async function enregistrerEvaluation() {
             placeholder="Note"
           />
           <InputNumber v-model="evaluation.noteMax" :min="1" :max-fraction-digits="2" placeholder="Note maximale" />
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-semibold">Grille de critères (notes sur 20)</span>
+            <Button type="button" label="Ajouter" icon="pi pi-plus" size="small" variant="text" @click="ajouterCritere" />
+          </div>
+          <div v-for="(critere, index) in evaluation.criteres" :key="index" class="grid grid-cols-1 gap-2 rounded-lg border border-surface p-3 md:grid-cols-12">
+            <InputText v-model="critere.critere" class="md:col-span-5" placeholder="Critère" />
+            <InputNumber v-model="critere.note" class="md:col-span-3" :min="0" :max="20" :max-fraction-digits="2" placeholder="Note /20" />
+            <InputNumber v-model="critere.poids" class="md:col-span-2" :min="1" :max="100" placeholder="Poids" />
+            <Button type="button" icon="pi pi-trash" severity="danger" variant="text" class="md:col-span-2" @click="retirerCritere(index)" />
+            <InputText v-model="critere.commentaire" class="md:col-span-12" placeholder="Commentaire du critère (optionnel)" />
+          </div>
+          <p v-if="!evaluation.criteres.length" class="m-0 text-sm text-muted-color">
+            Sans critère, la note globale utilise la note saisie ci-dessus.
+          </p>
         </div>
 
         <Select

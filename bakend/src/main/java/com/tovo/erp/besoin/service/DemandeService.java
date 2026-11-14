@@ -56,6 +56,8 @@ public class DemandeService {
     private final DemandeProperties demandeProperties;
     private final UtilisateurService utilisateurService;
     private final EmployeService employeService;
+    private final com.tovo.erp.shared.reference.ReferenceService references;
+    private final OffrePublieeProvider offresPubliees;
 
     public DemandeService(DemandeRecrutementRepository demandeRepository,
                           DemandeRecrutementPosteRepository ligneRepository,
@@ -67,7 +69,9 @@ public class DemandeService {
                           CircuitValidationProperties circuitProperties,
                           DemandeProperties demandeProperties,
                           UtilisateurService utilisateurService,
-                          EmployeService employeService) {
+                          EmployeService employeService,
+                          com.tovo.erp.shared.reference.ReferenceService references,
+                          OffrePublieeProvider offresPubliees) {
         this.demandeRepository = demandeRepository;
         this.ligneRepository = ligneRepository;
         this.validationRepository = validationRepository;
@@ -79,6 +83,8 @@ public class DemandeService {
         this.demandeProperties = demandeProperties;
         this.utilisateurService = utilisateurService;
         this.employeService = employeService;
+        this.references = references;
+        this.offresPubliees = offresPubliees;
     }
 
     // ------------------------------------------------------------------
@@ -154,6 +160,7 @@ public class DemandeService {
         AuthDto.Profil demandeur = profils.get(demande.getIdUtilisateur());
         return new DemandeDto.Detail(
                 demande.getId(),
+                demande.getReference(),
                 demande.getMotif(),
                 demande.getDateSouhaitee(),
                 demande.getStatut(),
@@ -182,6 +189,7 @@ public class DemandeService {
         }
 
         DemandeRecrutement entite = new DemandeRecrutement();
+        entite.setReference(references.suivante("DEMANDE_RECRUTEMENT", "DR", 4));
         entite.setIdUtilisateur(auteur.getId());
         entite.setMotif(demande.motif().trim());
         entite.setDateSouhaitee(demande.dateSouhaitee());
@@ -189,7 +197,7 @@ public class DemandeService {
         demandeRepository.save(entite);
 
         for (DemandeDto.LigneCreation ligne : demande.lignes()) {
-            DemandeRecrutementPoste nouvelle = ligneRegles.construire(entite, ligne);
+            DemandeRecrutementPoste nouvelle = ligneRegles.construire(entite, auteur, ligne);
             ligneRepository.save(nouvelle);
         }
         return resume(entite, lignesDe(entite));
@@ -218,7 +226,7 @@ public class DemandeService {
         controlerProprietaire(entite, auteur);
         controlerBrouillon(entite);
 
-        DemandeRecrutementPoste nouvelle = ligneRegles.construire(entite, ligne);
+        DemandeRecrutementPoste nouvelle = ligneRegles.construire(entite, auteur, ligne);
         ligneRepository.save(nouvelle);
         entite.setDateModification(LocalDateTime.now());
         demandeRepository.save(entite);
@@ -389,14 +397,72 @@ public class DemandeService {
      * de postes pourvus apres incrementation.
      */
     @Transactional
-    public int enregistrerEmbauche(Long idLigne) {
+    public int enregistrerEmbauche(Long idLigne, Long idUtilisateur) {
         DemandeRecrutementPoste ligne = ligneRepository.findById(idLigne)
                 .orElseThrow(() -> BusinessException.notFound(
                         "La ligne de demande " + idLigne + " n'existe pas."));
         ligne.setNombrePourvus((ligne.getNombrePourvus() == null ? 0 : ligne.getNombrePourvus()) + 1);
         ligne.setDateModification(LocalDateTime.now());
         ligneRepository.save(ligne);
+
+        DemandeRecrutement demande = ligne.getDemande();
+        List<DemandeRecrutementPoste> lignes = lignesDe(demande);
+        boolean auMoinsUneAcceptee = lignes.stream()
+                .anyMatch(l -> l.getStatut() == StatutLigne.ACCEPTEE);
+        boolean toutesPourvues = lignes.stream()
+                .filter(l -> l.getStatut() == StatutLigne.ACCEPTEE)
+                .allMatch(l -> l.getNombrePourvus() != null
+                        && l.getNombrePourvus() >= l.getEffectif());
+        if (auMoinsUneAcceptee && toutesPourvues && demande.getStatut() != StatutDemande.CLOTUREE) {
+            changerStatut(demande, StatutDemande.CLOTUREE,
+                    idUtilisateur != null ? idUtilisateur : demande.getIdUtilisateur(),
+                    "Tous les postes acceptes sont pourvus (RG-B1-15).");
+        }
         return ligne.getNombrePourvus();
+    }
+
+    /**
+     * Expire les demandes finalisees restees sans offre publiee au-dela du delai
+     * parametre (RG-B1-14). Retourne le nombre de demandes expirees.
+     */
+    @Transactional
+    public int expirerDemandes() {
+        LocalDateTime limite = LocalDateTime.now()
+                .minusDays(demandeProperties.expirationJours());
+        List<DemandeRecrutement> candidates = demandeRepository
+                .findByStatutInAndDateSoumissionBefore(
+                        List.of(StatutDemande.FINALISEE, StatutDemande.FINALISEE_PARTIELLE),
+                        limite);
+        int expirees = 0;
+        for (DemandeRecrutement demande : candidates) {
+            boolean offrePubliee = lignesDe(demande).stream()
+                    .filter(l -> l.getStatut() == StatutLigne.ACCEPTEE)
+                    .anyMatch(l -> offresPubliees.existeOffrePubliee(l.getId()));
+            if (!offrePubliee) {
+                changerStatut(demande, StatutDemande.EXPIREE, demande.getIdUtilisateur(),
+                        "Expiration automatique apres " + demandeProperties.expirationJours()
+                                + " jours sans offre publiee (RG-B1-14).");
+                expirees++;
+            }
+        }
+        return expirees;
+    }
+
+    /** Change le statut d'une demande et journalise la transition (RM-047, RM-065). */
+    private void changerStatut(DemandeRecrutement demande, StatutDemande nouveau,
+                               Long idUtilisateur, String commentaire) {
+        StatutDemande ancien = demande.getStatut();
+        demande.setStatut(nouveau);
+        demande.setDateModification(LocalDateTime.now());
+        demandeRepository.save(demande);
+
+        HistoriqueStatut journal = new HistoriqueStatut();
+        journal.setDemande(demande);
+        journal.setAncienStatut(ancien == null ? null : ancien.name());
+        journal.setNouveauStatut(nouveau.name());
+        journal.setIdUtilisateur(idUtilisateur);
+        journal.setCommentaire(commentaire);
+        historiqueStatutRepository.save(journal);
     }
 
     // ------------------------------------------------------------------

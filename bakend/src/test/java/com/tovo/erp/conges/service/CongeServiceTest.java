@@ -209,6 +209,45 @@ class CongeServiceTest {
                         && new BigDecimal("1.00").compareTo(m.getJours()) == 0));
     }
 
+    @Test
+    void acquisitionMensuelleEstProratiseeSelonLesJoursDeServiceEffectif() {
+        TypeConge sansSolde = new TypeConge();
+        sansSolde.setId(2L);
+        sansSolde.setCode("SANS_SOLDE");
+        sansSolde.setLibelle("Conge sans solde");
+        sansSolde.setJoursAcquisMois(BigDecimal.ZERO);
+        sansSolde.setDecompteSolde(false);
+        DemandeConge congeSansSolde = new DemandeConge();
+        congeSansSolde.setId(50L);
+        congeSansSolde.setIdEmploye(7L);
+        congeSansSolde.setIdTypeConge(2L);
+        congeSansSolde.setDateDebut(LocalDate.of(2026, 12, 1));
+        congeSansSolde.setDateFin(LocalDate.of(2026, 12, 7));
+        congeSansSolde.setNombreJours(new BigDecimal("6.00"));
+        congeSansSolde.setStatut(StatutDemandeConge.APPROUVEE);
+
+        when(employes.actifs()).thenReturn(List.of(
+                new EmployeDto.Actif(7L, "Doe", "Jane", null, LocalDate.of(2020, 1, 1))));
+        when(types.findAll()).thenReturn(List.of(annuel, sansSolde));
+        when(types.findByActifTrueOrderByLibelleAsc()).thenReturn(List.of(annuel));
+        when(demandes.findByIdEmployeOrderByDateCreationDesc(7L)).thenReturn(List.of(congeSansSolde));
+        when(absences.findByIdEmployeOrderByDateDebutDesc(7L)).thenReturn(List.of());
+        when(mouvements.existsByIdEmployeAndIdTypeCongeAndTypeMouvementAndDateEffet(
+                7L, 1L, TypeMouvementConge.ACQUISITION, LocalDate.of(2026, 12, 1))).thenReturn(false);
+        SoldeConge solde = solde(7L, 2026, "0.00", "0.00", "0.00");
+        when(soldes.findByIdEmployeAndIdTypeCongeOrderByAnneeAsc(7L, 1L)).thenReturn(List.of(solde));
+        when(soldes.findByIdEmployeAndIdTypeCongeAndAnnee(7L, 1L, 2026)).thenReturn(Optional.of(solde));
+        when(soldes.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(mouvements.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        service.acquerirMois(2026, 12);
+
+        assertEquals(0, new BigDecimal("2.00").compareTo(solde.getJoursAcquis()));
+        verify(mouvements).save(argThat(m ->
+                m.getTypeMouvement() == TypeMouvementConge.ACQUISITION
+                        && new BigDecimal("2.00").compareTo(m.getJours()) == 0));
+    }
+
     private DemandeConge demandeEnAttente(Long id, double jours) {
         DemandeConge d = new DemandeConge();
         d.setId(id);

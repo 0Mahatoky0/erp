@@ -2,6 +2,7 @@ package com.tovo.erp.temps.controller;
 
 import com.tovo.erp.shared.UtilisateurCourant;
 import com.tovo.erp.temps.dto.TempsDtos;
+import com.tovo.erp.temps.service.PointageBrutService;
 import com.tovo.erp.temps.service.TempsService;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -9,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,10 +26,13 @@ import java.util.List;
 public class TempsController {
 
     private final TempsService temps;
+    private final PointageBrutService pointagesBruts;
     private final UtilisateurCourant utilisateurCourant;
 
-    public TempsController(TempsService temps, UtilisateurCourant utilisateurCourant) {
+    public TempsController(TempsService temps, PointageBrutService pointagesBruts,
+                           UtilisateurCourant utilisateurCourant) {
         this.temps = temps;
+        this.pointagesBruts = pointagesBruts;
         this.utilisateurCourant = utilisateurCourant;
     }
 
@@ -42,6 +47,46 @@ public class TempsController {
     @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
     public TempsDtos.PlanningDto creerPlanning(@Valid @RequestBody TempsDtos.PlanningRequest demande) {
         return temps.creerPlanning(demande);
+    }
+
+    @PutMapping("/plannings/{id}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    public TempsDtos.PlanningDto modifierPlanning(@PathVariable Long id,
+                                                  @Valid @RequestBody TempsDtos.PlanningRequest demande,
+                                                  @RequestParam(required = false) String motif) {
+        return temps.modifierPlanning(id, demande, motif);
+    }
+
+    @PostMapping("/plannings/{id}/publication")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    public TempsDtos.PlanningDto publierPlanning(@PathVariable Long id) {
+        return temps.publierPlanning(id);
+    }
+
+    @PostMapping("/pointages/brut")
+    @ResponseStatus(HttpStatus.CREATED)
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    public TempsDtos.PointageBrutDto enregistrerPointageBrut(
+            @Valid @RequestBody TempsDtos.PointageBrutRequest demande) {
+        Long utilisateur = "MANUEL".equalsIgnoreCase(demande.source())
+                ? utilisateurCourant.exiger().getId() : null;
+        return pointagesBruts.enregistrer(demande, utilisateur);
+    }
+
+    @GetMapping("/employes/{idEmploye}/pointages/brut")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    public List<TempsDtos.PointageBrutDto> pointagesBruts(
+            @PathVariable Long idEmploye,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return pointagesBruts.evenements(idEmploye, date == null ? LocalDate.now() : date);
+    }
+
+    @GetMapping("/employes/{idEmploye}/pointages/brut/synthese")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    public TempsDtos.PointageBrutJourDto synthesePointagesBruts(
+            @PathVariable Long idEmploye,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return pointagesBruts.syntheseJour(idEmploye, date == null ? LocalDate.now() : date);
     }
 
     @PostMapping("/pointages/entree")
@@ -96,6 +141,14 @@ public class TempsController {
             @PathVariable Long idEmploye,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate semaine) {
         return temps.calculerSemaine(idEmploye, semaine);
+    }
+
+    @PostMapping("/heures-supplementaires/{id}/statut")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'MANAGER')")
+    public TempsDtos.HeureSupplementaireDto changerStatutHeureSupplementaire(
+            @PathVariable Long id,
+            @Valid @RequestBody TempsDtos.HeureSupplementaireStatutRequest demande) {
+        return temps.changerStatutHeureSupplementaire(id, demande.statut());
     }
 
     @GetMapping("/periodes-cloturees")

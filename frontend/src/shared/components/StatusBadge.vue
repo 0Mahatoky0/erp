@@ -38,7 +38,9 @@ const LIBELLES = {
   MANAGER: 'Manager',
   
   PUBLIEE: 'Publiee',
+  SUSPENDUE: 'Suspendue',
   CLOTUREE: 'Cloturee',
+  POURVUE: 'Pourvue',
 
   RECUE: 'Reçue',
   EN_ETUDE: 'En étude',
@@ -141,7 +143,9 @@ const COULEURS = {
   PARTI: 'neutre',
   MANAGER: 'neutre',
   PUBLIEE: 'succes',
+  SUSPENDUE: 'alerte',
   CLOTUREE: 'neutre',
+  POURVUE: 'primaire',
 
   RECUE: 'info',
   EN_ETUDE: 'info',

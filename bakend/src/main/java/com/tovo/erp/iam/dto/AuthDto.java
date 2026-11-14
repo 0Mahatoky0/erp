@@ -23,7 +23,8 @@ public final class AuthDto {
                               @Email @NotBlank @Size(max = 255) String email,
                               @Size(max = 30) String telephone,
                               String adresse,
-                              @NotBlank @Size(min = 6, max = 100) String motDePasse) {
+                              @NotBlank @Size(min = 6, max = 100) String motDePasse,
+                              boolean consentementDonnees) {
     }
 
     /** Reponse de connexion : jeton, expiration et profil. */

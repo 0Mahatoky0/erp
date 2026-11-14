@@ -133,6 +133,8 @@ public final class PropositionDtos {
             String lieuTravail,
             LocalDateTime dateEnvoi,
             LocalDateTime dateExpiration,
+            boolean relanceEnvoyee,
+            LocalDateTime dateRelance,
             String tokenAcceptation,
             LocalDateTime dateReponse,
             String motifRefus,

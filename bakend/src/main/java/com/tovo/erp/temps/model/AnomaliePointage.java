@@ -50,6 +50,12 @@ public class AnomaliePointage {
     @Column(name = "date_resolution")
     private LocalDateTime dateResolution;
 
+    @Column(name = "escaladee", nullable = false)
+    private boolean escaladee;
+
+    @Column(name = "date_escalade")
+    private LocalDateTime dateEscalade;
+
     @Column(name = "date_creation", nullable = false)
     private LocalDateTime dateCreation = LocalDateTime.now();
 }

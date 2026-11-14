@@ -50,11 +50,16 @@ public final class TempsDtos {
             LocalDate dateDebut,
             LocalDate dateFin,
             int pauseMinutes,
-            int toleranceMinutes) {
+            int toleranceMinutes,
+            String origine,
+            String statut,
+            LocalDateTime publieLe,
+            String motifModification) {
         public static PlanningDto de(PlanningTravail planning) {
             return new PlanningDto(planning.getId(), planning.getIdEmploye(), planning.getJoursTravailles(),
                     planning.getHeureDebut(), planning.getHeureFin(), planning.getDateDebut(), planning.getDateFin(),
-                    planning.getPauseMinutes(), planning.getToleranceMinutes());
+                    planning.getPauseMinutes(), planning.getToleranceMinutes(), planning.getOrigine(),
+                    planning.getStatut(), planning.getPublieLe(), planning.getMotifModification());
         }
     }
 
@@ -174,6 +179,60 @@ public final class TempsDtos {
                     heureSup.getMinutesNuit(), heureSup.getMinutesDimanche(), heureSup.getMinutesFerie(),
                     heureSup.getStatut().name(), heureSup.isAlertePlafond(), heureSup.getDateCalcul());
         }
+    }
+
+    public record HeureSupplementaireStatutRequest(@NotBlank String statut) {
+    }
+
+    public record PointageBrutRequest(
+            @NotNull Long idEmploye,
+            @NotNull LocalDateTime horodatage,
+            String sens,
+            @NotBlank String source,
+            String terminalId,
+            Boolean terminalAuthentifie,
+            Long lieuId,
+            java.math.BigDecimal latitude,
+            java.math.BigDecimal longitude,
+            String motif,
+            Long idPointageBrutRemplace) {
+    }
+
+    public record PointageBrutDto(
+            Long id,
+            Long idEmploye,
+            LocalDateTime horodatage,
+            String sens,
+            String source,
+            String terminalId,
+            boolean terminalAuthentifie,
+            Long lieuId,
+            java.math.BigDecimal latitude,
+            java.math.BigDecimal longitude,
+            String statut,
+            Long saisiPar,
+            String motif,
+            Long idPointageBrutRemplace) {
+        public static PointageBrutDto de(com.tovo.erp.temps.model.PointageBrut pointage) {
+            return new PointageBrutDto(pointage.getId(), pointage.getIdEmploye(), pointage.getHorodatage(),
+                    pointage.getSens().name(), pointage.getSource().name(), pointage.getTerminalId(),
+                    pointage.isTerminalAuthentifie(), pointage.getLieuId(), pointage.getLatitude(),
+                    pointage.getLongitude(), pointage.getStatut().name(), pointage.getSaisiPar(),
+                    pointage.getMotif(), pointage.getIdPointageBrutRemplace());
+        }
+    }
+
+    public record PairePointageDto(LocalDateTime entree, LocalDateTime sortie, int minutesTravaillees,
+                                   List<String> anomalies) {
+    }
+
+    public record PointageBrutJourDto(
+            Long idEmploye,
+            LocalDate date,
+            List<PointageBrutDto> evenements,
+            List<PairePointageDto> paires,
+            int minutesTravaillees,
+            List<String> anomalies) {
     }
 
     public record RegimeRequest(

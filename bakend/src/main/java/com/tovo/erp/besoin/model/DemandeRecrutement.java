@@ -38,6 +38,10 @@ public class DemandeRecrutement {
     @Column(name = "id_utilisateur", nullable = false)
     private Long idUtilisateur;
 
+    /** Reference metier lisible, au format DR-AAAA-NNNN (RG-B1-17). */
+    @Column(name = "reference", length = 30, unique = true)
+    private String reference;
+
     /** Motif general de la demande : obligatoire (RM-013). */
     @Column(name = "motif", nullable = false)
     private String motif;

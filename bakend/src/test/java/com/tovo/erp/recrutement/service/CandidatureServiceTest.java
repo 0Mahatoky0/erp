@@ -2,6 +2,8 @@ package com.tovo.erp.recrutement.service;
 
 import com.tovo.erp.recrutement.model.*;
 import com.tovo.erp.recrutement.repository.*;
+import com.tovo.erp.shared.BusinessException;
+import com.tovo.erp.shared.UtilisateurConnecte;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,6 +47,49 @@ class CandidatureServiceTest {
         assertSame(candidat, result.getCandidat());
         assertEquals(CandidatureStatut.RECUE, result.getStatut());
         verify(historiques).save(argThat(h -> h.getNouveauStatut() == CandidatureStatut.RECUE));
+    }
+
+    @Test
+    void exigeLeConsentementDuCandidatAvantDePostuler() {
+        OffreEmploi offre = new OffreEmploi();
+        offre.setIdOffre(1L);
+        offre.setStatut(OffreStatut.PUBLIEE);
+        Candidat candidat = new Candidat();
+        candidat.setIdCandidat(2L);
+        candidat.setConsentementDonnees(false);
+        UtilisateurConnecte utilisateur = new UtilisateurConnecte(5L, "Candidat", "c@example.com",
+                "CANDIDAT", null, null);
+        when(offres.findById(1L)).thenReturn(Optional.of(offre));
+        when(candidats.findByIdUtilisateur(5L)).thenReturn(Optional.of(candidat));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> service.postuler(1L, utilisateur, "Motivé", "PORTAIL"));
+        assertEquals("CONSENTEMENT_REQUIS", ex.getCode());
+        verify(candidatures, never()).save(any());
+    }
+
+    @Test
+    void anonymiseLesDonneesPersonnellesDuCandidat() {
+        Candidat candidat = new Candidat();
+        candidat.setIdCandidat(9L);
+        candidat.setNom("Nom");
+        candidat.setPrenom("Prenom");
+        candidat.setEmail("nom.prenom@example.com");
+        candidat.setTelephone("0340000000");
+        candidat.setAdresse("Adresse");
+        candidat.setCin("123456789");
+        candidat.setConsentementDonnees(true);
+        when(candidats.findById(9L)).thenReturn(Optional.of(candidat));
+
+        service.anonymiser(9L);
+
+        assertEquals("Anonyme", candidat.getNom());
+        assertEquals("anonyme-9@supprime.invalid", candidat.getEmail());
+        assertNull(candidat.getTelephone());
+        assertNull(candidat.getCin());
+        assertFalse(candidat.isConsentementDonnees());
+        assertEquals(StatutCandidat.ANONYMISE, candidat.getStatut());
+        verify(candidats).save(candidat);
     }
 
     @Test

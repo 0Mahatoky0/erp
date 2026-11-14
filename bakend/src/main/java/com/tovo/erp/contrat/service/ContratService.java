@@ -688,6 +688,9 @@ public class ContratService {
         LocalDate aujourdHui = LocalDate.now();
         List<ContratDtos.AlerteDto> resultat = new ArrayList<>();
         List<Contrat> tous = contrats.findAllByOrderByDateCreationDesc();
+        java.util.Map<Long, Contrat> contratsParId = tous.stream()
+                .collect(java.util.stream.Collectors.toMap(Contrat::getId, c -> c,
+                        (premier, suivant) -> premier));
         java.util.Map<Long, Onboarding> onboardingsParContrat =
                 onboardings.findByIdContratIn(tous.stream().map(Contrat::getId)
                                 .collect(java.util.stream.Collectors.toSet())).stream()
@@ -761,6 +764,23 @@ public class ContratService {
                             "Periode d'essai du contrat " + contrat.getNumero()
                                     + " terminee sans decision tracee.",
                             contrat, contrat.getFinPeriodeEssai()));
+                }
+            }
+            if (contrat.getIdContratPrecedent() != null) {
+                Contrat precedent = contratsParId.get(contrat.getIdContratPrecedent());
+                if (precedent != null && precedent.getEtat() != ContratEtat.ANNULE) {
+                    LocalDate finPrecedente = precedent.getDateFinReelle() != null
+                            ? precedent.getDateFinReelle() : precedent.getDateFinPrevue();
+                    if (finPrecedente != null
+                            && contrat.getDateDebut().isAfter(finPrecedente.plusDays(1))) {
+                        resultat.add(alerte("CONTINUITE", "ATTENTION",
+                                "Rupture de continuite entre " + precedent.getNumero()
+                                        + " (fin le " + finPrecedente + ") et "
+                                        + contrat.getNumero() + " (debut le "
+                                        + contrat.getDateDebut()
+                                        + ") : reprise apres interruption.",
+                                contrat, contrat.getDateDebut()));
+                    }
                 }
             }
             Onboarding onboarding = onboardingsParContrat.get(contrat.getId());

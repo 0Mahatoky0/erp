@@ -5,6 +5,7 @@ import com.tovo.erp.recrutement.model.OffreStatut;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
@@ -26,6 +27,11 @@ public record OffreEmploiDto(
         BigDecimal salaireMin,
         BigDecimal salaireMax,
         String modeSelection,
+        String criteresEliminatoires,
+        String grilleEvaluation,
+        Integer poidsDossier,
+        Integer poidsEntretien,
+        Integer poidsTest,
         OffreStatut statut,
         LocalDateTime datePublication,
         LocalDateTime dateLimiteCandidature,
@@ -48,6 +54,11 @@ public record OffreEmploiDto(
                 offre.getSalaireMin(),
                 offre.getSalaireMax(),
                 offre.getModeSelection(),
+                offre.getCriteresEliminatoires(),
+                offre.getGrilleEvaluation(),
+                offre.getPoidsDossier(),
+                offre.getPoidsEntretien(),
+                offre.getPoidsTest(),
                 offre.getStatut(),
                 offre.getDatePublication(),
                 offre.getDateLimiteCandidature(),
@@ -88,6 +99,11 @@ public record OffreEmploiDto(
             @PositiveOrZero BigDecimal salaireMin,
             @PositiveOrZero BigDecimal salaireMax,
             @NotBlank String modeSelection,
+            String criteresEliminatoires,
+            String grilleEvaluation,
+            @Positive Integer poidsDossier,
+            @Positive Integer poidsEntretien,
+            @Positive Integer poidsTest,
             LocalDateTime dateLimiteCandidature) {
     }
 }

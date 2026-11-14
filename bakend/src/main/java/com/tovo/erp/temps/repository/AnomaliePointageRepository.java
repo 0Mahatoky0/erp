@@ -21,4 +21,7 @@ public interface AnomaliePointageRepository extends JpaRepository<AnomaliePointa
 
     void deleteByIdEmployeAndDateAnomalieAndStatut(Long idEmploye, LocalDate dateAnomalie,
                                                    AnomaliePointage.Statut statut);
+
+    List<AnomaliePointage> findByStatutAndEscaladeeFalseAndDateAnomalieBefore(
+            AnomaliePointage.Statut statut, LocalDate dateAnomalie);
 }
