@@ -74,6 +74,22 @@ const sections = computed(() => {
     paie.push({ nom: 'paie-mes-fiches', label: 'Mes fiches de paie', icon: 'pi pi-file' })
   }
 
+  const evaluation = []
+  if (auth.estRh || auth.estDirection || auth.estManager) {
+    evaluation.push({ nom: 'evaluation-campagnes', label: 'Campagnes d’évaluation', icon: 'pi pi-chart-line' })
+  }
+  if (auth.estEmploye) {
+    evaluation.push({ nom: 'evaluation-mes-objectifs', label: 'Mes évaluations', icon: 'pi pi-star' })
+  }
+
+  const formation = []
+  if (auth.estRh || auth.estDirection || auth.estFinance || auth.estManager) {
+    formation.push({ nom: 'formation-planification', label: 'Planification', icon: 'pi pi-calendar-plus' })
+  }
+  if (auth.estEmploye) {
+    formation.push({ nom: 'formation-mes-inscriptions', label: 'Mes formations', icon: 'pi pi-graduation-cap' })
+  }
+
   return [
     { label: 'Demande', items: principal },
     { label: 'Gestion', items: gestion },
@@ -83,6 +99,8 @@ const sections = computed(() => {
     { label: 'Temps de travail', items: temps },
     { label: 'Congés et absences', items: conges },
     { label: 'Paie', items: paie },
+    { label: 'Évaluation', items: evaluation },
+    { label: 'Formation', items: formation },
   ]
     .filter((s) => s.items.length)
     .map((s) => ({
