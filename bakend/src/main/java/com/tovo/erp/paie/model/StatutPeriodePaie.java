@@ -1,5 +1,11 @@
 package com.tovo.erp.paie.model;
 
 public enum StatutPeriodePaie {
-    BROUILLON, CALCULEE, CLOTUREE
+    OUVERTE,
+    VARIABLES_CONSOLIDEES,
+    CALCULEE,
+    VALIDEE,
+    PUBLIEE,
+    PAYEE,
+    CLOTUREE
 }

@@ -35,10 +35,33 @@ public class BulletinPaie {
     @Column(name = "cotisations_patronales", nullable = false, precision = 15, scale = 2)
     private BigDecimal cotisationsPatronales;
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 25)
     private StatutBulletinPaie statut = StatutBulletinPaie.BROUILLON;
     @Column(name = "date_creation", nullable = false)
     private LocalDateTime dateCreation = LocalDateTime.now();
     @Column(name = "date_validation")
     private LocalDateTime dateValidation;
+
+    @Column(name = "jour_payes", nullable = false)
+    private int jourPayes = 30;
+    @Column(name = "salaire_base_periode", nullable = false, precision = 15, scale = 2)
+    private BigDecimal salaireBasePeriode = BigDecimal.ZERO;
+    @Column(name = "base_imposable", nullable = false, precision = 15, scale = 2)
+    private BigDecimal baseImposable = BigDecimal.ZERO;
+    @Column(name = "prime_exceptionnelle", nullable = false, precision = 15, scale = 2)
+    private BigDecimal primeExceptionnelle = BigDecimal.ZERO;
+    @Column(name = "avance", nullable = false, precision = 15, scale = 2)
+    private BigDecimal avance = BigDecimal.ZERO;
+    @Column(name = "retenue_manuelle", nullable = false, precision = 15, scale = 2)
+    private BigDecimal retenueManuelle = BigDecimal.ZERO;
+    @Column(name = "personnes_charge", nullable = false)
+    private int personnesCharge;
+    @Column(name = "motif_ajustement")
+    private String motifAjustement;
+    @Column(length = 30)
+    private String numero;
+    @Column(nullable = false, length = 25)
+    private String type = "NORMAL";
+    @Column(name = "id_contrat")
+    private Long idContrat;
 }

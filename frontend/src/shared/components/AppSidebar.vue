@@ -68,7 +68,10 @@ const sections = computed(() => {
 
   const paie = []
   if (auth.estRh || auth.estDirection || auth.estFinance) {
-    paie.push({ nom: 'paie-variables', label: 'Variables de paie', icon: 'pi pi-money-bill' })
+    paie.push({ nom: 'paie-variables', label: 'Fiche de paie', icon: 'pi pi-money-bill' })
+  }
+  if (auth.estEmploye) {
+    paie.push({ nom: 'paie-mes-fiches', label: 'Mes fiches de paie', icon: 'pi pi-file' })
   }
 
   return [

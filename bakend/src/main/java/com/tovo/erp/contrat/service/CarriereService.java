@@ -14,8 +14,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Historique de remuneration et de carriere (bloc 5). Chaque evolution cree une
@@ -45,6 +48,17 @@ public class CarriereService {
         return salaires.findByIdEmployeOrderByDateEffetDesc(idEmploye).stream()
                 .map(CarriereDtos.SalaireDto::de)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, java.math.BigDecimal> salairesBaseParIds(Collection<Long> idsEmploye) {
+        if (idsEmploye.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, java.math.BigDecimal> resultat = new LinkedHashMap<>();
+        salaires.findByIdEmployeInAndDateFinIsNull(idsEmploye).forEach(salaire ->
+                resultat.put(salaire.getIdEmploye(), salaire.getMontantBrut()));
+        return resultat;
     }
 
     @Transactional

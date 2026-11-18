@@ -16,13 +16,26 @@ public class PeriodePaie {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_periode")
     private Long id;
+
     @Column(nullable = false, unique = true)
     private LocalDate mois;
+
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private StatutPeriodePaie statut = StatutPeriodePaie.BROUILLON;
+    @Column(nullable = false, length = 30)
+    private StatutPeriodePaie statut = StatutPeriodePaie.OUVERTE;
+
     @Column(name = "date_creation", nullable = false)
     private LocalDateTime dateCreation = LocalDateTime.now();
+
     @Column(name = "date_cloture")
     private LocalDateTime dateCloture;
+
+    @Column(name = "date_cloture_variables")
+    private LocalDate dateClotureVariables;
+
+    @Column(name = "date_paiement")
+    private LocalDate datePaiement;
+
+    @Column(name = "version_regles", length = 50)
+    private String versionRegles;
 }

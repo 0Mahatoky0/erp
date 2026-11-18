@@ -3,6 +3,7 @@ package com.tovo.erp.contrat.repository;
 import com.tovo.erp.contrat.model.SalaireHistorique;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,4 +15,6 @@ public interface SalaireHistoriqueRepository extends JpaRepository<SalaireHistor
     Optional<SalaireHistorique> findFirstByIdEmployeOrderByDateEffetDesc(Long idEmploye);
 
     boolean existsByIdContrat(Long idContrat);
+
+    List<SalaireHistorique> findByIdEmployeInAndDateFinIsNull(Collection<Long> idsEmploye);
 }
