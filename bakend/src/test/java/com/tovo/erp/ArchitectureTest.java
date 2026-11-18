@@ -25,7 +25,7 @@ class ArchitectureTest {
     private static final String BASE = "com.tovo.erp";
     private static final List<String> MODULES = List.of(
             "iam", "employe", "besoin", "recrutement", "embauche",
-            "contrat", "temps", "conges", "paie", "evaluation", "carriere");
+            "contrat", "temps", "conges", "paie", "evaluation", "carriere", "discipline");
 
     @ArchTest
     static final ArchRule pas_de_cycle_entre_modules = SlicesRuleDefinition
