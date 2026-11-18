@@ -10,6 +10,7 @@ import { tempsRoutes } from '@/modules/temps/routes'
 import { congesRoutes } from '@/modules/conges/routes'
 import { paieRoutes } from '@/modules/paie/routes'
 import { evaluationRoutes } from '@/modules/evaluation/routes'
+import { carriereRoutes } from '@/modules/carriere/routes'
 
 const routes = [
   ...iamRoutes,
@@ -22,6 +23,7 @@ const routes = [
   ...congesRoutes,
   ...paieRoutes,
   ...evaluationRoutes,
+  ...carriereRoutes,
   {
     path: '/:pathMatch(.*)*',
     name: 'introuvable',

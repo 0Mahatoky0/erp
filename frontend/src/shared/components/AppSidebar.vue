@@ -90,6 +90,11 @@ const sections = computed(() => {
     formation.push({ nom: 'formation-mes-inscriptions', label: 'Mes formations', icon: 'pi pi-graduation-cap' })
   }
 
+  const carriere = []
+  if (auth.estRh || auth.estDirection || auth.estManager || auth.estFinance) {
+    carriere.push({ nom: 'carriere-mobilite', label: 'Carrière et mobilité', icon: 'pi pi-sitemap' })
+  }
+
   return [
     { label: 'Demande', items: principal },
     { label: 'Gestion', items: gestion },
@@ -101,6 +106,7 @@ const sections = computed(() => {
     { label: 'Paie', items: paie },
     { label: 'Évaluation', items: evaluation },
     { label: 'Formation', items: formation },
+    { label: 'Carrière', items: carriere },
   ]
     .filter((s) => s.items.length)
     .map((s) => ({
