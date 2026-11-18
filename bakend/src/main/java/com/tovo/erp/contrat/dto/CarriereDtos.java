@@ -28,7 +28,13 @@ public final class CarriereDtos {
             LocalDate dateFin,
             String motif,
             Long idUtilisateur,
-            LocalDateTime dateCreation) {
+            LocalDateTime dateCreation,
+            LocalDateTime enregistreLe,
+            LocalDateTime remplaceLe,
+            Long idMouvement,
+            Long idAvenant,
+            BigDecimal ancienMontant,
+            BigDecimal variationPct) {
 
         public static SalaireDto de(SalaireHistorique salaire) {
             return new SalaireDto(
@@ -41,7 +47,13 @@ public final class CarriereDtos {
                     salaire.getDateFin(),
                     salaire.getMotif(),
                     salaire.getIdUtilisateur(),
-                    salaire.getDateCreation());
+                    salaire.getDateCreation(),
+                    salaire.getEnregistreLe(),
+                    salaire.getRemplaceLe(),
+                    salaire.getIdMouvement(),
+                    salaire.getIdAvenant(),
+                    salaire.getAncienMontant(),
+                    salaire.getVariationPct());
         }
     }
 
@@ -77,7 +89,12 @@ public final class CarriereDtos {
             @NotBlank String devise,
             @NotNull LocalDate dateEffet,
             String motif,
-            Long idContrat) {
+            Long idContrat,
+            Long idMouvement,
+            Long idAvenant,
+            BigDecimal ancienMontant,
+            BigDecimal variationPct,
+            Long idEnregistrePar) {
     }
 
     public record EvenementRequest(
@@ -86,6 +103,14 @@ public final class CarriereDtos {
             String ancienneValeur,
             String nouvelleValeur,
             Long idDocument,
+            String commentaire) {
+    }
+
+    public record EvenementSimpleRequest(
+            @NotBlank String type,
+            @NotNull LocalDate dateEffet,
+            String ancienneValeur,
+            String nouvelleValeur,
             String commentaire) {
     }
 }

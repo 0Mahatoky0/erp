@@ -98,6 +98,13 @@ public class CarriereService {
         salaire.setDateEffet(requete.dateEffet());
         salaire.setMotif(requete.motif());
         salaire.setIdUtilisateur(idUtilisateur);
+        salaire.setIdMouvement(requete.idMouvement());
+        salaire.setIdAvenant(requete.idAvenant());
+        salaire.setAncienMontant(requete.ancienMontant() == null && courant != null
+                ? courant.getMontantBrut() : requete.ancienMontant());
+        salaire.setVariationPct(requete.variationPct());
+        salaire.setEnregistrePar(requete.idEnregistrePar());
+        salaire.setEnregistreLe(java.time.LocalDateTime.now());
         CarriereDtos.SalaireDto cree = CarriereDtos.SalaireDto.de(salaires.save(salaire));
 
         EvenementCarriere evenement = new EvenementCarriere();
@@ -135,6 +142,24 @@ public class CarriereService {
         evenement.setCommentaire(requete.commentaire());
         evenement.setIdUtilisateur(idUtilisateur);
         return CarriereDtos.EvenementDto.de(evenements.save(evenement));
+    }
+
+    @Transactional
+    public CarriereDtos.EvenementDto enregistrerEvenementSimple(Long idEmploye,
+                                                                CarriereDtos.EvenementSimpleRequest requete,
+                                                                Long idUtilisateur) {
+        TypeEvenementCarriere type;
+        try {
+            type = TypeEvenementCarriere.valueOf(requete.type());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new BusinessException("TYPE_EVENEMENT_INVALIDE",
+                    "Type d'evenement de carriere inconnu : " + requete.type());
+        }
+        return enregistrerEvenement(idEmploye,
+                new CarriereDtos.EvenementRequest(type, requete.dateEffet(),
+                        requete.ancienneValeur(), requete.nouvelleValeur(), null,
+                        requete.commentaire()),
+                idUtilisateur);
     }
 
     /**

@@ -75,6 +75,33 @@ public class Affectation {
     @Column(name = "statut", nullable = false, length = 20)
     private AffectationStatut statut = AffectationStatut.PLANIFIEE;
 
+    @Column(name = "categorie", length = 50)
+    private String categorie;
+
+    @Column(name = "classification", length = 50)
+    private String classification;
+
+    @Column(name = "echelon", length = 50)
+    private String echelon;
+
+    @Column(name = "enregistre_le", nullable = false)
+    private LocalDateTime enregistreLe = LocalDateTime.now();
+
+    @Column(name = "enregistre_par")
+    private Long enregistrePar;
+
+    @Column(name = "remplace_le")
+    private LocalDateTime remplaceLe;
+
+    @Column(name = "remplace_par_id")
+    private Long remplaceParId;
+
+    @Column(name = "motif_correction", columnDefinition = "TEXT")
+    private String motifCorrection;
+
+    @Column(name = "id_mouvement")
+    private Long idMouvement;
+
     @Column(name = "date_creation", nullable = false)
     private LocalDateTime dateCreation = LocalDateTime.now();
 

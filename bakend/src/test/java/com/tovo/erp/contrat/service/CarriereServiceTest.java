@@ -8,7 +8,6 @@ import com.tovo.erp.contrat.model.SalaireHistorique;
 import com.tovo.erp.contrat.repository.EvenementCarriereRepository;
 import com.tovo.erp.contrat.repository.SalaireHistoriqueRepository;
 import com.tovo.erp.employe.service.EmployeService;
-import com.tovo.erp.employe.service.EmployeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -56,7 +55,8 @@ class CarriereServiceTest {
 
         CarriereDtos.SalaireDto resultat = service.enregistrerSalaire(3L,
                 new CarriereDtos.SalaireRequest(new BigDecimal("900000"), "MGA",
-                        LocalDate.of(2026, 4, 1), "Augmentation annuelle", null), 9L);
+                        LocalDate.of(2026, 4, 1), "Augmentation annuelle", null,
+                        null, null, null, null, null), 9L);
 
         assertEquals(new BigDecimal("900000"), resultat.montantBrut());
         assertEquals(LocalDate.of(2026, 3, 31), courant.getDateFin());

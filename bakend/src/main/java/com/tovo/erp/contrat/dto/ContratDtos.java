@@ -174,7 +174,13 @@ public final class ContratDtos {
             Integer tauxActivite,
             boolean principale,
             MotifAffectation motif,
-            AffectationStatut statut) {
+            AffectationStatut statut,
+            String categorie,
+            String classification,
+            String echelon,
+            LocalDateTime enregistreLe,
+            LocalDateTime remplaceLe,
+            Long idMouvement) {
 
         public static AffectationDto de(Affectation affectation) {
             return new AffectationDto(
@@ -191,8 +197,29 @@ public final class ContratDtos {
                     affectation.getTauxActivite(),
                     affectation.isPrincipale(),
                     affectation.getMotif(),
-                    affectation.getStatut());
+                    affectation.getStatut(),
+                    affectation.getCategorie(),
+                    affectation.getClassification(),
+                    affectation.getEchelon(),
+                    affectation.getEnregistreLe(),
+                    affectation.getRemplaceLe(),
+                    affectation.getIdMouvement());
         }
+    }
+
+    public record AffectationMobiliteRequest(
+            @NotNull Long idPoste,
+            Long idDepartement,
+            Long idService,
+            Long idManager,
+            String lieuTravail,
+            @NotNull LocalDate dateDebut,
+            LocalDate dateFin,
+            @NotBlank String motif,
+            String categorie,
+            String classification,
+            String echelon,
+            Long idMouvement) {
     }
 
     /** Tache d'integration exposee en lecture. */
