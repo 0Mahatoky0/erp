@@ -36,6 +36,22 @@ public class BulletinPaieController {
         return service.calculer(mois);
     }
 
+    @PostMapping("/periodes/{idPeriode}/consolider")
+    public BulletinPaieDtos.PeriodeDto consolider(@PathVariable Long idPeriode) {
+        return service.consolider(idPeriode);
+    }
+
+    @PostMapping("/periodes/{idPeriode}/valider")
+    public BulletinPaieDtos.PeriodeDto valider(@PathVariable Long idPeriode) {
+        return service.valider(idPeriode);
+    }
+
+    @PostMapping("/periodes/{idPeriode}/statut")
+    public BulletinPaieDtos.PeriodeDto changerStatut(@PathVariable Long idPeriode,
+                                                     @RequestParam String statut) {
+        return service.changerStatut(idPeriode, statut);
+    }
+
     @GetMapping("/periodes/{idPeriode}")
     public BulletinPaieDtos.PeriodeAvecBulletinsDto lire(@PathVariable Long idPeriode) {
         return service.lire(idPeriode);
@@ -51,6 +67,23 @@ public class BulletinPaieController {
             @PathVariable Long idBulletin,
             @Valid @RequestBody BulletinPaieDtos.RetenueRequest request) {
         return service.enregistrerRetenue(idBulletin, request);
+    }
+
+    @PutMapping("/bulletins/{idBulletin}/ajustement")
+    public BulletinPaieDtos.BulletinDto ajuster(
+            @PathVariable Long idBulletin,
+            @Valid @RequestBody BulletinPaieDtos.AjustementRequest request) {
+        return service.ajuster(idBulletin, request);
+    }
+
+    @GetMapping("/bulletins/{idBulletin}")
+    public BulletinPaieDtos.BulletinDetailDto detail(@PathVariable Long idBulletin) {
+        return service.detail(idBulletin);
+    }
+
+    @GetMapping("/bulletins/{idBulletin}/lignes")
+    public java.util.List<BulletinPaieDtos.LigneDto> lignes(@PathVariable Long idBulletin) {
+        return service.lignes(idBulletin);
     }
 
     @PostMapping("/periodes/{idPeriode}/cloturer")

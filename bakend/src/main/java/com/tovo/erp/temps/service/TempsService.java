@@ -28,7 +28,9 @@ import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class TempsService {
@@ -468,6 +470,24 @@ public class TempsService {
         heureSup.setStatut(cible);
         heureSup.setDateCalcul(LocalDateTime.now());
         return TempsDtos.HeureSupplementaireDto.de(heuresSupRepository.save(heureSup));
+    }
+
+    @Transactional(readOnly = true)
+    public List<TempsDtos.VariablePaieDto> variablesPaie(LocalDate debut, LocalDate fin) {
+        Map<Long, int[]> parEmploye = new LinkedHashMap<>();
+        heuresSupRepository.variablesPaie(debut, fin, HeureSupplementaire.Statut.VALIDEE)
+                .forEach(heure -> {
+                    int[] minutes = parEmploye.computeIfAbsent(heure.getIdEmploye(), cle -> new int[5]);
+                    minutes[0] += heure.getMinutesHs30();
+                    minutes[1] += heure.getMinutesHs50();
+                    minutes[2] += heure.getMinutesNuit();
+                    minutes[3] += heure.getMinutesDimanche();
+                    minutes[4] += heure.getMinutesFerie();
+                });
+        return parEmploye.entrySet().stream()
+                .map(e -> new TempsDtos.VariablePaieDto(e.getKey(), e.getValue()[0], e.getValue()[1],
+                        e.getValue()[2], e.getValue()[3], e.getValue()[4]))
+                .toList();
     }
 
     @Transactional(readOnly = true)

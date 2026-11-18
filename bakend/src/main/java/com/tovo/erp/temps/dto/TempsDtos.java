@@ -184,6 +184,10 @@ public final class TempsDtos {
     public record HeureSupplementaireStatutRequest(@NotBlank String statut) {
     }
 
+    public record VariablePaieDto(Long idEmploye, int minutesHs30, int minutesHs50,
+                                  int minutesNuit, int minutesDimanche, int minutesFerie) {
+    }
+
     public record PointageBrutRequest(
             @NotNull Long idEmploye,
             @NotNull LocalDateTime horodatage,
