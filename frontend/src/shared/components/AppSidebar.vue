@@ -95,6 +95,11 @@ const sections = computed(() => {
     carriere.push({ nom: 'carriere-mobilite', label: 'Carrière et mobilité', icon: 'pi pi-sitemap' })
   }
 
+  const discipline = []
+  if (auth.estRh || auth.estDirection || auth.estManager) {
+    discipline.push({ nom: 'discipline-dossiers', label: 'Discipline', icon: 'pi pi-shield' })
+  }
+
   return [
     { label: 'Demande', items: principal },
     { label: 'Gestion', items: gestion },
@@ -107,6 +112,7 @@ const sections = computed(() => {
     { label: 'Évaluation', items: evaluation },
     { label: 'Formation', items: formation },
     { label: 'Carrière', items: carriere },
+    { label: 'Discipline', items: discipline },
   ]
     .filter((s) => s.items.length)
     .map((s) => ({
