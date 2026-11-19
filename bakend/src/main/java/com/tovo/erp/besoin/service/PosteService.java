@@ -40,8 +40,12 @@ public class PosteService {
     /** Liste des postes filtres par service, etat actif et recherche textuelle. */
     @Transactional(readOnly = true)
     public List<PosteDto.Liste> lister(Long idService, Boolean actif, String recherche) {
+        Map<Long, Long> pourvus = sommesParPoste(posteRepository.countAffectationsActivesParPoste());
+        Map<Long, Long> enCours = sommesParPoste(ligneRepository.countPlacesEnCoursParPoste());
         return posteRepository.rechercher(idService, actif, Recherche.motif(recherche)).stream()
-                .map(poste -> PosteDto.Liste.de(poste, ligneRepository.countByPosteId(poste.getId())))
+                .map(poste -> deAvecCapacite(poste, ligneRepository.countByPosteId(poste.getId()),
+                        pourvus.getOrDefault(poste.getId(), 0L),
+                        enCours.getOrDefault(poste.getId(), 0L)))
                 .toList();
     }
 
@@ -60,7 +64,9 @@ public class PosteService {
     public PosteDto.Liste trouver(Long id) {
         Poste poste = posteRepository.findById(id)
                 .orElseThrow(() -> BusinessException.notFound("Le poste " + id + " n'existe pas."));
-        return PosteDto.Liste.de(poste, ligneRepository.countByPosteId(poste.getId()));
+        return deAvecCapacite(poste, ligneRepository.countByPosteId(poste.getId()),
+                posteRepository.countAffectationsActives(poste.getId()),
+                ligneRepository.countPlacesEnCours(poste.getId()));
     }
 
     /** Cree un poste officiel (role RH). */
@@ -80,7 +86,7 @@ public class PosteService {
         poste.setSalaireMax(demande.salaireMax());
         poste.setActif(true);
         posteRepository.save(poste);
-        return PosteDto.Liste.de(poste, 0);
+        return deAvecCapacite(poste, 0, 0, 0);
     }
 
     /** Modifie un poste officiel et gere son activation (RM-011). */
@@ -97,7 +103,9 @@ public class PosteService {
         poste.setSalaireMax(demande.salaireMax());
         poste.setActif(demande.actif());
         posteRepository.save(poste);
-        return PosteDto.Liste.de(poste, ligneRepository.countByPosteId(poste.getId()));
+        return deAvecCapacite(poste, ligneRepository.countByPosteId(poste.getId()),
+                posteRepository.countAffectationsActives(poste.getId()),
+                ligneRepository.countPlacesEnCours(poste.getId()));
     }
 
     /** Desactive un poste : il reste visible dans l'historique (RM-011). */
@@ -107,7 +115,25 @@ public class PosteService {
                 .orElseThrow(() -> BusinessException.notFound("Le poste " + id + " n'existe pas."));
         poste.setActif(false);
         posteRepository.save(poste);
-        return PosteDto.Liste.de(poste, ligneRepository.countByPosteId(poste.getId()));
+        return deAvecCapacite(poste, ligneRepository.countByPosteId(poste.getId()),
+                posteRepository.countAffectationsActives(poste.getId()),
+                ligneRepository.countPlacesEnCours(poste.getId()));
+    }
+
+    private PosteDto.Liste deAvecCapacite(Poste poste, long nbPostesLies,
+                                          long postesPourvus, long placesEnCoursRecrutement) {
+        int effectifAutorise = poste.getEffectifAutorise() == null ? 0 : poste.getEffectifAutorise();
+        long placesDisponibles = Math.max(0L,
+                (long) effectifAutorise - postesPourvus - placesEnCoursRecrutement);
+        return PosteDto.Liste.de(poste, nbPostesLies, postesPourvus,
+                placesEnCoursRecrutement, placesDisponibles);
+    }
+
+    private Map<Long, Long> sommesParPoste(List<Object[]> lignes) {
+        return lignes.stream().collect(Collectors.toMap(
+                ligne -> ((Number) ligne[0]).longValue(),
+                ligne -> ((Number) ligne[1]).longValue(),
+                Long::sum));
     }
 
     /**

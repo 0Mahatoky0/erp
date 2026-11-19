@@ -16,6 +16,25 @@ public interface DemandeRecrutementPosteRepository extends JpaRepository<Demande
     /** Nombre de lignes de demande qui referencent un poste donne. */
     long countByPosteId(Long idPoste);
 
+    @Query("""
+            select l.poste.id, coalesce(sum(l.effectif - coalesce(l.nombrePourvus, 0)), 0L)
+            from DemandeRecrutementPoste l
+            where l.poste is not null
+              and l.statut = com.tovo.erp.besoin.model.StatutLigne.ACCEPTEE
+              and coalesce(l.nombrePourvus, 0) < l.effectif
+            group by l.poste.id
+            """)
+    List<Object[]> countPlacesEnCoursParPoste();
+
+    @Query("""
+            select coalesce(sum(l.effectif - coalesce(l.nombrePourvus, 0)), 0L)
+            from DemandeRecrutementPoste l
+            where l.poste.id = :idPoste
+              and l.statut = com.tovo.erp.besoin.model.StatutLigne.ACCEPTEE
+              and coalesce(l.nombrePourvus, 0) < l.effectif
+            """)
+    long countPlacesEnCours(@Param("idPoste") Long idPoste);
+
     List<DemandeRecrutementPoste> findByStatutOrderByDateCreationDesc(StatutLigne statut);
 
     /** Charge les details des lignes deja approuvees par au moins une etape. */

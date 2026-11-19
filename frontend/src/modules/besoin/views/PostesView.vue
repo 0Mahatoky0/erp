@@ -194,6 +194,10 @@ async function desactiver(poste) {
           <Column field="departement" header="Departement" />
           <Column header="Salaire min"><template #body="{ data }">{{ formatMontant(data.salaireMin) }}</template></Column>
           <Column header="Salaire max"><template #body="{ data }">{{ formatMontant(data.salaireMax) }}</template></Column>
+          <Column field="effectifAutorise" header="Effectif autorise" />
+          <Column field="postesPourvus" header="Pourvus" />
+          <Column field="placesEnCoursRecrutement" header="En recrutement" />
+          <Column field="placesDisponibles" header="Places disponibles" />
           <Column field="nbPostesLies" header="Demandes liees" />
           <Column header="Etat"><template #body="{ data }"><Tag :value="data.actif ? 'Actif' : 'Desactive'" :severity="data.actif ? 'success' : 'secondary'" rounded /></template></Column>
           <Column v-if="auth.estRh" header="">

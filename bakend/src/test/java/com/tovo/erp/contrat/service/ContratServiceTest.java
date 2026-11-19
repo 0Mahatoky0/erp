@@ -340,7 +340,7 @@ class ContratServiceTest {
         when(contrats.findByIdEmployeOrderByDateDebutDesc(2L)).thenReturn(List.of(contrat));
         when(affectations.findByIdEmployeOrderByDateDebutDesc(2L)).thenReturn(List.of());
         PosteDto.Liste poste = new PosteDto.Liste(7L, 2L, "Informatique", 3L, "Technique",
-                "Developpeur", "Developpement", null, null, 1, null, null, true, 0);
+                "Developpeur", "Developpement", null, null, 1, null, null, true, 0, 0, 0, 0);
         when(postes.trouver(7L)).thenReturn(poste);
         when(affectations.compterAffectationsSurPeriode(eq(7L), any(), any(), any()))
                 .thenReturn(1L);

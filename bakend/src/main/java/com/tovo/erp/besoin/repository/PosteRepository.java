@@ -40,4 +40,17 @@ public interface PosteRepository extends JpaRepository<Poste, Long> {
     List<Poste> rechercher(@Param("idService") Long idService,
                            @Param("actif") Boolean actif,
                            @Param("motif") String motif);
+
+    @Query(value = """
+            select id_poste, count(*) from affectation
+            where id_poste is not null and statut in ('ACTIVE', 'PLANIFIEE')
+            group by id_poste
+            """, nativeQuery = true)
+    List<Object[]> countAffectationsActivesParPoste();
+
+    @Query(value = """
+            select count(*) from affectation
+            where id_poste = :idPoste and statut in ('ACTIVE', 'PLANIFIEE')
+            """, nativeQuery = true)
+    long countAffectationsActives(@Param("idPoste") Long idPoste);
 }

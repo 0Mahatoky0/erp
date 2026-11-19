@@ -251,7 +251,7 @@ class PropositionServiceTest {
         return new PosteDto.Liste(
                 id, 2L, "Informatique", 3L, "Technique", "Developpeur", "Developpement",
                 new BigDecimal(salaireMin), new BigDecimal(salaireMax), null, null, null,
-                true, 0);
+                true, 0, 0, 0, 0);
     }
 
     private UtilisateurConnecte utilisateur(Long id, String role) {

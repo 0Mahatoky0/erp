@@ -18,10 +18,17 @@ public final class PosteDto {
                         Long idDepartement, String departement,
                         String intitule, String description,
                         BigDecimal salaireMin, BigDecimal salaireMax,
-                        Integer effectifAutorise, String categorie, String site,
-                        boolean actif, long nbPostesLies) {
+                         Integer effectifAutorise, String categorie, String site,
+                         boolean actif, long nbPostesLies,
+                         long postesPourvus, long placesEnCoursRecrutement,
+                         long placesDisponibles) {
 
         public static Liste de(Poste poste, long nbPostesLies) {
+            return de(poste, nbPostesLies, 0, 0, 0);
+        }
+
+        public static Liste de(Poste poste, long nbPostesLies, long postesPourvus,
+                               long placesEnCoursRecrutement, long placesDisponibles) {
             return new Liste(
                     poste.getId(),
                     poste.getService().getId(),
@@ -36,7 +43,10 @@ public final class PosteDto {
                     poste.getCategorie(),
                     poste.getSite(),
                     poste.isActif(),
-                    nbPostesLies);
+                    nbPostesLies,
+                    postesPourvus,
+                    placesEnCoursRecrutement,
+                    placesDisponibles);
         }
     }
 
