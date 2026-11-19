@@ -565,7 +565,8 @@ public class MouvementCarriereService {
             promotions.save(promotion);
         }
         if (requete.type() == com.tovo.erp.carriere.model.TypeMouvementCarriere.MUTATION
-                || requete.type() == com.tovo.erp.carriere.model.TypeMouvementCarriere.DETACHEMENT) {
+                || requete.type() == com.tovo.erp.carriere.model.TypeMouvementCarriere.DETACHEMENT
+                || requete.type() == com.tovo.erp.carriere.model.TypeMouvementCarriere.CHANGEMENT_POSTE) {
             var m = Objects.requireNonNull(requete.mutation(), "La mutation est obligatoire.");
             Mutation mutation = new Mutation();
             mutation.setIdMouvement(mouvement.getId());

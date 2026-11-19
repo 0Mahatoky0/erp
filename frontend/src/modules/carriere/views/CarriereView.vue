@@ -23,8 +23,8 @@ const dateValidite = ref(aujourdHui)
 const dateConnaissance = ref(aujourdHui)
 const chargement = ref(false)
 
-const typesMouvement = ['PROMOTION', 'MUTATION', 'CHANGEMENT_SALAIRE']
-const typesMutation = ['DEFINITIVE', 'TEMPORAIRE', 'DETACHEMENT']
+const typesMouvement = ['PROMOTION', 'MUTATION', 'DETACHEMENT', 'CHANGEMENT_POSTE', 'CHANGEMENT_SALAIRE']
+const typesMutation = ['INTERNE_SERVICE', 'INTER_DEPARTEMENT', 'GEOGRAPHIQUE', 'TEMPORAIRE', 'DETACHEMENT']
 const initiatives = ['EMPLOYEUR', 'SALARIE']
 
 const mouvementForm = ref({
@@ -67,6 +67,8 @@ const campagneForm = ref({
 
 const nombre = (valeur) =>
   valeur === '' || valeur === null || valeur === undefined ? null : Number(valeur)
+
+const estMutation = (type) => ['MUTATION', 'DETACHEMENT', 'CHANGEMENT_POSTE'].includes(type)
 
 async function action(promise, message, apres) {
   try {
@@ -121,9 +123,11 @@ function payloadMouvement() {
           nouveauSalaire: nombre(f.salairePromotion),
         }
       : null,
-    mutation: f.type === 'MUTATION'
+    mutation: estMutation(f.type)
       ? {
-          type: f.typeMutation,
+          type: f.type === 'DETACHEMENT' ? 'DETACHEMENT'
+            : f.type === 'CHANGEMENT_POSTE' ? 'INTERNE_SERVICE'
+              : f.typeMutation,
           initiative: f.initiativeMutation,
           idPosteOrigine: nombre(f.ancienPoste),
           idPosteDestination: nombre(f.nouveauPoste),
@@ -170,10 +174,20 @@ function creerCampagne() {
   }), 'Campagne créée.', charger)
 }
 
+function refuserMouvement(mouvement) {
+  const motif = window.prompt('Motif du refus', 'Refus hiérarchique')
+  if (motif) action(api.refuser(mouvement.id, motif), 'Mouvement refusé.', charger)
+}
+
+function refuserAvenant(mouvement) {
+  const motif = window.prompt('Motif du refus du salarié', 'Avenant refusé')
+  if (motif) action(api.refuserAvenant(mouvement.id, motif), 'Avenant refusé.', charger)
+}
+
 function severity(statut) {
   if (['VALIDE', 'APPLIQUE', 'CLOTUREE'].includes(statut)) return 'success'
-  if (['REFUSE', 'ANNULE', 'A_COMPLETER'].includes(statut)) return 'danger'
-  if (['SOUMIS', 'EN_VALIDATION', 'PLANIFIE'].includes(statut)) return 'warn'
+  if (['REFUSE', 'REFUSE_PAR_SALARIE', 'ANNULE', 'A_COMPLETER'].includes(statut)) return 'danger'
+  if (['SOUMIS', 'EN_VALIDATION', 'AVENANT_EN_SIGNATURE', 'PLANIFIE'].includes(statut)) return 'warn'
   return 'info'
 }
 
@@ -201,7 +215,18 @@ onMounted(charger)
           class="w-full rounded border border-surface bg-surface-0 px-3 py-2 dark:bg-surface-900" />
         <PrimeButton label="Reconstituer" icon="pi pi-history" @click="chargerCarriere" />
       </div>
-      <pre v-if="carriere" class="mt-3 overflow-auto rounded bg-surface-100 p-3 text-xs dark:bg-surface-950">{{ carriere }}</pre>
+      <div v-if="carriere" class="mt-3 grid gap-2 rounded bg-surface-100 p-3 text-sm dark:bg-surface-950 md:grid-cols-4">
+        <span><strong>Contrat :</strong> {{ carriere.contrat || '—' }}</span>
+        <span><strong>Poste :</strong> {{ carriere.idPoste || '—' }}</span>
+        <span><strong>Service :</strong> {{ carriere.idService || '—' }}</span>
+        <span><strong>Lieu :</strong> {{ carriere.lieuTravail || '—' }}</span>
+        <span><strong>Catégorie :</strong> {{ carriere.categorie || '—' }}</span>
+        <span><strong>Échelon :</strong> {{ carriere.echelon || '—' }}</span>
+        <span><strong>Taux :</strong> {{ carriere.tauxActivite ?? '—' }}%</span>
+        <span><strong>Régime :</strong> {{ carriere.regimeTravail || '—' }}</span>
+        <span><strong>Affectation :</strong> {{ carriere.statutAffectation || '—' }}</span>
+        <span v-if="carriere.salaireBrut !== null"><strong>Salaire brut :</strong> {{ carriere.salaireBrut }}</span>
+      </div>
       <div class="mt-3">
         <PrimeButton label="Voir la frise" icon="pi pi-list" outlined @click="chargerFrise" />
       </div>
@@ -239,7 +264,7 @@ onMounted(charger)
         <PrimeInputNumber v-model="mouvementForm.salairePromotion" placeholder="Nouveau salaire" />
       </div>
 
-      <div v-if="mouvementForm.type === 'MUTATION'" class="mt-4 grid gap-3 md:grid-cols-3">
+      <div v-if="estMutation(mouvementForm.type)" class="mt-4 grid gap-3 md:grid-cols-3">
         <PrimeSelect v-model="mouvementForm.typeMutation" :options="typesMutation" class="w-full" />
         <PrimeSelect v-model="mouvementForm.initiativeMutation" :options="initiatives" class="w-full" />
         <PrimeInputNumber v-model="mouvementForm.ancienPoste" placeholder="Poste d'origine" />
@@ -275,16 +300,32 @@ onMounted(charger)
         <Column field="statut" header="Statut">
           <template #body="{ data }"><Tag :value="data.statut" :severity="severity(data.statut)" /></template>
         </Column>
+        <Column header="Étape">
+          <template #body="{ data }">
+            {{ data.statut === 'EN_VALIDATION' ? (data.conditions?.etapeCourante ?? 0) + 1 : '—' }}
+          </template>
+        </Column>
         <Column header="Actions">
           <template #body="{ data }">
             <div class="flex flex-wrap gap-1">
-              <PrimeButton icon="pi pi-send" text rounded title="Soumettre"
-                @click="action(api.soumettre(data.id), 'Mouvement soumis.', charger)" />
-              <PrimeButton icon="pi pi-check" text rounded title="Valider"
-                @click="action(api.valider(data.id, {}), 'Mouvement validé.', charger)" />
-              <PrimeButton icon="pi pi-play" text rounded title="Appliquer"
-                @click="action(api.appliquer(data.id), 'Mouvement appliqué.', charger)" />
-              <PrimeButton icon="pi pi-ban" text rounded title="Annuler"
+              <PrimeButton v-if="['BROUILLON', 'A_COMPLETER'].includes(data.statut)" icon="pi pi-send" text rounded
+                title="Soumettre" @click="action(api.soumettre(data.id), 'Mouvement soumis.', charger)" />
+              <PrimeButton v-if="data.statut === 'EN_VALIDATION'" icon="pi pi-check" text rounded title="Valider l'étape"
+                @click="action(api.valider(data.id, {}), 'Étape validée.', charger)" />
+              <PrimeButton v-if="data.statut === 'EN_VALIDATION'" icon="pi pi-ban" text rounded title="Refuser"
+                @click="refuserMouvement(data)" />
+              <PrimeButton v-if="data.statut === 'VALIDE'" icon="pi pi-file-edit" text rounded title="Préparer l'avenant"
+                @click="action(api.preparerAvenant(data.id), 'Avenant préparé.', charger)" />
+              <PrimeButton v-if="data.statut === 'AVENANT_EN_SIGNATURE'" icon="pi pi-check-circle" text rounded
+                title="Signer l'avenant" @click="action(api.signerAvenant(data.id), 'Avenant signé.', charger)" />
+              <PrimeButton v-if="data.statut === 'AVENANT_EN_SIGNATURE'" icon="pi pi-times-circle" text rounded
+                title="Refuser l'avenant" @click="refuserAvenant(data)" />
+              <PrimeButton v-if="data.statut === 'VALIDE'" icon="pi pi-calendar" text rounded title="Planifier"
+                @click="action(api.planifier(data.id), 'Mouvement planifié.', charger)" />
+              <PrimeButton v-if="['VALIDE', 'PLANIFIE'].includes(data.statut)" icon="pi pi-play" text rounded
+                title="Appliquer" @click="action(api.appliquer(data.id), 'Mouvement appliqué.', charger)" />
+              <PrimeButton v-if="['BROUILLON', 'SOUMIS', 'EN_VALIDATION', 'PLANIFIE', 'VALIDE'].includes(data.statut)"
+                icon="pi pi-undo" text rounded title="Annuler"
                 @click="action(api.annuler(data.id, 'Annulation RH'), 'Mouvement annulé.', charger)" />
             </div>
           </template>
