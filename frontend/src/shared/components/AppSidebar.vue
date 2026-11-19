@@ -100,6 +100,11 @@ const sections = computed(() => {
     discipline.push({ nom: 'discipline-dossiers', label: 'Discipline', icon: 'pi pi-shield' })
   }
 
+  const rupture = []
+  if (auth.estRh || auth.estDirection || auth.estManager || auth.estFinance) {
+    rupture.push({ nom: 'rupture-dossiers', label: 'Rupture', icon: 'pi pi-user-minus' })
+  }
+
   return [
     { label: 'Demande', items: principal },
     { label: 'Gestion', items: gestion },
@@ -113,6 +118,7 @@ const sections = computed(() => {
     { label: 'Formation', items: formation },
     { label: 'Carrière', items: carriere },
     { label: 'Discipline', items: discipline },
+    { label: 'Rupture', items: rupture },
   ]
     .filter((s) => s.items.length)
     .map((s) => ({
