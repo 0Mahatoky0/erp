@@ -77,6 +77,7 @@ const sections = computed(() => {
   const evaluation = []
   if (auth.estRh || auth.estDirection || auth.estManager) {
     evaluation.push({ nom: 'evaluation-campagnes', label: 'Campagnes d’évaluation', icon: 'pi pi-chart-line' })
+    evaluation.push({ nom: 'evaluation-competences', label: 'Objectifs et compétences', icon: 'pi pi-star' })
   }
   if (auth.estEmploye) {
     evaluation.push({ nom: 'evaluation-mes-objectifs', label: 'Mes évaluations', icon: 'pi pi-star' })

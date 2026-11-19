@@ -9,6 +9,12 @@ export const evaluationRoutes = [
         component: () => import('./views/EvaluationView.vue'),
         meta: { titre: 'Évaluation et compétences', roles: ['RH', 'DIRECTION', 'MANAGER'] },
       },
+      {
+        path: 'competences',
+        name: 'evaluation-competences',
+        component: () => import('./views/EvaluationView.vue'),
+        meta: { titre: 'Objectifs et compétences', roles: ['RH', 'DIRECTION', 'MANAGER'] },
+      },
     ],
   },
   {

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import PrimeButton from 'primevue/button'
@@ -9,11 +9,14 @@ import PrimeSelect from 'primevue/select'
 import PrimeInputNumber from 'primevue/inputnumber'
 import PrimeDialog from 'primevue/dialog'
 import Tag from 'primevue/tag'
+import { useRoute, useRouter } from 'vue-router'
 import { evaluationApi as api } from '@/modules/evaluation/api/evaluationApi'
 import { employeApi } from '@/modules/employe/api/employeApi'
 import { useNotificationStore } from '@/shared/store/useNotificationStore'
 
 const notifications = useNotificationStore()
+const route = useRoute()
+const router = useRouter()
 const aujourdHui = new Date().toISOString().slice(0, 10)
 const campagnes = ref([])
 const evaluations = ref([])
@@ -25,7 +28,12 @@ const idCampagne = ref(null)
 const idEmploye = ref(null)
 const evaluation = ref(null)
 const chargement = ref(false)
-const typesCampagne = ['ANNUELLE', 'SEMESTRIELLE', 'PORTATION']
+const pageActive = computed(() => route.name === 'evaluation-competences' ? 'competences' : 'evaluations')
+const typesCampagne = [
+  { label: 'Annuelle', value: 'ANNUELLE' },
+  { label: 'Mi-parcours', value: 'MI_PARCOURS' },
+  { label: 'Fin de période d’essai', value: 'FIN_ESSAI' },
+]
 
 const campagneForm = ref({
   libelle: '',
@@ -186,18 +194,34 @@ function severity(statut) {
 }
 
 onMounted(async () => {
+  if (route.query.idCampagne) idCampagne.value = Number(route.query.idCampagne)
   await charger()
   await chargerEvaluations()
+  if (route.query.idEmploye) {
+    const ligne = evaluations.value.find((item) => String(item.idEmploye) === String(route.query.idEmploye))
+    if (ligne) await selectionnerEvaluation(ligne)
+  }
 })
 </script>
 
 <template>
   <div class="flex flex-col gap-5">
     <div>
-      <h1>Évaluation et compétences</h1>
-      <p class="mt-1 text-sm text-muted-color">Campagnes, entretiens, écarts de compétences et besoins de formation.</p>
+      <p class="text-sm text-muted-color">Campagnes, entretiens, écarts de compétences et besoins de formation.</p>
     </div>
 
+    <nav class="flex flex-wrap gap-2" aria-label="Pages du bloc évaluation">
+      <PrimeButton label="Campagnes et évaluations" icon="pi pi-chart-line"
+        :outlined="pageActive !== 'evaluations'"
+        @click="router.push({ name: 'evaluation-campagnes', query: { idCampagne, idEmploye } })" />
+      <PrimeButton label="Objectifs et compétences" icon="pi pi-star"
+        :outlined="pageActive !== 'competences'"
+        @click="router.push({ name: 'evaluation-competences', query: { idCampagne, idEmploye } })" />
+      <PrimeButton label="Planification des formations" icon="pi pi-calendar-plus" outlined
+        @click="router.push({ name: 'formation-planification' })" />
+    </nav>
+
+    <template v-if="pageActive === 'evaluations'">
     <section class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
       <div class="flex flex-wrap items-end gap-3">
         <div class="min-w-64 flex-1">
@@ -212,17 +236,18 @@ onMounted(async () => {
         <div class="flex flex-col gap-2"><label class="text-sm font-semibold">Libellé</label>
           <PrimeInputText v-model="campagneForm.libelle" placeholder="Campagne annuelle 2026" /></div>
         <div class="flex flex-col gap-2"><label class="text-sm font-semibold">Type</label>
-          <PrimeSelect v-model="campagneForm.type" :options="typesCampagne" class="w-full" /></div>
+          <PrimeSelect v-model="campagneForm.type" :options="typesCampagne" option-label="label"
+            option-value="value" class="w-full" /></div>
         <div class="flex flex-col gap-2"><label class="text-sm font-semibold">Population</label>
           <PrimeInputText v-model="campagneForm.population" /></div>
         <div class="flex flex-col gap-2"><label class="text-sm font-semibold">Ouverture</label>
           <PrimeInputText v-model="campagneForm.dateOuverture" placeholder="AAAA-MM-JJ" /></div>
         <div class="flex flex-col gap-2"><label class="text-sm font-semibold">Clôture</label>
           <PrimeInputText v-model="campagneForm.dateCloture" placeholder="AAAA-MM-JJ" /></div>
-        <div class="flex flex-col gap-2"><label class="text-sm font-semibold">Pondérations</label>
-          <PrimeInputText v-model="campagneForm.ponderationsJson" /></div>
         <div class="col-span-full flex flex-col gap-2"><label class="text-sm font-semibold">Grille comportementale</label>
-          <PrimeInputText v-model="campagneForm.grilleJson" /></div>
+          <PrimeTextarea v-model="campagneForm.grilleJson" rows="2" class="w-full font-mono text-sm" /></div>
+        <div class="col-span-full flex flex-col gap-2"><label class="text-sm font-semibold">Pondérations</label>
+          <PrimeTextarea v-model="campagneForm.ponderationsJson" rows="2" class="w-full font-mono text-sm" /></div>
       </div>
       <PrimeButton label="Créer la campagne" icon="pi pi-plus" class="mt-4" @click="creerCampagne" />
     </section>
@@ -309,7 +334,9 @@ onMounted(async () => {
         </div>
       </div>
     </section>
+    </template>
 
+    <template v-else>
     <section class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
       <h2>Objectifs</h2>
       <div class="mt-3 grid gap-3 md:grid-cols-3">
@@ -345,6 +372,9 @@ onMounted(async () => {
     <section class="grid gap-5 lg:grid-cols-2">
       <div class="rounded-lg border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
         <h2>Écarts de compétences</h2>
+        <p class="mt-1 text-sm text-muted-color">
+          Les écarts ouverts sont générés à la clôture de l’évaluation et priorisés selon leur importance.
+        </p>
         <DataTable :value="ecarts" striped-rows class="mt-3">
           <Column field="idCompetence" header="Compétence" />
           <Column field="ecart" header="Écart" />
@@ -369,6 +399,10 @@ onMounted(async () => {
         </DataTable>
       </div>
     </section>
+    <p v-if="!evaluation" class="text-sm text-muted-color">
+      Sélectionne d’abord une évaluation dans « Campagnes et évaluations » pour afficher ses objectifs et ses écarts.
+    </p>
+    </template>
 
     <PrimeDialog v-model:visible="dialogueAvenant" modal header="Avenant d'objectif" class="w-[min(32rem,95vw)]">
       <div class="flex flex-col gap-3">

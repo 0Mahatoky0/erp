@@ -76,6 +76,8 @@ public class EvaluationService {
     public List<EvaluationDtos.EvaluationDto> evaluations(Long idCampagne) {
         return evaluations.findByIdCampagneOrderByIdEmployeAsc(idCampagne).stream()
                 .filter(this::peutLire)
+                .peek(e -> audit.enregistrer("EVALUATION_CONSULTATION", "evaluation", e.getId(),
+                        null, "LISTE"))
                 .map(EvaluationDtos.EvaluationDto::de).toList();
     }
 
@@ -85,6 +87,8 @@ public class EvaluationService {
         Long idEmploye = employes.idParUtilisateur(utilisateur.getId())
                 .orElseThrow(() -> BusinessException.notFound("Profil salarié introuvable."));
         return evaluations.findByIdEmployeOrderByDateCreationDesc(idEmploye).stream()
+                .peek(e -> audit.enregistrer("EVALUATION_CONSULTATION", "evaluation", e.getId(),
+                        null, "MES_EVALUATIONS"))
                 .map(EvaluationDtos.EvaluationDto::de).toList();
     }
 
@@ -102,6 +106,8 @@ public class EvaluationService {
     public EvaluationDtos.EvaluationDto evaluation(Long idEvaluation) {
         Evaluation evaluation = evaluationEntity(idEvaluation);
         verifierAcces(evaluation);
+        audit.enregistrer("EVALUATION_CONSULTATION", "evaluation", idEvaluation,
+                null, "DETAIL");
         return EvaluationDtos.EvaluationDto.de(evaluation);
     }
 
@@ -127,6 +133,10 @@ public class EvaluationService {
         if (evaluateur == null) {
             throw new BusinessException("EVALUATEUR_INTROUVABLE",
                     "Aucun manager actif n'est rattaché à l'affectation de ce salarié.");
+        }
+        if (evaluateur.equals(idEmploye)) {
+            throw new BusinessException("CONFLIT_PROCHE_DECLARE",
+                    "Le salarié ne peut pas être son propre évaluateur.");
         }
         Evaluation evaluation = new Evaluation();
         evaluation.setIdEmploye(idEmploye);
@@ -306,14 +316,42 @@ public class EvaluationService {
         return closee;
     }
 
+    @Transactional
+    public EvaluationDtos.EvaluationDto avancer(Long idEvaluation) {
+        Evaluation evaluation = evaluationEntity(idEvaluation);
+        UtilisateurConnecte utilisateur = utilisateurCourant.exiger();
+        if (!utilisateur.getId().equals(evaluation.getIdEvaluateur()) && !estRhOuDirection(utilisateur)) {
+            throw BusinessException.forbidden("Seul l'évaluateur ou la RH peut faire avancer l'évaluation.");
+        }
+        String suivant;
+        switch (evaluation.getStatut()) {
+            case "BROUILLON", "AUTO_EVALUATION" -> suivant = Evaluation.Statut.EVALUATION_MANAGER.name();
+            case "EVALUATION_MANAGER" -> suivant = Evaluation.Statut.ENTRETIEN.name();
+            case "ENTRETIEN" -> suivant = Evaluation.Statut.VALIDEE_N2.name();
+            case "VALIDEE_N2" -> suivant = Evaluation.Statut.SIGNEE.name();
+            default -> throw new BusinessException("TRANSITION_EVALUATION_INVALIDE",
+                    "Cette évaluation ne peut pas être avancée depuis " + evaluation.getStatut() + ".");
+        }
+        evaluation.setStatut(suivant);
+        EvaluationDtos.EvaluationDto avancee = EvaluationDtos.EvaluationDto.de(evaluations.save(evaluation));
+        audit.enregistrer("EVALUATION_AVANCEE", "evaluation", idEvaluation, null, suivant);
+        return avancee;
+    }
+
     @Transactional(readOnly = true)
     public List<EvaluationDtos.EcartDto> ecartsEmploye(Long idEmploye) {
+        verifierAccesEmploye(idEmploye);
+        audit.enregistrer("ECART_COMPETENCE_CONSULTATION", "employe", idEmploye,
+                null, "ECARTS");
         return ecarts.findByIdEmployeOrderByPrioriteScoreDesc(idEmploye).stream()
                 .map(EvaluationDtos.EcartDto::de).toList();
     }
 
     @Transactional(readOnly = true)
     public List<EvaluationDtos.BesoinFormationDto> besoinsEmploye(Long idEmploye) {
+        verifierAccesEmploye(idEmploye);
+        audit.enregistrer("BESOIN_FORMATION_CONSULTATION", "employe", idEmploye,
+                null, "BESOINS");
         return besoins.findByIdEmployeOrderByDateCreationDesc(idEmploye).stream()
                 .map(EvaluationDtos.BesoinFormationDto::de).toList();
     }
@@ -571,6 +609,17 @@ public class EvaluationService {
         if (!peutLire(evaluation)) {
             throw BusinessException.forbidden("Cette évaluation est confidentielle.");
         }
+    }
+
+    private void verifierAccesEmploye(Long idEmploye) {
+        UtilisateurConnecte utilisateur = utilisateurCourant.exiger();
+        if (estRhOuDirection(utilisateur)) {
+            return;
+        }
+        if (employes.idParUtilisateur(utilisateur.getId()).map(idEmploye::equals).orElse(false)) {
+            return;
+        }
+        throw BusinessException.forbidden("Accès confidentiel interdit.");
     }
 
     private void verifierStatut(Evaluation evaluation, Evaluation.Statut... attendus) {

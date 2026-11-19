@@ -87,6 +87,11 @@ public class EvaluationController {
         return service.clore(idEvaluation);
     }
 
+    @PostMapping("/evaluations/{idEvaluation}/avancer")
+    public EvaluationDtos.EvaluationDto avancer(@PathVariable Long idEvaluation) {
+        return service.avancer(idEvaluation);
+    }
+
     @GetMapping("/employes/{idEmploye}/ecarts")
     public List<EvaluationDtos.EcartDto> ecarts(@PathVariable Long idEmploye) {
         return service.ecartsEmploye(idEmploye);

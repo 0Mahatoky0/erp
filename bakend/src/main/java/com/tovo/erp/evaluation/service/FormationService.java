@@ -45,6 +45,7 @@ import java.util.Optional;
 public class FormationService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final BigDecimal PRESENCE_MINIMALE = new BigDecimal("0.80");
+    private static final BigDecimal SEUIL_VALIDATION_DIRECTION = new BigDecimal("1000000");
     private static final List<String> PLACES_CONFIRMEES = List.of("CONFIRMEE", "PRESENT");
 
     private final FormationRepository formations;
@@ -446,6 +447,11 @@ public class FormationService {
     }
 
     private void verifierBudget(Long idEmploye, SessionFormation session) {
+        if (session.getCout().compareTo(SEUIL_VALIDATION_DIRECTION) > 0
+                && !utilisateurCourant.aLeRole(Roles.DIRECTION)) {
+            throw new BusinessException("VALIDATION_DIRECTION_REQUISE",
+                    "Une formation dont le coût dépasse le seuil exige une validation de la direction.");
+        }
         EmployeEmbaucheDto employe = employes.dossier(idEmploye);
         Long idDepartement = employe.idDepartement();
         if (idDepartement == null) {

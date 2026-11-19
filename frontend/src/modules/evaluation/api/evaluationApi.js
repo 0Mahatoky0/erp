@@ -29,6 +29,7 @@ export const evaluationApi = {
   nouvelleVersion: (idEvaluation, motif) =>
     api.post(`${base}/evaluations/${idEvaluation}/nouvelle-version?motif=${encodeURIComponent(motif)}`),
   clore: (idEvaluation) => api.post(`${base}/evaluations/${idEvaluation}/cloturer`),
+  avancer: (idEvaluation) => api.post(`${base}/evaluations/${idEvaluation}/avancer`),
 
   ecarts: (idEmploye) => api.get(`${base}/employes/${idEmploye}/ecarts`),
   besoins: (idEmploye) => api.get(`${base}/employes/${idEmploye}/besoins`),
@@ -56,6 +57,8 @@ export const evaluationApi = {
   inscriptionsEmploye: (idEmploye) => api.get(`${base}/formation/employes/${idEmploye}/inscriptions`),
   mesInscriptions: () => api.get(`${base}/formation/mes-inscriptions`),
   demanderInscription: (donnees) => api.post(`${base}/formation/inscriptions`, donnees),
+  demanderInscriptionSession: (idSession, donnees) =>
+    api.post(`${base}/formation/sessions/${idSession}/inscriptions?idEmploye=${donnees.idEmploye}${donnees.idBesoin ? `&idBesoin=${donnees.idBesoin}` : ''}`),
   demanderInscriptionPourMoi: (idSession, idBesoin) =>
     api.post(`${base}/formation/inscriptions/moi?idSession=${idSession}${idBesoin ? `&idBesoin=${idBesoin}` : ''}`),
   deciderInscriptionManager: (idInscription, donnees) =>

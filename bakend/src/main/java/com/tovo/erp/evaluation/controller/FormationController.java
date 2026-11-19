@@ -78,6 +78,18 @@ public class FormationController {
         return service.demanderInscription(request);
     }
 
+    @PostMapping("/sessions/{idSession}/inscriptions")
+    public EvaluationDtos.InscriptionDto demanderInscriptionSession(
+            @PathVariable Long idSession,
+            @RequestParam(required = false) Long idEmploye,
+            @RequestParam(required = false) Long idBesoin) {
+        if (idEmploye == null) {
+            return service.demanderInscriptionPourMoi(idSession, idBesoin);
+        }
+        return service.demanderInscription(
+                new EvaluationDtos.InscriptionRequest(idSession, idEmploye, idBesoin));
+    }
+
     @PostMapping("/inscriptions/moi")
     public EvaluationDtos.InscriptionDto demanderInscriptionPourMoi(@RequestParam Long idSession,
                                                                     @RequestParam(required = false) Long idBesoin) {
