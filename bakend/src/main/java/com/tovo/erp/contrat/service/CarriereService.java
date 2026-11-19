@@ -13,6 +13,7 @@ import com.tovo.erp.shared.BusinessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -166,6 +167,18 @@ public class CarriereService {
                         requete.ancienneValeur(), requete.nouvelleValeur(), null,
                         requete.commentaire()),
                 idUtilisateur);
+    }
+
+    @Transactional
+    public void enregistrerDepart(Long idEmploye, LocalDate dateSortie, String reference) {
+        verifierEmploye(idEmploye);
+        EvenementCarriere evenement = new EvenementCarriere();
+        evenement.setIdEmploye(idEmploye);
+        evenement.setType(TypeEvenementCarriere.DEPART);
+        evenement.setDateEffet(dateSortie);
+        evenement.setNouvelleValeur(reference);
+        evenement.setCommentaire(reference);
+        evenements.save(evenement);
     }
 
     /**

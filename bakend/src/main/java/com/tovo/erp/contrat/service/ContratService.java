@@ -197,6 +197,15 @@ public class ContratService {
     }
 
     @Transactional(readOnly = true)
+    public List<ContratDtos.ContratDto> actifsDe(Long idEmploye) {
+        return contrats.findByIdEmployeOrderByDateDebutDesc(idEmploye).stream()
+                .filter(c -> c.getStatutExecution() == StatutExecutionContrat.EN_COURS)
+                .filter(c -> c.getEtat() == ContratEtat.VALIDE || c.getEtat() == ContratEtat.SIGNE)
+                .map(ContratDtos.ContratDto::de)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<ContratDtos.ContratDto> lister(String etat) {
         ContratEtat filtre = etat == null || etat.isBlank() ? null
                 : lireEnum(ContratEtat.class, etat, "ETAT_CONTRAT_INVALIDE",
@@ -460,6 +469,28 @@ public class ContratService {
     @Transactional
     public ContratDtos.ContratDto annuler(Long id, ContratDtos.AnnulationRequest demande) {
         return annuler(id, demande, null);
+    }
+
+    @Transactional
+    public void clorePourRupture(Long idContrat, LocalDate dateSortie, boolean rompu) {
+        Contrat contrat = contratEntite(idContrat);
+        contrat.setDateFinReelle(dateSortie);
+        contrat.setDateCloture(LocalDateTime.now());
+        contrat.setStatutExecution(rompu ? StatutExecutionContrat.ROMPU
+                : StatutExecutionContrat.TERMINE);
+        contrats.save(contrat);
+        for (Affectation affectation :
+                affectations.findByIdContratOrderByDateDebutDesc(contrat.getId())) {
+            if (affectation.getStatut() == AffectationStatut.ACTIVE) {
+                affectation.setStatut(AffectationStatut.TERMINEE);
+                affectation.setDateFin(dateSortie);
+                affectations.save(affectation);
+            } else if (affectation.getStatut() == AffectationStatut.PLANIFIEE) {
+                affectation.setStatut(AffectationStatut.ANNULEE);
+                affectation.setDateFin(dateSortie);
+                affectations.save(affectation);
+            }
+        }
     }
 
     /** Renouvellement d'un CDD dans la limite legale (RG-B4-12). */

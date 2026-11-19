@@ -83,6 +83,9 @@ public class Employe {
     @Column(name = "date_premiere_embauche")
     private LocalDate datePremiereEmbauche;
 
+    @Column(name = "date_sortie")
+    private LocalDate dateSortie;
+
     @Column(name = "id_poste")
     private Long idPoste;
 

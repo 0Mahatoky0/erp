@@ -43,6 +43,24 @@ public class MissionService {
                 .toList();
     }
 
+    @Transactional
+    public int annulerFutures(Long idEmploye, LocalDate dateSortie, String motif) {
+        if (dateSortie == null) {
+            return 0;
+        }
+        List<Mission> futures = missions.findByIdEmployeOrderByDateDebutDesc(idEmploye).stream()
+                .filter(mission -> mission.getStatut() == StatutMission.PLANIFIEE)
+                .filter(mission -> mission.getDateDebut() != null
+                        && mission.getDateDebut().isAfter(dateSortie))
+                .toList();
+        for (Mission mission : futures) {
+            mission.setStatut(StatutMission.ANNULEE);
+            mission.setCommentaireSuivi(motif);
+            missions.save(mission);
+        }
+        return futures.size();
+    }
+
     @Transactional(readOnly = true)
     public List<SuiviDto> suivis(Long idMission) {
         exigerMission(idMission);

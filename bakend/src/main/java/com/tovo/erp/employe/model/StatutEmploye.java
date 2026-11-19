@@ -15,6 +15,8 @@ public enum StatutEmploye {
     /** L'employe a quitte l'entreprise. */
     PARTI,
 
+    SORTI,
+
     /** Le candidat a accepte puis ne s'est pas presente a la prise de poste. */
     NON_PRIS_POSTE
 }

@@ -8,6 +8,7 @@ import com.tovo.erp.discipline.model.NiveauAccesDisciplinaire;
 import com.tovo.erp.discipline.model.ProcedureDisciplinaire;
 import com.tovo.erp.discipline.model.StatutProcedure;
 import com.tovo.erp.discipline.model.TypeEtapeProcedure;
+import com.tovo.erp.discipline.model.TypeSanction;
 import com.tovo.erp.discipline.repository.EtapeRepository;
 import com.tovo.erp.discipline.repository.IncidentRepository;
 import com.tovo.erp.discipline.repository.PieceRepository;
@@ -377,6 +378,19 @@ public class ProcedureService {
         audit.enregistrer("PROCEDURE_ANNULEE", "procedure", idProcedure,
                 null, procedure.getStatut().name(), motif, null);
         return enDto(procedure);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean licenciementDecide(Long idProcedure, Long idEmploye) {
+        if (idProcedure == null || idEmploye == null) {
+            return false;
+        }
+        return procedures.findById(idProcedure)
+                .filter(procedure -> idEmploye.equals(procedure.getIdEmploye()))
+                .filter(procedure -> procedure.getStatut() == StatutProcedure.DECIDEE)
+                .map(ProcedureDisciplinaire::getDecision)
+                .filter(TypeSanction.LICENCIEMENT_DISCIPLINAIRE.name()::equals)
+                .isPresent();
     }
 
     private ProcedureDisciplinaire procedureModifiable(Long idProcedure, String motif) {
