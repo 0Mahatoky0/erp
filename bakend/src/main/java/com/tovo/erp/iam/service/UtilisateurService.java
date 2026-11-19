@@ -104,6 +104,11 @@ public class UtilisateurService {
         return profil(utilisateur);
     }
 
+    @Transactional
+    public void desactiverCompte(Long idUtilisateur) {
+        changerActivation(idUtilisateur, false);
+    }
+
     /** Liste des roles disponibles. */
     @Transactional(readOnly = true)
     public List<String> roles() {

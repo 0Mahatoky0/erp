@@ -9,4 +9,5 @@ import java.util.Optional;
 public interface BulletinPaieRepository extends JpaRepository<BulletinPaie, Long> {
     List<BulletinPaie> findByIdPeriodeOrderByIdEmployeAsc(Long idPeriode);
     Optional<BulletinPaie> findByIdPeriodeAndIdEmploye(Long idPeriode, Long idEmploye);
+    Optional<BulletinPaie> findByIdPeriodeAndIdEmployeAndType(Long idPeriode, Long idEmploye, String type);
 }

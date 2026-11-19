@@ -53,6 +53,33 @@ public class SalaireHistorique {
     @Column(name = "id_utilisateur")
     private Long idUtilisateur;
 
+    @Column(name = "enregistre_le", nullable = false)
+    private LocalDateTime enregistreLe = LocalDateTime.now();
+
+    @Column(name = "enregistre_par")
+    private Long enregistrePar;
+
+    @Column(name = "remplace_le")
+    private LocalDateTime remplaceLe;
+
+    @Column(name = "remplace_par_id")
+    private Long remplaceParId;
+
+    @Column(name = "motif_correction", columnDefinition = "TEXT")
+    private String motifCorrection;
+
+    @Column(name = "id_mouvement")
+    private Long idMouvement;
+
+    @Column(name = "id_avenant")
+    private Long idAvenant;
+
+    @Column(name = "ancien_montant", precision = 15, scale = 2)
+    private BigDecimal ancienMontant;
+
+    @Column(name = "variation_pct", precision = 8, scale = 4)
+    private BigDecimal variationPct;
+
     @Column(name = "date_creation", nullable = false)
     private LocalDateTime dateCreation;
 

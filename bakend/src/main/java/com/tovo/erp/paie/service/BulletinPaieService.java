@@ -202,11 +202,13 @@ public class BulletinPaieService {
             if (contrat == null || salaireBase == null) {
                 continue;
             }
-            BulletinPaie bulletin = bulletins.findByIdPeriodeAndIdEmploye(periode.getId(), employe.id())
+            BulletinPaie bulletin = bulletins.findByIdPeriodeAndIdEmployeAndType(periode.getId(), employe.id(),
+                            BulletinPaieDtos.TYPE_NORMAL)
                     .orElseGet(BulletinPaie::new);
             bulletin.setIdPeriode(periode.getId());
             bulletin.setIdEmploye(employe.id());
             bulletin.setIdContrat(contrat.id());
+            bulletin.setType(BulletinPaieDtos.TYPE_NORMAL);
             bulletin.setDateCreation(bulletin.getDateCreation() == null ? LocalDateTime.now()
                     : bulletin.getDateCreation());
             if (bulletin.getStatut() == StatutBulletinPaie.ANNULE) {
@@ -345,7 +347,7 @@ public class BulletinPaieService {
         }
         List<BulletinPaie> bulletinsPeriode = bulletins.findByIdPeriodeOrderByIdEmployeAsc(idPeriode);
         for (BulletinPaie bulletin : bulletinsPeriode) {
-            if (fiches.findByIdPeriodeAndIdEmploye(idPeriode, bulletin.getIdEmploye()).isPresent()) {
+            if (fiches.findByIdBulletin(bulletin.getId()).isPresent()) {
                 continue;
             }
             BulletinPaieDtos.BulletinDetailDto detail = detail(bulletin.getId());
@@ -375,6 +377,70 @@ public class BulletinPaieService {
         periode.setDateCloture(LocalDateTime.now());
         audit.enregistrer("CLOTURE_PAIE", "periode_paie", periode.getId(), null, VERSION_REGLES);
         return BulletinPaieDtos.PeriodeDto.de(periodes.save(periode));
+    }
+
+    @Transactional
+    public BulletinPaieDtos.BulletinDto genererBulletinSolde(BulletinPaieDtos.SoldePaieRequest demande) {
+        if (demande == null) {
+            throw new BusinessException("BULLETIN_SOLDE_MANQUANT",
+                    "Les donnees du bulletin de solde sont obligatoires.");
+        }
+        LocalDate debutMois = demande.mois().withDayOfMonth(1);
+        PeriodePaie periode = periodes.findByMois(debutMois).orElseGet(() -> {
+            PeriodePaie nouvelle = new PeriodePaie();
+            nouvelle.setMois(debutMois);
+            nouvelle.setStatut(StatutPeriodePaie.OUVERTE);
+            return periodes.save(nouvelle);
+        });
+        BulletinPaie bulletin = bulletins.findByIdPeriodeAndIdEmployeAndType(periode.getId(),
+                        demande.idEmploye(), BulletinPaieDtos.TYPE_SOLDE_TOUT_COMPTE)
+                .orElse(null);
+        if (bulletin != null && !demande.referenceExterne().equals(bulletin.getMotifAjustement())) {
+            throw new BusinessException("BULLETIN_SOLDE_EXISTANT",
+                    "Un bulletin de solde existe deja pour ce mois et cet employe.");
+        }
+        if (bulletin == null) {
+            bulletin = new BulletinPaie();
+            bulletin.setDateCreation(LocalDateTime.now());
+        }
+        bulletin.setIdPeriode(periode.getId());
+        bulletin.setIdEmploye(demande.idEmploye());
+        bulletin.setIdContrat(demande.idContrat());
+        bulletin.setType(BulletinPaieDtos.TYPE_SOLDE_TOUT_COMPTE);
+        bulletin.setJourPayes(demande.joursPayes());
+        bulletin.setSalaireBasePeriode(demande.salaireBase());
+        bulletin.setSalaireBrut(demande.salaireBrut());
+        bulletin.setBaseImposable(BigDecimal.ZERO.setScale(2));
+        bulletin.setCotisationsSalariales(BigDecimal.ZERO.setScale(2));
+        bulletin.setImpot(BigDecimal.ZERO.setScale(2));
+        bulletin.setRetenues(demande.retenues());
+        bulletin.setSalaireNet(demande.net());
+        bulletin.setCotisationsPatronales(BigDecimal.ZERO.setScale(2));
+        bulletin.setPrimeExceptionnelle(BigDecimal.ZERO.setScale(2));
+        bulletin.setAvance(BigDecimal.ZERO.setScale(2));
+        bulletin.setRetenueManuelle(BigDecimal.ZERO.setScale(2));
+        bulletin.setPersonnesCharge(0);
+        bulletin.setMotifAjustement(demande.referenceExterne());
+        bulletin.setStatut(StatutBulletinPaie.VALIDE);
+        bulletin.setDateValidation(LocalDateTime.now());
+        if (bulletin.getNumero() == null) {
+            bulletin.setNumero(references.suivante("BULLETIN_SOLDE", "BSD", 6));
+        }
+        BulletinPaie enregistre = bulletins.save(bulletin);
+
+        List<LigneBulletin> lignesSolde = new ArrayList<>();
+        int ordre = 0;
+        for (BulletinPaieDtos.SoldePaieLigneDto ligne : demande.lignes()) {
+            lignesSolde.add(ligneSolde(enregistre, ligne, ++ordre));
+        }
+        lignes.deleteByIdBulletin(enregistre.getId());
+        lignes.saveAll(lignesSolde);
+        if (fiches.findByIdBulletin(enregistre.getId()).isEmpty()) {
+            creerFicheSolde(enregistre, lignesSolde, debutMois);
+        }
+        audit.enregistrer("BULLETIN_SOLDE", "bulletin_paie", enregistre.getId(), null,
+                demande.referenceExterne());
+        return BulletinPaieDtos.BulletinDto.de(enregistre);
     }
 
     @Transactional
@@ -643,6 +709,47 @@ public class BulletinPaieService {
         if (!peutLire(idEmploye)) {
             throw BusinessException.forbidden("Vous n'avez pas accès à cette fiche de paie.");
         }
+    }
+
+    private LigneBulletin ligneSolde(BulletinPaie bulletin, BulletinPaieDtos.SoldePaieLigneDto demande,
+                                     int ordre) {
+        LigneBulletin ligne = new LigneBulletin();
+        ligne.setIdBulletin(bulletin.getId());
+        ligne.setCodeRubrique(demande.code());
+        ligne.setLibelle(demande.libelle());
+        ligne.setOrdre(ordre);
+        ligne.setBase(demande.base());
+        ligne.setTaux(demande.taux());
+        ligne.setQuantite(demande.quantite());
+        ligne.setMontantSalarial(demande.montant());
+        ligne.setMontantPatronal(BigDecimal.ZERO.setScale(2));
+        ligne.setFormuleAppliquee(demande.formule());
+        ligne.setVersionRegle(VERSION_REGLES);
+        ligne.setSources(demande.source());
+        return ligne;
+    }
+
+    private void creerFicheSolde(BulletinPaie bulletin, List<LigneBulletin> lignesSolde, LocalDate mois) {
+        BulletinPaieDtos.BulletinDetailDto detail = new BulletinPaieDtos.BulletinDetailDto(
+                BulletinPaieDtos.BulletinDto.de(bulletin),
+                lignesSolde.stream().map(BulletinPaieDtos.LigneDto::de).toList());
+        String contenu;
+        try {
+            contenu = MAPPER.writeValueAsString(detail);
+        } catch (Exception ex) {
+            throw new BusinessException("FICHE_PAIE_SERIALISATION",
+                    "Impossible de figer la fiche de paie : " + ex.getMessage());
+        }
+        FichePaie fiche = new FichePaie();
+        fiche.setIdBulletin(bulletin.getId());
+        fiche.setIdPeriode(bulletin.getIdPeriode());
+        fiche.setIdEmploye(bulletin.getIdEmploye());
+        fiche.setMois(mois);
+        fiche.setNumero(bulletin.getNumero());
+        fiche.setNetAPayer(bulletin.getSalaireNet());
+        fiche.setContenuJson(contenu);
+        fiche.setHash(empreinte(contenu));
+        fiches.save(fiche);
     }
 
     private String empreinte(String contenu) {

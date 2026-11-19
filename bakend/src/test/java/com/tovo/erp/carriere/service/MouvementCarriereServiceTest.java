@@ -1,0 +1,267 @@
+package com.tovo.erp.carriere.service;
+
+import com.tovo.erp.besoin.service.PosteService;
+import com.tovo.erp.carriere.dto.CarriereMobiliteDtos;
+import com.tovo.erp.carriere.model.CampagneAugmentation;
+import com.tovo.erp.carriere.model.MouvementCarriere;
+import com.tovo.erp.carriere.model.Promotion;
+import com.tovo.erp.carriere.model.StatutMouvementCarriere;
+import com.tovo.erp.carriere.model.TypeMouvementCarriere;
+import com.tovo.erp.carriere.repository.CampagneAugmentationRepository;
+import com.tovo.erp.carriere.repository.GrilleSalarialeRepository;
+import com.tovo.erp.carriere.repository.MouvementCarriereRepository;
+import com.tovo.erp.carriere.repository.MutationRepository;
+import com.tovo.erp.carriere.repository.PromotionRepository;
+import com.tovo.erp.contrat.dto.ContratDtos;
+import com.tovo.erp.contrat.service.CarriereService;
+import com.tovo.erp.contrat.service.ContratService;
+import com.tovo.erp.discipline.service.EligibiliteDisciplineService;
+import com.tovo.erp.employe.dto.EmployeDto;
+import com.tovo.erp.employe.service.EmployeService;
+import com.tovo.erp.evaluation.service.EvaluationService;
+import com.tovo.erp.evaluation.service.ReferentielService;
+import com.tovo.erp.paie.service.BulletinCoherenceService;
+import com.tovo.erp.shared.BusinessException;
+import com.tovo.erp.shared.MouvementAppliqueEvent;
+import com.tovo.erp.shared.Roles;
+import com.tovo.erp.shared.UtilisateurConnecte;
+import com.tovo.erp.shared.UtilisateurCourant;
+import com.tovo.erp.shared.audit.JournalAuditService;
+import com.tovo.erp.shared.reference.ReferenceService;
+import com.tovo.erp.temps.service.RegimeTravailService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.springframework.context.ApplicationEventPublisher;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class MouvementCarriereServiceTest {
+
+    @Mock private MouvementCarriereRepository mouvements;
+    @Mock private PromotionRepository promotions;
+    @Mock private MutationRepository mutations;
+    @Mock private GrilleSalarialeRepository grilles;
+    @Mock private CampagneAugmentationRepository campagnes;
+    @Mock private EmployeService employes;
+    @Mock private ContratService contrats;
+    @Mock private CarriereService historique;
+    @Mock private PosteService postes;
+    @Mock private RegimeTravailService regimes;
+    @Mock private BulletinCoherenceService paie;
+    @Mock private EvaluationService evaluations;
+    @Mock private ReferentielService referentiel;
+    @Mock private EligibiliteDisciplineService eligibiliteDiscipline;
+    @Mock private UtilisateurCourant utilisateurCourant;
+    @Mock private JournalAuditService audit;
+    @Mock private ReferenceService references;
+    @Mock private ApplicationEventPublisher evenements;
+
+    private MouvementCarriereService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new MouvementCarriereService(mouvements, promotions, mutations, grilles,
+                campagnes, employes, contrats, historique, postes, regimes, paie, evaluations, referentiel,
+                eligibiliteDiscipline, utilisateurCourant, audit, references, evenements);
+    }
+
+    @Test
+    void creeUnMouvementAvecSaReference() {
+        when(employes.existe(5L)).thenReturn(true);
+        when(references.suivante("MOUVEMENT_CARRIERE", "MV", 4)).thenReturn("MV-2026-0001");
+        when(utilisateurCourant.exiger()).thenReturn(utilisateur());
+        when(mouvements.save(any())).thenAnswer(invocation -> {
+            MouvementCarriere mouvement = invocation.getArgument(0);
+            mouvement.setId(1L);
+            return mouvement;
+        });
+
+        CarriereMobiliteDtos.MouvementDto resultat = service.creer(new CarriereMobiliteDtos.MouvementRequest(
+                5L, TypeMouvementCarriere.PROMOTION, "RH", "Promotion", "Justification",
+                LocalDate.of(2026, 4, 1), null, null, null, false, null,
+                new CarriereMobiliteDtos.PromotionRequest("CHANGEMENT_ECHELON", 7L, 8L,
+                        "CADRE", "CADRE", "E2", "E3", new BigDecimal("1200000"),
+                        new BigDecimal("1500000")),
+                null, new BigDecimal("1500000")));
+
+        assertEquals("MV-2026-0001", resultat.reference());
+        assertEquals(TypeMouvementCarriere.PROMOTION, resultat.type());
+        verify(promotions).save(any());
+    }
+
+    @Test
+    void refuseUneDerogationAutoDeclareeParLeDemandeur() {
+        when(employes.existe(5L)).thenReturn(true);
+        when(utilisateurCourant.exiger()).thenReturn(utilisateur());
+
+        BusinessException erreur = assertThrows(BusinessException.class, () ->
+                service.creer(new CarriereMobiliteDtos.MouvementRequest(
+                        5L, TypeMouvementCarriere.PROMOTION, "RH", "Promotion", "Justification",
+                        LocalDate.of(2026, 4, 1), null, null, null, true, "Motif",
+                        new CarriereMobiliteDtos.PromotionRequest("CHANGEMENT_ECHELON", 7L, 8L,
+                                "CADRE", "CADRE", "E2", "E3", new BigDecimal("1200000"),
+                                new BigDecimal("1500000")),
+                        null, new BigDecimal("1500000"))));
+
+        assertEquals("ACCES_REFUSE", erreur.getCode());
+    }
+
+    @Test
+    void exigeLeRoleDeLEtapeCouranteDuCircuit() {
+        when(mouvements.findById(1L)).thenReturn(Optional.of(mouvementEnValidation()));
+        when(utilisateurCourant.exiger()).thenReturn(utilisateur());
+
+        BusinessException erreur = assertThrows(BusinessException.class, () ->
+                service.valider(1L, new CarriereMobiliteDtos.DecisionRequest(null, null, null)));
+
+        assertEquals("ACCES_REFUSE", erreur.getCode());
+    }
+
+    @Test
+    void avanceDansLeCircuitApresValidationDuManager() {
+        when(mouvements.findById(1L)).thenReturn(Optional.of(mouvementEnValidation()));
+        when(mouvements.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(utilisateurCourant.exiger()).thenReturn(
+                new UtilisateurConnecte(10L, "MANAGER", "manager@erp.test", Roles.MANAGER, 3L, "Direction"));
+
+        CarriereMobiliteDtos.MouvementDto resultat =
+                service.valider(1L, new CarriereMobiliteDtos.DecisionRequest(null, null, null));
+
+        assertEquals(StatutMouvementCarriere.EN_VALIDATION, resultat.statut());
+        assertEquals(1, ((Number) resultat.conditions().get("etapeCourante")).intValue());
+    }
+
+    @Test
+    void publieUnEvenementLorsqueLeMouvementEstApplique() {
+        MouvementCarriere mouvement = new MouvementCarriere();
+        mouvement.setId(1L);
+        mouvement.setIdEmploye(5L);
+        mouvement.setType(TypeMouvementCarriere.PROMOTION);
+        mouvement.setStatut(StatutMouvementCarriere.VALIDE);
+        mouvement.setDateEffetSouhaitee(LocalDate.of(2026, 4, 1));
+        Promotion promotion = new Promotion();
+        promotion.setIdMouvement(1L);
+        promotion.setIdNouveauPoste(8L);
+        promotion.setNouvelleCategorie("CADRE");
+        promotion.setNouveauEchelon("E3");
+        promotion.setAncienSalaire(new BigDecimal("1200000"));
+        promotion.setNouveauSalaire(new BigDecimal("1500000"));
+        when(mouvements.findById(1L)).thenReturn(Optional.of(mouvement));
+        when(mouvements.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(promotions.findByIdMouvement(1L)).thenReturn(Optional.of(promotion));
+        when(utilisateurCourant.exiger()).thenReturn(utilisateur());
+
+        service.appliquer(1L);
+
+        ArgumentCaptor<MouvementAppliqueEvent> captor = ArgumentCaptor.forClass(MouvementAppliqueEvent.class);
+        verify(evenements).publishEvent(captor.capture());
+        assertEquals(5L, captor.getValue().idEmploye());
+        assertEquals(8L, captor.getValue().idPosteDestination());
+        assertEquals(new BigDecimal("1500000"), captor.getValue().salaireNouveau());
+    }
+
+    @Test
+    void reconstitueLaCarriereALaDateDeConnaissance() {
+        ContratDtos.AffectationDto affectation = new ContratDtos.AffectationDto(1L, 5L, 3L, 7L,
+                2L, 4L, 9L, "Antananarivo", LocalDate.of(2026, 1, 1), null, 100, true, null, null,
+                "CADRE", null, "E3", LocalDateTime.of(2026, 1, 1, 8, 0), null, null);
+        com.tovo.erp.contrat.dto.CarriereDtos.SalaireDto salaire =
+                new com.tovo.erp.contrat.dto.CarriereDtos.SalaireDto(2L, 5L, 3L,
+                        new BigDecimal("1200000"), "MGA", LocalDate.of(2026, 1, 1), null,
+                        "Salaire du contrat", 9L, LocalDateTime.of(2026, 1, 1, 8, 0),
+                        LocalDateTime.of(2026, 1, 1, 8, 0), null, null, null, null, null);
+        when(contrats.affectationsDe(5L)).thenReturn(List.of(affectation));
+        when(historique.salaires(5L)).thenReturn(List.of(salaire));
+        when(contrats.contratsDe(5L)).thenReturn(List.of());
+        when(utilisateurCourant.exiger()).thenReturn(utilisateur());
+
+        CarriereMobiliteDtos.CarriereDateDto resultat = service.carriereALaDate(5L,
+                LocalDate.of(2026, 3, 20), LocalDate.of(2026, 4, 1));
+
+        assertEquals(7L, resultat.idPoste());
+        assertEquals(new BigDecimal("1200000"), resultat.salaireBrut());
+        assertEquals("CADRE", resultat.categorie());
+    }
+
+    @Test
+    void cacheLesSalairesEtLesSanctionsAuManager() {
+        ContratDtos.AffectationDto affectation = new ContratDtos.AffectationDto(1L, 5L, 3L, 7L,
+                2L, 4L, 11L, "Antananarivo", LocalDate.of(2026, 1, 1), null, 100, true, null, null,
+                "CADRE", null, "E3", LocalDateTime.of(2026, 1, 1, 8, 0), null, null);
+        var sanction = new com.tovo.erp.contrat.dto.CarriereDtos.EvenementDto(12L, 5L,
+                com.tovo.erp.contrat.model.TypeEvenementCarriere.SANCTION,
+                LocalDate.of(2026, 2, 1), null, "Avertissement", null, null, 9L,
+                LocalDateTime.of(2026, 2, 1, 8, 0));
+        when(utilisateurCourant.exiger()).thenReturn(
+                new UtilisateurConnecte(10L, "MANAGER", "manager@erp.test", Roles.MANAGER, 3L, "Direction"));
+        when(employes.idParUtilisateur(10L)).thenReturn(Optional.of(11L));
+        when(contrats.affectationsDe(5L)).thenReturn(List.of(affectation));
+        when(historique.evenements(5L)).thenReturn(List.of(sanction));
+
+        var lignes = service.frise(5L);
+
+        assertTrue(lignes.stream().noneMatch(l -> "SALAIRE".equals(l.source())));
+        assertTrue(lignes.stream().noneMatch(l -> "SANCTION".equals(l.type())));
+        verify(historique, never()).salaires(5L);
+    }
+
+    @Test
+    void simuleUneCampagneSansDepasserLEnveloppe() {
+        CampagneAugmentation campagne = new CampagneAugmentation();
+        campagne.setId(8L);
+        campagne.setLibelle("Augmentation 2026");
+        campagne.setDateEffet(LocalDate.of(2026, 5, 1));
+        campagne.setEnveloppeBudgetaire(new BigDecimal("1000000"));
+        campagne.setPopulation("ACTIFS");
+        campagne.setRegle("{\"taux\":0.05}");
+        when(campagnes.findById(8L)).thenReturn(Optional.of(campagne));
+        when(employes.actifs()).thenReturn(List.of(new EmployeDto.Actif(5L, "Rakoto", "Andry", 2L,
+                LocalDate.of(2024, 1, 1))));
+        when(historique.salairesBaseParIds(List.of(5L))).thenReturn(Map.of(5L, new BigDecimal("1200000")));
+
+        CarriereMobiliteDtos.CampagneDto resultat = service.simulerCampagne(8L);
+
+        assertEquals(0, new BigDecimal("720000").compareTo(
+                (BigDecimal) resultat.simulation().get("impactAnnuel")));
+        assertFalse((Boolean) resultat.simulation().get("depasseEnveloppe"));
+        verify(audit).enregistrer(any(), any(), any(), any(), any());
+        assertTrue(resultat.simulation().containsKey("lignes"));
+    }
+
+    private MouvementCarriere mouvementEnValidation() {
+        MouvementCarriere mouvement = new MouvementCarriere();
+        mouvement.setId(1L);
+        mouvement.setReference("MV-2026-0001");
+        mouvement.setIdEmploye(5L);
+        mouvement.setType(TypeMouvementCarriere.PROMOTION);
+        mouvement.setIdDemandeur(8L);
+        mouvement.setStatut(StatutMouvementCarriere.EN_VALIDATION);
+        mouvement.setConditionsVerifiees(
+                "{\"circuitValidation\":[{\"role\":\"MANAGER\",\"statut\":\"EN_ATTENTE\"},"
+                        + "{\"role\":\"RH\",\"statut\":\"EN_ATTENTE\"}],\"etapeCourante\":0}");
+        return mouvement;
+    }
+
+    private UtilisateurConnecte utilisateur() {
+        return new UtilisateurConnecte(9L, "RH", "rh@erp.test", Roles.RH, 2L, "RH");
+    }
+}

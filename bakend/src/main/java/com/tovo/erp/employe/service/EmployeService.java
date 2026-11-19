@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
@@ -86,6 +87,14 @@ public class EmployeService {
     @Transactional(readOnly = true)
     public Optional<Long> posteDe(Long idEmploye) {
         return employeRepository.findById(idEmploye).map(Employe::getIdPoste);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Long> idUtilisateurDe(Long idEmploye) {
+        if (idEmploye == null) {
+            return Optional.empty();
+        }
+        return employeRepository.findById(idEmploye).map(Employe::getIdUtilisateur);
     }
 
     /** Salaries actifs d'un service, avec leur poste et leur anciennete. */
@@ -253,6 +262,17 @@ public class EmployeService {
         changerStatut(idEmploye, StatutEmploye.NON_PRIS_POSTE);
     }
 
+    @Transactional
+    public void marquerSorti(Long idEmploye, LocalDate dateSortie) {
+        Employe employe = employeRepository.findById(idEmploye)
+                .orElseThrow(() -> BusinessException.notFound(
+                        "L'employe " + idEmploye + " n'existe pas."));
+        employe.setStatut(StatutEmploye.SORTI);
+        employe.setDateSortie(dateSortie);
+        employe.setDateModification(LocalDateTime.now());
+        employeRepository.save(employe);
+    }
+
     /** Identifiants des salaries encore en pre-embauche, en une seule requete. */
     @Transactional(readOnly = true)
     public Set<Long> idsEnPreEmbauche(Collection<Long> ids) {
@@ -271,6 +291,15 @@ public class EmployeService {
                                                           byte[] contenu, Long idContrat,
                                                           LocalDate dateEmission) {
         return enregistrerDocument(idEmploye, TypeDocumentEmploye.CONTRAT, titre,
+                nomFichier, typeMime, contenu, idContrat, dateEmission, null);
+    }
+
+    @Transactional
+    public DocumentEmbaucheDto enregistrerDocumentRupture(Long idEmploye, String titre,
+                                                          String nomFichier, String typeMime,
+                                                          byte[] contenu, Long idContrat,
+                                                          LocalDate dateEmission) {
+        return enregistrerDocument(idEmploye, TypeDocumentEmploye.AUTRE, titre,
                 nomFichier, typeMime, contenu, idContrat, dateEmission, null);
     }
 

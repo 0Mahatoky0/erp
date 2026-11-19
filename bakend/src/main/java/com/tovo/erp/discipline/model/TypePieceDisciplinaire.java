@@ -1,0 +1,6 @@
+package com.tovo.erp.discipline.model;
+
+public enum TypePieceDisciplinaire {
+    RAPPORT_INCIDENT, TEMOIGNAGE, PREUVE, DEMANDE_EXPLICATION, REPONSE,
+    COMPTE_RENDU_ENTRETIEN, DECISION, NOTIFICATION, RECOURS
+}

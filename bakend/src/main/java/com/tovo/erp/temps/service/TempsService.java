@@ -83,6 +83,21 @@ public class TempsService {
     }
 
     @Transactional
+    public int supprimerPlanningsFuturs(Long idEmploye, LocalDate dateSortie) {
+        if (dateSortie == null) {
+            return 0;
+        }
+        List<PlanningTravail> futurs = planningRepository.findByIdEmployeOrderByDateDebutDesc(idEmploye)
+                .stream()
+                .filter(p -> p.getDateDebut() == null
+                        ? p.getDateFin() != null && p.getDateFin().isAfter(dateSortie)
+                        : p.getDateDebut().isAfter(dateSortie))
+                .toList();
+        planningRepository.deleteAll(futurs);
+        return futurs.size();
+    }
+
+    @Transactional
     public TempsDtos.PlanningDto creerPlanning(TempsDtos.PlanningRequest demande) {
         if (!demande.heureFin().isAfter(demande.heureDebut())) {
             throw new BusinessException("HORAIRES_INVALIDES", "L'heure de fin doit etre posterieure a l'heure de debut.");

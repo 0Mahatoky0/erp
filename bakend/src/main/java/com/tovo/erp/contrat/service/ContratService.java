@@ -197,6 +197,15 @@ public class ContratService {
     }
 
     @Transactional(readOnly = true)
+    public List<ContratDtos.ContratDto> actifsDe(Long idEmploye) {
+        return contrats.findByIdEmployeOrderByDateDebutDesc(idEmploye).stream()
+                .filter(c -> c.getStatutExecution() == StatutExecutionContrat.EN_COURS)
+                .filter(c -> c.getEtat() == ContratEtat.VALIDE || c.getEtat() == ContratEtat.SIGNE)
+                .map(ContratDtos.ContratDto::de)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<ContratDtos.ContratDto> lister(String etat) {
         ContratEtat filtre = etat == null || etat.isBlank() ? null
                 : lireEnum(ContratEtat.class, etat, "ETAT_CONTRAT_INVALIDE",
@@ -462,6 +471,28 @@ public class ContratService {
         return annuler(id, demande, null);
     }
 
+    @Transactional
+    public void clorePourRupture(Long idContrat, LocalDate dateSortie, boolean rompu) {
+        Contrat contrat = contratEntite(idContrat);
+        contrat.setDateFinReelle(dateSortie);
+        contrat.setDateCloture(LocalDateTime.now());
+        contrat.setStatutExecution(rompu ? StatutExecutionContrat.ROMPU
+                : StatutExecutionContrat.TERMINE);
+        contrats.save(contrat);
+        for (Affectation affectation :
+                affectations.findByIdContratOrderByDateDebutDesc(contrat.getId())) {
+            if (affectation.getStatut() == AffectationStatut.ACTIVE) {
+                affectation.setStatut(AffectationStatut.TERMINEE);
+                affectation.setDateFin(dateSortie);
+                affectations.save(affectation);
+            } else if (affectation.getStatut() == AffectationStatut.PLANIFIEE) {
+                affectation.setStatut(AffectationStatut.ANNULEE);
+                affectation.setDateFin(dateSortie);
+                affectations.save(affectation);
+            }
+        }
+    }
+
     /** Renouvellement d'un CDD dans la limite legale (RG-B4-12). */
     @Transactional
     public ContratDtos.ContratDto renouveler(Long id,
@@ -627,6 +658,49 @@ public class ContratService {
                 demande.lieuTravail(), demande.horaires(), demande.dateDebut(),
                 demande.dateFin(), demande.principale(), demande.motif(), statut);
         affectation.setTauxActivite(taux);
+        return ContratDtos.AffectationDto.de(affectations.save(affectation));
+    }
+
+    @Transactional
+    public ContratDtos.AffectationDto appliquerMobilite(Long idEmploye,
+                                                        ContratDtos.AffectationMobiliteRequest demande,
+                                                        Long idUtilisateur) {
+        Contrat contrat = contrats.findByIdEmployeOrderByDateDebutDesc(idEmploye).stream()
+                .filter(c -> c.getEtat() == ContratEtat.VALIDE || c.getEtat() == ContratEtat.SIGNE)
+                .filter(c -> c.getStatutExecution() == StatutExecutionContrat.EN_COURS)
+                .findFirst()
+                .orElseThrow(() -> new BusinessException("AUCUN_CONTRAT_ACTIF",
+                        "Aucun contrat actif pour l'employe " + idEmploye + "."));
+        LocalDateTime maintenant = LocalDateTime.now();
+        for (Affectation ancienne : affectations.findByIdEmployeOrderByDateDebutDesc(idEmploye)) {
+            if (!ancienne.isPrincipale()
+                    || ancienne.getStatut() == AffectationStatut.ANNULEE
+                    || ancienne.getStatut() == AffectationStatut.TERMINEE
+                    || !ancienne.getDateDebut().isBefore(demande.dateDebut())) {
+                continue;
+            }
+            ancienne.setDateFin(demande.dateDebut().minusDays(1));
+            ancienne.setStatut(AffectationStatut.TERMINEE);
+            ancienne.setPrincipale(false);
+            ancienne.setRemplaceLe(maintenant);
+            ancienne.setRemplaceParId(idUtilisateur);
+            affectations.save(ancienne);
+        }
+        controlerAffectation(idEmploye, demande.idPoste(), demande.dateDebut(),
+                demande.dateFin(), true, false);
+        AffectationStatut statut = demande.dateDebut().isAfter(LocalDate.now())
+                ? AffectationStatut.PLANIFIEE : AffectationStatut.ACTIVE;
+        Affectation affectation = creerAffectation(contrat, demande.idPoste(),
+                demande.idDepartement(), demande.idService(), demande.idManager(),
+                demande.lieuTravail(), contrat.getHoraires(), demande.dateDebut(),
+                demande.dateFin(), true, lireEnum(MotifAffectation.class, demande.motif(),
+                        "MOTIF_AFFECTATION_INVALIDE", "Motif d'affectation inconnu : "), statut);
+        affectation.setCategorie(demande.categorie());
+        affectation.setClassification(demande.classification());
+        affectation.setEchelon(demande.echelon());
+        affectation.setIdMouvement(demande.idMouvement());
+        affectation.setEnregistreLe(maintenant);
+        affectation.setEnregistrePar(idUtilisateur);
         return ContratDtos.AffectationDto.de(affectations.save(affectation));
     }
 

@@ -89,6 +89,16 @@ public class EvaluationService {
     }
 
     @Transactional(readOnly = true)
+    public BigDecimal derniereNoteGlobale(Long idEmploye) {
+        return evaluations.findByIdEmployeOrderByDateCreationDesc(idEmploye).stream()
+                .filter(e -> "CLOTUREE".equals(e.getStatut()) || "SIGNEE".equals(e.getStatut()))
+                .map(Evaluation::getNoteGlobale)
+                .filter(java.util.Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+    }
+
+    @Transactional(readOnly = true)
     public EvaluationDtos.EvaluationDto evaluation(Long idEvaluation) {
         Evaluation evaluation = evaluationEntity(idEvaluation);
         verifierAcces(evaluation);

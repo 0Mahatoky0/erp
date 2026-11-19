@@ -5,6 +5,8 @@ public enum MotifAffectation {
     EMBAUCHE,
     MUTATION,
     PROMOTION,
+    CHANGEMENT_POSTE,
     INTERIM,
-    REORGANISATION
+    REORGANISATION,
+    REINTEGRATION
 }

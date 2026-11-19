@@ -17,6 +17,7 @@ import com.tovo.erp.besoin.model.Decision;
 import com.tovo.erp.besoin.model.StatutDemande;
 import com.tovo.erp.besoin.model.StatutLigne;
 import com.tovo.erp.besoin.model.TypeBesoin;
+import com.tovo.erp.besoin.model.TypeRemplacement;
 import com.tovo.erp.besoin.repository.DemandeRecrutementPosteRepository;
 import com.tovo.erp.besoin.repository.DemandeRecrutementRepository;
 import com.tovo.erp.besoin.repository.HistoriqueStatutRepository;
@@ -201,6 +202,25 @@ public class DemandeService {
             ligneRepository.save(nouvelle);
         }
         return resume(entite, lignesDe(entite));
+    }
+
+    @Transactional
+    public Long creerRemplacementSortie(UtilisateurConnecte auteur, Long idService, Long idPoste,
+                                        Long idEmployeRemplace, String motif, LocalDate dateSortie,
+                                        String intitule) {
+        DemandeRecrutement entite = new DemandeRecrutement();
+        entite.setReference(references.suivante("DEMANDE_RECRUTEMENT", "DR", 4));
+        entite.setIdUtilisateur(auteur.getId());
+        entite.setMotif(motif == null ? "" : motif.trim());
+        entite.setDateSouhaitee(dateSortie);
+        entite.setStatut(StatutDemande.BROUILLON);
+        demandeRepository.save(entite);
+
+        DemandeDto.LigneCreation source = new DemandeDto.LigneCreation(
+                idService, idPoste, TypeBesoin.REMPLACEMENT, TypeRemplacement.DEFINITIF,
+                idEmployeRemplace, motif, dateSortie, null, intitule, null, null, 1);
+        ligneRepository.save(ligneRegles.construire(entite, auteur, source));
+        return entite.getId();
     }
 
     /** Modifie l'entete d'une demande tant qu'elle est en brouillon (RM-019). */

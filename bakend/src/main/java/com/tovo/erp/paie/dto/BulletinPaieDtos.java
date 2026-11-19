@@ -11,6 +11,9 @@ import java.util.List;
 public final class BulletinPaieDtos {
     private BulletinPaieDtos() {}
 
+    public static final String TYPE_NORMAL = "NORMAL";
+    public static final String TYPE_SOLDE_TOUT_COMPTE = "SOLDE_TOUT_COMPTE";
+
     public record ParametresRequest(@NotNull @DecimalMin("0.0") BigDecimal tauxCotisationsSalariales,
                                     @NotNull @DecimalMin("0.0") BigDecimal tauxCotisationsPatronales,
                                     @NotNull @DecimalMin("0.0") BigDecimal tauxIrsa,
@@ -37,6 +40,21 @@ public final class BulletinPaieDtos {
                                     @DecimalMin("0.0") BigDecimal avance,
                                     @Min(0) Integer personnesCharge,
                                     @NotBlank String motif) {}
+
+    public record SoldePaieLigneDto(@NotBlank String code, @NotBlank String libelle,
+                                    String categorie, BigDecimal base, BigDecimal quantite,
+                                    BigDecimal taux, @NotNull BigDecimal montant,
+                                    String formule, String source) {}
+
+    public record SoldePaieRequest(@NotNull Long idEmploye, @NotNull Long idContrat,
+                                   @NotNull LocalDate mois, @Min(0) int joursPayes,
+                                   @NotNull BigDecimal salaireBase,
+                                   @NotNull BigDecimal salaireBrut,
+                                   @NotNull BigDecimal retenues,
+                                   @NotNull BigDecimal net,
+                                   @NotBlank String referenceExterne,
+                                   String referencePaiement, String modePaiement,
+                                   @NotNull List<SoldePaieLigneDto> lignes) {}
 
     public record ParametresDto(Long id, BigDecimal tauxCotisationsSalariales,
                                 BigDecimal tauxCotisationsPatronales, BigDecimal tauxIrsa,

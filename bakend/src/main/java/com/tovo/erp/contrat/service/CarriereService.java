@@ -13,12 +13,14 @@ import com.tovo.erp.shared.BusinessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Historique de remuneration et de carriere (bloc 5). Chaque evolution cree une
@@ -26,6 +28,10 @@ import java.util.Map;
  */
 @Service
 public class CarriereService {
+
+    private static final Set<String> MOTIFS_SALAIRE = Set.of(
+            "EMBAUCHE", "PROMOTION", "AUGMENTATION_INDIVIDUELLE", "AUGMENTATION_GENERALE",
+            "ECHELON", "REGULARISATION", "REDUCTION_ACCORD");
 
     private final SalaireHistoriqueRepository salaires;
     private final EvenementCarriereRepository evenements;
@@ -74,6 +80,7 @@ public class CarriereService {
                                                       CarriereDtos.SalaireRequest requete,
                                                       Long idUtilisateur) {
         verifierEmploye(idEmploye);
+        verifierSalaire(requete, idEmploye);
         initialiserDepuisContrats(idEmploye);
         SalaireHistorique courant = salaires
                 .findFirstByIdEmployeOrderByDateEffetDesc(idEmploye)
@@ -98,6 +105,13 @@ public class CarriereService {
         salaire.setDateEffet(requete.dateEffet());
         salaire.setMotif(requete.motif());
         salaire.setIdUtilisateur(idUtilisateur);
+        salaire.setIdMouvement(requete.idMouvement());
+        salaire.setIdAvenant(requete.idAvenant());
+        salaire.setAncienMontant(requete.ancienMontant() == null && courant != null
+                ? courant.getMontantBrut() : requete.ancienMontant());
+        salaire.setVariationPct(requete.variationPct());
+        salaire.setEnregistrePar(requete.idEnregistrePar());
+        salaire.setEnregistreLe(java.time.LocalDateTime.now());
         CarriereDtos.SalaireDto cree = CarriereDtos.SalaireDto.de(salaires.save(salaire));
 
         EvenementCarriere evenement = new EvenementCarriere();
@@ -137,6 +151,36 @@ public class CarriereService {
         return CarriereDtos.EvenementDto.de(evenements.save(evenement));
     }
 
+    @Transactional
+    public CarriereDtos.EvenementDto enregistrerEvenementSimple(Long idEmploye,
+                                                                CarriereDtos.EvenementSimpleRequest requete,
+                                                                Long idUtilisateur) {
+        TypeEvenementCarriere type;
+        try {
+            type = TypeEvenementCarriere.valueOf(requete.type());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new BusinessException("TYPE_EVENEMENT_INVALIDE",
+                    "Type d'evenement de carriere inconnu : " + requete.type());
+        }
+        return enregistrerEvenement(idEmploye,
+                new CarriereDtos.EvenementRequest(type, requete.dateEffet(),
+                        requete.ancienneValeur(), requete.nouvelleValeur(), null,
+                        requete.commentaire()),
+                idUtilisateur);
+    }
+
+    @Transactional
+    public void enregistrerDepart(Long idEmploye, LocalDate dateSortie, String reference) {
+        verifierEmploye(idEmploye);
+        EvenementCarriere evenement = new EvenementCarriere();
+        evenement.setIdEmploye(idEmploye);
+        evenement.setType(TypeEvenementCarriere.DEPART);
+        evenement.setDateEffet(dateSortie);
+        evenement.setNouvelleValeur(reference);
+        evenement.setCommentaire(reference);
+        evenements.save(evenement);
+    }
+
     /**
      * Cree les lignes manquantes a partir des contrats deja signes afin que
      * l'historique demarre a l'embauche sans ressaisie.
@@ -172,6 +216,45 @@ public class CarriereService {
                 evenements.save(evenement);
                 embaucheTracee = true;
             }
+        }
+    }
+
+    private void verifierSalaire(CarriereDtos.SalaireRequest requete, Long idEmploye) {
+        if (requete.montantBrut() == null || requete.montantBrut().signum() < 0) {
+            throw new BusinessException("SALAIRE_MONTANT_INVALIDE",
+                    "Le montant du salaire ne peut pas etre negatif.");
+        }
+        if (requete.dateEffet() == null) {
+            throw new BusinessException("SALAIRE_DATE_OBLIGATOIRE",
+                    "La date d'effet du salaire est obligatoire.");
+        }
+        if (!MOTIFS_SALAIRE.contains(requete.motif())) {
+            throw new BusinessException("SALAIRE_MOTIF_INVALIDE",
+                    "Le motif de salaire est invalide : " + requete.motif());
+        }
+        if (requete.idContrat() == null && requete.idMouvement() == null
+                && requete.idAvenant() == null) {
+            throw new BusinessException("SALAIRE_SANS_PREUVE",
+                    "Un salaire doit etre rattache a un contrat, un avenant ou un mouvement valide.");
+        }
+        if (requete.idContrat() == null) {
+            return;
+        }
+        Contrat contrat = contrats.findById(requete.idContrat())
+                .orElseThrow(() -> BusinessException.notFound(
+                        "Le contrat " + requete.idContrat() + " n'existe pas."));
+        if (!idEmploye.equals(contrat.getIdEmploye())) {
+            throw new BusinessException("SALAIRE_CONTRAT_INCOHERENT",
+                    "Le contrat " + requete.idContrat() + " n'appartient pas au salarie " + idEmploye + ".");
+        }
+        if (requete.dateEffet().isBefore(contrat.getDateDebut())) {
+            throw new BusinessException("SALAIRE_HORS_CONTRAT",
+                    "La date d'effet precede le debut du contrat " + contrat.getNumero() + ".");
+        }
+        if (contrat.getDateFinPrevue() != null
+                && requete.dateEffet().isAfter(contrat.getDateFinPrevue())) {
+            throw new BusinessException("SALAIRE_HORS_CONTRAT",
+                    "La date d'effet depasse la fin du contrat " + contrat.getNumero() + ".");
         }
     }
 

@@ -1,0 +1,6 @@
+package com.tovo.erp.discipline.model;
+
+public enum TypeSanction {
+    AVERTISSEMENT_VERBAL, AVERTISSEMENT_ECRIT, BLAME, MISE_A_PIED,
+    RETROGRADATION, LICENCIEMENT_DISCIPLINAIRE
+}

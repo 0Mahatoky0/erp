@@ -3,10 +3,13 @@ package com.tovo.erp.paie.service;
 import com.tovo.erp.contrat.service.CarriereService;
 import com.tovo.erp.contrat.service.ContratService;
 import com.tovo.erp.employe.service.EmployeService;
+import com.tovo.erp.paie.dto.BulletinPaieDtos;
 import com.tovo.erp.paie.model.BaremeIrsa;
 import com.tovo.erp.paie.model.BulletinPaie;
+import com.tovo.erp.paie.model.FichePaie;
 import com.tovo.erp.paie.model.LigneBulletin;
 import com.tovo.erp.paie.model.ParametrePaie;
+import com.tovo.erp.paie.model.PeriodePaie;
 import com.tovo.erp.paie.model.StatutBulletinPaie;
 import com.tovo.erp.paie.repository.BaremeIrsaRepository;
 import com.tovo.erp.paie.repository.BulletinPaieRepository;
@@ -31,11 +34,13 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class BulletinPaieServiceTest {
@@ -112,6 +117,43 @@ class BulletinPaieServiceTest {
         verify(lignes).saveAll(captor.capture());
         assertTrue(captor.getValue().stream().anyMatch(ligne -> "HS_30".equals(ligne.getCodeRubrique())
                 && ligne.getMontantSalarial().signum() > 0));
+    }
+
+    @Test
+    void genereBulletinEtFicheSoldeToutCompte() {
+        PeriodePaie periode = new PeriodePaie();
+        periode.setId(1L);
+        periode.setMois(LocalDate.of(2026, 5, 1));
+        when(periodes.findByMois(LocalDate.of(2026, 5, 1))).thenReturn(Optional.of(periode));
+        when(bulletins.findByIdPeriodeAndIdEmployeAndType(1L, 20L,
+                BulletinPaieDtos.TYPE_SOLDE_TOUT_COMPTE)).thenReturn(Optional.empty());
+        when(references.suivante("BULLETIN_SOLDE", "BSD", 6)).thenReturn("BSD-000001");
+        when(bulletins.save(any())).thenAnswer(invocation -> {
+            BulletinPaie bulletin = invocation.getArgument(0);
+            bulletin.setId(99L);
+            return bulletin;
+        });
+        when(fiches.findByIdBulletin(99L)).thenReturn(Optional.empty());
+
+        BulletinPaieDtos.SoldePaieRequest demande = new BulletinPaieDtos.SoldePaieRequest(
+                20L, 10L, LocalDate.of(2026, 5, 18), 18,
+                new BigDecimal("1200000"), new BigDecimal("4000000"), new BigDecimal("100000"),
+                new BigDecimal("3900000"), "RUP-2026-0001", "PAY-2026-0001", "VIREMENT",
+                List.of(new BulletinPaieDtos.SoldePaieLigneDto("SALAIRE_DU", "Salaire du", "GAIN",
+                        new BigDecimal("1200000"), new BigDecimal("18"), new BigDecimal("40000"),
+                        new BigDecimal("720000"), "rupture.SALAIRE_DU", "bloc8.salaire_base")));
+
+        BulletinPaieDtos.BulletinDto resultat = service.genererBulletinSolde(demande);
+
+        assertEquals(99L, resultat.id());
+        assertEquals(BulletinPaieDtos.TYPE_SOLDE_TOUT_COMPTE, resultat.type());
+        assertEquals(StatutBulletinPaie.VALIDE, resultat.statut());
+        ArgumentCaptor<List<LigneBulletin>> captor = ArgumentCaptor.forClass(List.class);
+        verify(lignes).saveAll(captor.capture());
+        assertEquals("SALAIRE_DU", captor.getValue().getFirst().getCodeRubrique());
+        ArgumentCaptor<FichePaie> ficheCaptor = ArgumentCaptor.forClass(FichePaie.class);
+        verify(fiches).save(ficheCaptor.capture());
+        assertEquals(99L, ficheCaptor.getValue().getIdBulletin());
     }
 
     private List<BaremeIrsa> bareme() {
