@@ -25,10 +25,12 @@ import com.tovo.erp.evaluation.dto.EvaluationDtos;
 import com.tovo.erp.evaluation.service.EvaluationService;
 import com.tovo.erp.evaluation.service.ReferentielService;
 import com.tovo.erp.shared.BusinessException;
+import com.tovo.erp.shared.MouvementAppliqueEvent;
 import com.tovo.erp.shared.Roles;
 import com.tovo.erp.shared.UtilisateurCourant;
 import com.tovo.erp.shared.audit.JournalAuditService;
 import com.tovo.erp.shared.reference.ReferenceService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,6 +71,7 @@ public class MouvementCarriereService {
     private final UtilisateurCourant utilisateurCourant;
     private final JournalAuditService audit;
     private final ReferenceService references;
+    private final ApplicationEventPublisher evenements;
 
     public MouvementCarriereService(MouvementCarriereRepository mouvements,
                                     PromotionRepository promotions,
@@ -78,14 +81,15 @@ public class MouvementCarriereService {
                                     EmployeService employes,
                                     ContratService contrats,
                                     CarriereService historique,
-                                    PosteService postes,
+                                     PosteService postes,
                                      EvaluationService evaluations,
                                      ReferentielService referentiel,
                                      EligibiliteDisciplineService eligibiliteDiscipline,
                                      UtilisateurCourant utilisateurCourant,
+                                     JournalAuditService audit,
+                                     ReferenceService references,
+                                     ApplicationEventPublisher evenements) {
 
-                                    JournalAuditService audit,
-                                    ReferenceService references) {
         this.mouvements = mouvements;
         this.promotions = promotions;
         this.mutations = mutations;
@@ -101,6 +105,7 @@ public class MouvementCarriereService {
         this.utilisateurCourant = utilisateurCourant;
         this.audit = audit;
         this.references = references;
+        this.evenements = evenements;
     }
 
     @Transactional(readOnly = true)
@@ -300,9 +305,10 @@ public class MouvementCarriereService {
         if (mouvement.getStatut() == StatutMouvementCarriere.AVENANT_EN_SIGNATURE
                 && exigeAvenantSigne(mouvement)) {
             throw new BusinessException("AVENANT_SIGNATURE_REQUISE",
-                    "Ce mouvement ne peut etre applique avant la signature de l'avenant."
-);
+                    "Ce mouvement ne peut etre applique avant la signature de l'avenant.");
         }
+        Map<String, Object> avant = situationActuelle(mouvement.getIdEmploye());
+        Map<String, Object> cible = situationCible(mouvement);
         LocalDate dateEffet = mouvement.getDateEffet() == null
                 ? mouvement.getDateEffetSouhaitee() : mouvement.getDateEffet();
         mouvement.setDateEffet(dateEffet);
@@ -316,6 +322,7 @@ public class MouvementCarriereService {
         mouvement.setDateApplication(LocalDateTime.now());
         MouvementCarriere enregistre = mouvements.save(mouvement);
         audit.enregistrer("MOUVEMENT_APPLIQUE", "mouvement_carriere", id, null, dateEffet.toString());
+        evenements.publishEvent(evenementApplication(enregistre, avant, cible, dateEffet, idUtilisateur));
         return enDto(enregistre);
     }
 
@@ -625,6 +632,49 @@ public class MouvementCarriereService {
         return List.of("ancienneteSuffisante", "evaluationSuffisante", "ecartCritique",
                 "sanctionActive", "salaireDansGrille", "capaciteDisponible",
                 "retroactiviteAutorisee").contains(cle);
+    }
+
+    private MouvementAppliqueEvent evenementApplication(MouvementCarriere mouvement,
+                                                        Map<String, Object> avant,
+                                                        Map<String, Object> cible,
+                                                        LocalDate dateEffet,
+                                                        Long idUtilisateur) {
+        boolean salaire = mouvement.getType() == com.tovo.erp.carriere.model.TypeMouvementCarriere.PROMOTION
+                || mouvement.getType() == com.tovo.erp.carriere.model.TypeMouvementCarriere.CHANGEMENT_SALAIRE;
+        return new MouvementAppliqueEvent(
+                mouvement.getId(),
+                mouvement.getIdEmploye(),
+                mouvement.getType().name(),
+                extraireLong(avant, "idPoste"),
+                extraireLong(cible, "idPoste"),
+                extraireLong(avant, "idService"),
+                extraireLong(cible, "idService"),
+                extraireLong(avant, "idManager"),
+                extraireLong(cible, "idManager"),
+                extraireTexte(avant, "lieuTravail"),
+                extraireTexte(cible, "lieuTravail"),
+                dateEffet,
+                salaire ? extraireDecimal(avant, "salaireBrut") : null,
+                salaire ? extraireDecimal(cible, "salaireBrut") : null,
+                idUtilisateur);
+    }
+
+    private Long extraireLong(Map<String, Object> source, String cle) {
+        Object valeur = source.get(cle);
+        return valeur instanceof Number nombre ? nombre.longValue() : null;
+    }
+
+    private String extraireTexte(Map<String, Object> source, String cle) {
+        Object valeur = source.get(cle);
+        return valeur == null ? null : String.valueOf(valeur);
+    }
+
+    private BigDecimal extraireDecimal(Map<String, Object> source, String cle) {
+        Object valeur = source.get(cle);
+        if (valeur == null) {
+            return null;
+        }
+        return valeur instanceof BigDecimal decimal ? decimal : new BigDecimal(valeur.toString());
     }
 
     private Map<String, Object> situationActuelle(Long idEmploye) {

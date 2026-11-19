@@ -4,6 +4,7 @@ import com.tovo.erp.besoin.service.PosteService;
 import com.tovo.erp.carriere.dto.CarriereMobiliteDtos;
 import com.tovo.erp.carriere.model.CampagneAugmentation;
 import com.tovo.erp.carriere.model.MouvementCarriere;
+import com.tovo.erp.carriere.model.Promotion;
 import com.tovo.erp.carriere.model.StatutMouvementCarriere;
 import com.tovo.erp.carriere.model.TypeMouvementCarriere;
 import com.tovo.erp.carriere.repository.CampagneAugmentationRepository;
@@ -20,6 +21,7 @@ import com.tovo.erp.employe.service.EmployeService;
 import com.tovo.erp.evaluation.service.EvaluationService;
 import com.tovo.erp.evaluation.service.ReferentielService;
 import com.tovo.erp.shared.BusinessException;
+import com.tovo.erp.shared.MouvementAppliqueEvent;
 import com.tovo.erp.shared.Roles;
 import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.shared.UtilisateurCourant;
@@ -28,7 +30,9 @@ import com.tovo.erp.shared.reference.ReferenceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.springframework.context.ApplicationEventPublisher;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -64,6 +68,7 @@ class MouvementCarriereServiceTest {
     @Mock private UtilisateurCourant utilisateurCourant;
     @Mock private JournalAuditService audit;
     @Mock private ReferenceService references;
+    @Mock private ApplicationEventPublisher evenements;
 
     private MouvementCarriereService service;
 
@@ -71,7 +76,7 @@ class MouvementCarriereServiceTest {
     void setUp() {
         service = new MouvementCarriereService(mouvements, promotions, mutations, grilles,
                 campagnes, employes, contrats, historique, postes, evaluations, referentiel,
-                eligibiliteDiscipline, utilisateurCourant, audit, references);
+                eligibiliteDiscipline, utilisateurCourant, audit, references, evenements);
     }
 
     @Test
@@ -138,6 +143,35 @@ class MouvementCarriereServiceTest {
 
         assertEquals(StatutMouvementCarriere.EN_VALIDATION, resultat.statut());
         assertEquals(1, ((Number) resultat.conditions().get("etapeCourante")).intValue());
+    }
+
+    @Test
+    void publieUnEvenementLorsqueLeMouvementEstApplique() {
+        MouvementCarriere mouvement = new MouvementCarriere();
+        mouvement.setId(1L);
+        mouvement.setIdEmploye(5L);
+        mouvement.setType(TypeMouvementCarriere.PROMOTION);
+        mouvement.setStatut(StatutMouvementCarriere.VALIDE);
+        mouvement.setDateEffetSouhaitee(LocalDate.of(2026, 4, 1));
+        Promotion promotion = new Promotion();
+        promotion.setIdMouvement(1L);
+        promotion.setIdNouveauPoste(8L);
+        promotion.setNouvelleCategorie("CADRE");
+        promotion.setNouveauEchelon("E3");
+        promotion.setAncienSalaire(new BigDecimal("1200000"));
+        promotion.setNouveauSalaire(new BigDecimal("1500000"));
+        when(mouvements.findById(1L)).thenReturn(Optional.of(mouvement));
+        when(mouvements.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(promotions.findByIdMouvement(1L)).thenReturn(Optional.of(promotion));
+        when(utilisateurCourant.exiger()).thenReturn(utilisateur());
+
+        service.appliquer(1L);
+
+        ArgumentCaptor<MouvementAppliqueEvent> captor = ArgumentCaptor.forClass(MouvementAppliqueEvent.class);
+        verify(evenements).publishEvent(captor.capture());
+        assertEquals(5L, captor.getValue().idEmploye());
+        assertEquals(8L, captor.getValue().idPosteDestination());
+        assertEquals(new BigDecimal("1500000"), captor.getValue().salaireNouveau());
     }
 
     @Test
