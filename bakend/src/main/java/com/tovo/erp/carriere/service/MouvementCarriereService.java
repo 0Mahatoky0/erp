@@ -30,6 +30,7 @@ import com.tovo.erp.shared.Roles;
 import com.tovo.erp.shared.UtilisateurCourant;
 import com.tovo.erp.shared.audit.JournalAuditService;
 import com.tovo.erp.shared.reference.ReferenceService;
+import com.tovo.erp.temps.service.RegimeTravailService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,6 +66,7 @@ public class MouvementCarriereService {
     private final ContratService contrats;
     private final CarriereService historique;
     private final PosteService postes;
+    private final RegimeTravailService regimes;
     private final EvaluationService evaluations;
     private final ReferentielService referentiel;
     private final EligibiliteDisciplineService eligibiliteDiscipline;
@@ -82,6 +84,7 @@ public class MouvementCarriereService {
                                     ContratService contrats,
                                     CarriereService historique,
                                      PosteService postes,
+                                     RegimeTravailService regimes,
                                      EvaluationService evaluations,
                                      ReferentielService referentiel,
                                      EligibiliteDisciplineService eligibiliteDiscipline,
@@ -99,6 +102,7 @@ public class MouvementCarriereService {
         this.contrats = contrats;
         this.historique = historique;
         this.postes = postes;
+        this.regimes = regimes;
         this.evaluations = evaluations;
         this.referentiel = referentiel;
         this.eligibiliteDiscipline = eligibiliteDiscipline;
@@ -347,6 +351,7 @@ public class MouvementCarriereService {
     public CarriereMobiliteDtos.CarriereDateDto carriereALaDate(Long idEmploye,
                                                                LocalDate dateValidite,
                                                                LocalDate dateConnaissance) {
+        verifierAccesConsultation(idEmploye);
         LocalDate connaissance = dateConnaissance == null ? LocalDate.now() : dateConnaissance;
         ContratDtos.AffectationDto affectation = contrats.affectationsDe(idEmploye).stream()
                 .filter(a -> visible(a.dateDebut(), a.dateFin(), a.enregistreLe(), a.remplaceLe(),
@@ -354,19 +359,27 @@ public class MouvementCarriereService {
                 .filter(ContratDtos.AffectationDto::principale)
                 .findFirst()
                 .orElse(null);
-        com.tovo.erp.contrat.dto.CarriereDtos.SalaireDto salaire = historique.salaires(idEmploye).stream()
-                .filter(s -> visible(s.dateEffet(), s.dateFin(), s.enregistreLe(), s.remplaceLe(),
-                        dateValidite, connaissance))
-                .filter(s -> s.enregistreLe() != null
-                        && !s.enregistreLe().toLocalDate().isAfter(connaissance))
-                .findFirst()
-                .orElse(null);
+        com.tovo.erp.contrat.dto.CarriereDtos.SalaireDto salaire = null;
+        if (peutVoirSalaire(idEmploye)) {
+            salaire = historique.salaires(idEmploye).stream()
+                    .filter(s -> visible(s.dateEffet(), s.dateFin(), s.enregistreLe(), s.remplaceLe(),
+                            dateValidite, connaissance))
+                    .filter(s -> s.enregistreLe() != null
+                            && !s.enregistreLe().toLocalDate().isAfter(connaissance))
+                    .findFirst()
+                    .orElse(null);
+            if (salaire != null) {
+                audit.enregistrer("LECTURE_HISTORIQUE_SALAIRE", "employe", idEmploye, null,
+                        "date=" + dateValidite + ", connu_le=" + connaissance);
+            }
+        }
         String contrat = contrats.contratsDe(idEmploye).stream()
                 .filter(c -> !c.dateDebut().isAfter(dateValidite))
                 .filter(c -> c.dateFinPrevue() == null || !c.dateFinPrevue().isBefore(dateValidite))
                 .map(ContratDtos.ContratDto::numero)
                 .findFirst()
                 .orElse(null);
+        var regime = regimes.regimeCourant(idEmploye, dateValidite);
         return new CarriereMobiliteDtos.CarriereDateDto(idEmploye, dateValidite, connaissance, contrat,
                 affectation == null ? null : affectation.idPoste(),
                 affectation == null ? null : affectation.idService(),
@@ -375,12 +388,18 @@ public class MouvementCarriereService {
                 affectation == null ? null : affectation.idManager(),
                 affectation == null ? null : affectation.categorie(),
                 affectation == null ? null : affectation.echelon(),
+                affectation == null ? null : affectation.tauxActivite(),
+                regime == null ? null : regime.libelleRegime(),
+                affectation == null ? null : Objects.toString(affectation.statut(), null),
                 salaire == null ? null : salaire.montantBrut(),
                 affectation == null ? null : Objects.toString(affectation.motif(), null));
     }
 
     @Transactional(readOnly = true)
     public List<CarriereMobiliteDtos.FriseLigneDto> frise(Long idEmploye) {
+        verifierAccesConsultation(idEmploye);
+        boolean rh = Roles.RH.equals(utilisateurCourant.exiger().getRoleNom());
+        boolean salaireVisible = peutVoirSalaire(idEmploye);
         List<CarriereMobiliteDtos.FriseLigneDto> lignes = new ArrayList<>();
         mouvements.findByIdEmployeOrderByDateCreationDesc(idEmploye).forEach(m ->
                 lignes.add(new CarriereMobiliteDtos.FriseLigneDto("MOUVEMENT", m.getId(),
@@ -388,14 +407,18 @@ public class MouvementCarriereService {
                         m.getReference() + " · " + m.getMotif(), "INTERNE")));
         historique.evenements(idEmploye).forEach(e -> {
             String typeEvenement = Objects.toString(e.type(), null);
+            if ("SANCTION".equals(typeEvenement) && !rh) {
+                return;
+            }
             lignes.add(new CarriereMobiliteDtos.FriseLigneDto("EVENEMENT", e.id(), typeEvenement,
                     e.dateEffet(), e.nouvelleValeur(),
                     "SANCTION".equals(typeEvenement) ? "TRES_CONFIDENTIEL" : "INTERNE"));
         });
-        if (utilisateurCourant.aLeRole(Roles.RH, Roles.DIRECTION, Roles.FINANCE)) {
+        if (salaireVisible) {
             historique.salaires(idEmploye).forEach(s ->
                     lignes.add(new CarriereMobiliteDtos.FriseLigneDto("SALAIRE", s.id(), "SALAIRE",
                             s.dateEffet(), s.montantBrut().toPlainString(), "CONFIDENTIEL")));
+            audit.enregistrer("LECTURE_HISTORIQUE_SALAIRE", "employe", idEmploye, null, "FRISE");
         }
         return lignes.stream()
                 .sorted(Comparator.comparing(CarriereMobiliteDtos.FriseLigneDto::date,
@@ -904,6 +927,36 @@ public class MouvementCarriereService {
         boolean connaissanceOk = enregistreLe == null || !enregistreLe.toLocalDate().isAfter(connaissance);
         boolean nonRemplacee = remplaceLe == null || remplaceLe.toLocalDate().isAfter(connaissance);
         return validite && connaissanceOk && nonRemplacee;
+    }
+
+    private void verifierAccesConsultation(Long idEmploye) {
+        var acteur = utilisateurCourant.exiger();
+        String role = acteur.getRoleNom();
+        if (Roles.RH.equals(role) || Roles.DIRECTION.equals(role) || Roles.FINANCE.equals(role)) {
+            return;
+        }
+        Long idActeur = employes.idParUtilisateur(acteur.getId()).orElse(null);
+        if (idActeur != null && idActeur.equals(idEmploye)) {
+            return;
+        }
+        if (Roles.MANAGER.equals(role) && idActeur != null) {
+            boolean subordonne = contrats.affectationsDe(idEmploye).stream()
+                    .anyMatch(a -> a.principale() && idActeur.equals(a.idManager()));
+            if (subordonne) {
+                return;
+            }
+        }
+        throw BusinessException.forbidden("Vous n'etes pas habilite a consulter cette carriere.");
+    }
+
+    private boolean peutVoirSalaire(Long idEmploye) {
+        var acteur = utilisateurCourant.exiger();
+        String role = acteur.getRoleNom();
+        if (Roles.RH.equals(role) || Roles.DIRECTION.equals(role) || Roles.FINANCE.equals(role)) {
+            return true;
+        }
+        Long idActeur = employes.idParUtilisateur(acteur.getId()).orElse(null);
+        return idActeur != null && idActeur.equals(idEmploye);
     }
 
     private void verifierSeparationDesTaches(MouvementCarriere mouvement,

@@ -27,6 +27,7 @@ import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.shared.UtilisateurCourant;
 import com.tovo.erp.shared.audit.JournalAuditService;
 import com.tovo.erp.shared.reference.ReferenceService;
+import com.tovo.erp.temps.service.RegimeTravailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -62,6 +64,7 @@ class MouvementCarriereServiceTest {
     @Mock private ContratService contrats;
     @Mock private CarriereService historique;
     @Mock private PosteService postes;
+    @Mock private RegimeTravailService regimes;
     @Mock private EvaluationService evaluations;
     @Mock private ReferentielService referentiel;
     @Mock private EligibiliteDisciplineService eligibiliteDiscipline;
@@ -75,7 +78,7 @@ class MouvementCarriereServiceTest {
     @BeforeEach
     void setUp() {
         service = new MouvementCarriereService(mouvements, promotions, mutations, grilles,
-                campagnes, employes, contrats, historique, postes, evaluations, referentiel,
+                campagnes, employes, contrats, historique, postes, regimes, evaluations, referentiel,
                 eligibiliteDiscipline, utilisateurCourant, audit, references, evenements);
     }
 
@@ -187,6 +190,7 @@ class MouvementCarriereServiceTest {
         when(contrats.affectationsDe(5L)).thenReturn(List.of(affectation));
         when(historique.salaires(5L)).thenReturn(List.of(salaire));
         when(contrats.contratsDe(5L)).thenReturn(List.of());
+        when(utilisateurCourant.exiger()).thenReturn(utilisateur());
 
         CarriereMobiliteDtos.CarriereDateDto resultat = service.carriereALaDate(5L,
                 LocalDate.of(2026, 3, 20), LocalDate.of(2026, 4, 1));
@@ -194,6 +198,28 @@ class MouvementCarriereServiceTest {
         assertEquals(7L, resultat.idPoste());
         assertEquals(new BigDecimal("1200000"), resultat.salaireBrut());
         assertEquals("CADRE", resultat.categorie());
+    }
+
+    @Test
+    void cacheLesSalairesEtLesSanctionsAuManager() {
+        ContratDtos.AffectationDto affectation = new ContratDtos.AffectationDto(1L, 5L, 3L, 7L,
+                2L, 4L, 11L, "Antananarivo", LocalDate.of(2026, 1, 1), null, 100, true, null, null,
+                "CADRE", null, "E3", LocalDateTime.of(2026, 1, 1, 8, 0), null, null);
+        var sanction = new com.tovo.erp.contrat.dto.CarriereDtos.EvenementDto(12L, 5L,
+                com.tovo.erp.contrat.model.TypeEvenementCarriere.SANCTION,
+                LocalDate.of(2026, 2, 1), null, "Avertissement", null, null, 9L,
+                LocalDateTime.of(2026, 2, 1, 8, 0));
+        when(utilisateurCourant.exiger()).thenReturn(
+                new UtilisateurConnecte(10L, "MANAGER", "manager@erp.test", Roles.MANAGER, 3L, "Direction"));
+        when(employes.idParUtilisateur(10L)).thenReturn(Optional.of(11L));
+        when(contrats.affectationsDe(5L)).thenReturn(List.of(affectation));
+        when(historique.evenements(5L)).thenReturn(List.of(sanction));
+
+        var lignes = service.frise(5L);
+
+        assertTrue(lignes.stream().noneMatch(l -> "SALAIRE".equals(l.source())));
+        assertTrue(lignes.stream().noneMatch(l -> "SANCTION".equals(l.type())));
+        verify(historique, never()).salaires(5L);
     }
 
     @Test

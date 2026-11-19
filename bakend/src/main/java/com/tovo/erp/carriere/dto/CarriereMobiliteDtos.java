@@ -129,6 +129,9 @@ public final class CarriereMobiliteDtos {
             Long idManager,
             String categorie,
             String echelon,
+            Integer tauxActivite,
+            String regimeTravail,
+            String statutAffectation,
             BigDecimal salaireBrut,
             String motifAffectation) {
     }
