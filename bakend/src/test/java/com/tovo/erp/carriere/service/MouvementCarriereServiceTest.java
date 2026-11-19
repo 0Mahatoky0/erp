@@ -13,10 +13,12 @@ import com.tovo.erp.carriere.repository.PromotionRepository;
 import com.tovo.erp.contrat.dto.ContratDtos;
 import com.tovo.erp.contrat.service.CarriereService;
 import com.tovo.erp.contrat.service.ContratService;
+import com.tovo.erp.discipline.service.EligibiliteDisciplineService;
 import com.tovo.erp.employe.dto.EmployeDto;
 import com.tovo.erp.employe.service.EmployeService;
 import com.tovo.erp.evaluation.service.EvaluationService;
 import com.tovo.erp.evaluation.service.ReferentielService;
+import com.tovo.erp.shared.BusinessException;
 import com.tovo.erp.shared.Roles;
 import com.tovo.erp.shared.UtilisateurConnecte;
 import com.tovo.erp.shared.UtilisateurCourant;
@@ -37,6 +39,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -56,6 +59,7 @@ class MouvementCarriereServiceTest {
     @Mock private PosteService postes;
     @Mock private EvaluationService evaluations;
     @Mock private ReferentielService referentiel;
+    @Mock private EligibiliteDisciplineService eligibiliteDiscipline;
     @Mock private UtilisateurCourant utilisateurCourant;
     @Mock private JournalAuditService audit;
     @Mock private ReferenceService references;
@@ -66,7 +70,7 @@ class MouvementCarriereServiceTest {
     void setUp() {
         service = new MouvementCarriereService(mouvements, promotions, mutations, grilles,
                 campagnes, employes, contrats, historique, postes, evaluations, referentiel,
-                utilisateurCourant, audit, references);
+                eligibiliteDiscipline, utilisateurCourant, audit, references);
     }
 
     @Test
@@ -91,6 +95,23 @@ class MouvementCarriereServiceTest {
         assertEquals("MV-2026-0001", resultat.reference());
         assertEquals(TypeMouvementCarriere.PROMOTION, resultat.type());
         verify(promotions).save(any());
+    }
+
+    @Test
+    void refuseUneDerogationAutoDeclareeParLeDemandeur() {
+        when(employes.existe(5L)).thenReturn(true);
+        when(utilisateurCourant.exiger()).thenReturn(utilisateur());
+
+        BusinessException erreur = assertThrows(BusinessException.class, () ->
+                service.creer(new CarriereMobiliteDtos.MouvementRequest(
+                        5L, TypeMouvementCarriere.PROMOTION, "RH", "Promotion", "Justification",
+                        LocalDate.of(2026, 4, 1), null, null, null, true, "Motif",
+                        new CarriereMobiliteDtos.PromotionRequest("CHANGEMENT_ECHELON", 7L, 8L,
+                                "CADRE", "CADRE", "E2", "E3", new BigDecimal("1200000"),
+                                new BigDecimal("1500000")),
+                        null, new BigDecimal("1500000"))));
+
+        assertEquals("ACCES_REFUSE", erreur.getCode());
     }
 
     @Test

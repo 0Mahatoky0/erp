@@ -19,6 +19,7 @@ import com.tovo.erp.carriere.repository.PromotionRepository;
 import com.tovo.erp.contrat.dto.ContratDtos;
 import com.tovo.erp.contrat.service.CarriereService;
 import com.tovo.erp.contrat.service.ContratService;
+import com.tovo.erp.discipline.service.EligibiliteDisciplineService;
 import com.tovo.erp.employe.service.EmployeService;
 import com.tovo.erp.evaluation.dto.EvaluationDtos;
 import com.tovo.erp.evaluation.service.EvaluationService;
@@ -49,6 +50,7 @@ public class MouvementCarriereService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final BigDecimal NOTE_MINIMALE = new BigDecimal("3.5");
     private static final int ANCIENNETE_MINIMALE_MOIS = 12;
+    private static final int RETROACTIVITE_MAX_MOIS = 3;
     private static final BigDecimal CENT = BigDecimal.valueOf(100);
 
     private final MouvementCarriereRepository mouvements;
@@ -62,6 +64,7 @@ public class MouvementCarriereService {
     private final PosteService postes;
     private final EvaluationService evaluations;
     private final ReferentielService referentiel;
+    private final EligibiliteDisciplineService eligibiliteDiscipline;
     private final UtilisateurCourant utilisateurCourant;
     private final JournalAuditService audit;
     private final ReferenceService references;
@@ -75,9 +78,11 @@ public class MouvementCarriereService {
                                     ContratService contrats,
                                     CarriereService historique,
                                     PosteService postes,
-                                    EvaluationService evaluations,
-                                    ReferentielService referentiel,
-                                    UtilisateurCourant utilisateurCourant,
+                                     EvaluationService evaluations,
+                                     ReferentielService referentiel,
+                                     EligibiliteDisciplineService eligibiliteDiscipline,
+                                     UtilisateurCourant utilisateurCourant,
+
                                     JournalAuditService audit,
                                     ReferenceService references) {
         this.mouvements = mouvements;
@@ -91,6 +96,7 @@ public class MouvementCarriereService {
         this.postes = postes;
         this.evaluations = evaluations;
         this.referentiel = referentiel;
+        this.eligibiliteDiscipline = eligibiliteDiscipline;
         this.utilisateurCourant = utilisateurCourant;
         this.audit = audit;
         this.references = references;
@@ -114,6 +120,17 @@ public class MouvementCarriereService {
         if (!employes.existe(requete.idEmploye())) {
             throw BusinessException.notFound("Le salarie " + requete.idEmploye() + " n'existe pas.");
         }
+        var acteur = utilisateurCourant.exiger();
+        if (Roles.EMPLOYE.equals(acteur.getRoleNom())
+                && (!acteur.getId().equals(requete.idEmploye())
+                || requete.type() != com.tovo.erp.carriere.model.TypeMouvementCarriere.MUTATION)) {
+            throw BusinessException.forbidden(
+                    "Un salarie ne peut demander qu'une mutation le concernant.");
+        }
+        if (Boolean.TRUE.equals(requete.derogationDirection())) {
+            throw BusinessException.forbidden(
+                    "Une derogation ne peut etre accordee que par la Direction lors de la validation.");
+        }
         MouvementCarriere mouvement = new MouvementCarriere();
         mouvement.setReference(references.suivante("MOUVEMENT_CARRIERE", "MV", 4));
         mouvement.setIdEmploye(requete.idEmploye());
@@ -125,9 +142,10 @@ public class MouvementCarriereService {
         mouvement.setIdEvaluation(requete.idEvaluation());
         mouvement.setIdAvenant(requete.idAvenant());
         mouvement.setDocuments(requete.documents());
-        mouvement.setDerogationDirection(Boolean.TRUE.equals(requete.derogationDirection()));
-        mouvement.setMotifDerogation(requete.motifDerogation());
-        mouvement.setIdDemandeur(utilisateurCourant.exiger().getId());
+        mouvement.setDerogationDirection(false);
+        mouvement.setMotifDerogation(null);
+        mouvement.setIdDemandeur(acteur.getId());
+        mouvement.setAncienneSituation(json(situationActuelle(requete.idEmploye())));
         if (requete.type() == com.tovo.erp.carriere.model.TypeMouvementCarriere.CHANGEMENT_SALAIRE
                 && requete.nouveauSalaire() != null) {
             Map<String, Object> conditionsInitiales = new LinkedHashMap<>();
@@ -146,6 +164,7 @@ public class MouvementCarriereService {
         exigerStatut(mouvement, StatutMouvementCarriere.BROUILLON, StatutMouvementCarriere.A_COMPLETER);
         Map<String, Object> controles = controles(mouvement);
         mouvement.setConditionsVerifiees(json(controles));
+        mouvement.setNouvelleSituation(json(situationCible(mouvement)));
         boolean conforme = controles.entrySet().stream()
                 .filter(e -> e.getValue() instanceof Boolean)
                 .allMatch(e -> Boolean.TRUE.equals(e.getValue()) || cleDerogeable(e.getKey(), mouvement));
@@ -439,11 +458,20 @@ public class MouvementCarriereService {
 
     private Map<String, Object> controles(MouvementCarriere mouvement) {
         Map<String, Object> resultat = new LinkedHashMap<>();
+        LocalDate dateEffet = mouvement.getDateEffetSouhaitee();
         ContratDtos.AffectationDto affectationCourante = contrats.affectationsDe(mouvement.getIdEmploye()).stream()
-                .filter(a -> a.principale() && a.dateFin() == null)
+                .filter(a -> a.principale())
+                .filter(a -> !a.dateDebut().isAfter(dateEffet))
+                .filter(a -> a.dateFin() == null || !a.dateFin().isBefore(dateEffet))
                 .findFirst()
                 .orElse(null);
         resultat.put("employeExiste", employes.existe(mouvement.getIdEmploye()));
+        resultat.put("dateEffetCoherente", contrats.contratsDe(mouvement.getIdEmploye()).stream()
+                .anyMatch(c -> !c.dateDebut().isAfter(dateEffet)
+                        && (c.dateFinPrevue() == null || !c.dateFinPrevue().isBefore(dateEffet))));
+        resultat.put("retroactiviteAutorisee",
+                ChronoUnit.MONTHS.between(dateEffet, LocalDate.now()) <= RETROACTIVITE_MAX_MOIS);
+
         Long idPosteCible = idPosteCible(mouvement);
         if (idPosteCible != null) {
             PosteDto.Liste poste = postes.trouver(idPosteCible);
@@ -460,18 +488,31 @@ public class MouvementCarriereService {
             resultat.put("capaciteDisponible", true);
             resultat.put("ecartCritique", true);
         }
+
         long mois = affectationCourante == null ? 0
-                : ChronoUnit.MONTHS.between(affectationCourante.dateDebut(),
-                mouvement.getDateEffetSouhaitee());
+                : ChronoUnit.MONTHS.between(affectationCourante.dateDebut(), dateEffet);
         resultat.put("ancienneteSuffisante", mois >= ANCIENNETE_MINIMALE_MOIS);
         BigDecimal note = evaluations.derniereNoteGlobale(mouvement.getIdEmploye());
         resultat.put("evaluationSuffisante", note != null && note.compareTo(NOTE_MINIMALE) >= 0);
-        resultat.put("sanctionActive", false);
+        resultat.put("sanctionActive", !eligibiliteDiscipline.sanctionActive(mouvement.getIdEmploye()));
+
+        var promotion = promotions.findByIdMouvement(mouvement.getId()).orElse(null);
+        resultat.put("niveauSuperieur", promotion == null
+                || !Objects.equals(promotion.getIdAncienPoste(), promotion.getIdNouveauPoste())
+                || !Objects.equals(promotion.getAncienneCategorie(), promotion.getNouvelleCategorie())
+                || !Objects.equals(promotion.getAncienEchelon(), promotion.getNouveauEchelon()));
+        resultat.put("salaireNonDecroissant", promotion == null
+                || promotion.getNouveauSalaire().compareTo(promotion.getAncienSalaire()) >= 0);
+
         BigDecimal salaire = salaireCible(mouvement);
-        GrilleSalariale grille = trouverGrille(mouvement, salaire);
-        resultat.put("salaireDansGrille", grille == null
-                || (salaire.compareTo(grille.getSalaireMin()) >= 0
-                && salaire.compareTo(grille.getSalaireMax()) <= 0));
+        if (salaire != null && salaire.signum() > 0) {
+            GrilleSalariale grille = trouverGrille(mouvement, salaire);
+            resultat.put("salaireDansGrille", grille == null
+                    || (salaire.compareTo(grille.getSalaireMin()) >= 0
+                    && salaire.compareTo(grille.getSalaireMax()) <= 0));
+        } else {
+            resultat.put("salaireDansGrille", true);
+        }
         if (affectationCourante != null) {
             Map<String, Object> contexte = new LinkedHashMap<>();
             contexte.put("idPosteOrigine", affectationCourante.idPoste());
@@ -488,7 +529,42 @@ public class MouvementCarriereService {
             return false;
         }
         return List.of("ancienneteSuffisante", "evaluationSuffisante", "ecartCritique",
-                "sanctionActive", "salaireDansGrille").contains(cle);
+                "sanctionActive", "salaireDansGrille", "capaciteDisponible",
+                "retroactiviteAutorisee").contains(cle);
+    }
+
+    private Map<String, Object> situationActuelle(Long idEmploye) {
+        Map<String, Object> situation = new LinkedHashMap<>();
+        contrats.affectationsDe(idEmploye).stream()
+                .filter(ContratDtos.AffectationDto::principale)
+                .findFirst()
+                .ifPresent(a -> {
+                    situation.put("idPoste", a.idPoste());
+                    situation.put("idDepartement", a.idDepartement());
+                    situation.put("idService", a.idService());
+                    situation.put("idManager", a.idManager());
+                    situation.put("lieuTravail", a.lieuTravail());
+                    situation.put("categorie", a.categorie());
+                    situation.put("echelon", a.echelon());
+                });
+        var salaire = historique.salaireCourant(idEmploye);
+        if (salaire != null) {
+            situation.put("salaireBrut", salaire.montantBrut());
+            situation.put("devise", salaire.devise());
+        }
+        return situation;
+    }
+
+    private Map<String, Object> situationCible(MouvementCarriere mouvement) {
+        Map<String, Object> situation = new LinkedHashMap<>();
+        situation.put("type", mouvement.getType().name());
+        MovementDetails details = resolveTarget(mouvement);
+        situation.put("idPoste", details.idPoste());
+        situation.put("idService", details.idService());
+        situation.put("idManager", details.idManager());
+        situation.put("lieuTravail", details.lieu());
+        situation.put("salaireBrut", details.salaire());
+        return situation;
     }
 
     private void appliquerPromotion(MouvementCarriere mouvement, LocalDate dateEffet, Long idUtilisateur) {
