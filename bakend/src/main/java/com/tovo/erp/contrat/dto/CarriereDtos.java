@@ -88,7 +88,7 @@ public final class CarriereDtos {
             @NotNull @DecimalMin("0.0") BigDecimal montantBrut,
             @NotBlank String devise,
             @NotNull LocalDate dateEffet,
-            String motif,
+            @NotBlank String motif,
             Long idContrat,
             Long idMouvement,
             Long idAvenant,

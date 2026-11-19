@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Historique de remuneration et de carriere (bloc 5). Chaque evolution cree une
@@ -26,6 +27,10 @@ import java.util.Map;
  */
 @Service
 public class CarriereService {
+
+    private static final Set<String> MOTIFS_SALAIRE = Set.of(
+            "EMBAUCHE", "PROMOTION", "AUGMENTATION_INDIVIDUELLE", "AUGMENTATION_GENERALE",
+            "ECHELON", "REGULARISATION", "REDUCTION_ACCORD");
 
     private final SalaireHistoriqueRepository salaires;
     private final EvenementCarriereRepository evenements;
@@ -74,6 +79,7 @@ public class CarriereService {
                                                       CarriereDtos.SalaireRequest requete,
                                                       Long idUtilisateur) {
         verifierEmploye(idEmploye);
+        verifierSalaire(requete, idEmploye);
         initialiserDepuisContrats(idEmploye);
         SalaireHistorique courant = salaires
                 .findFirstByIdEmployeOrderByDateEffetDesc(idEmploye)
@@ -197,6 +203,45 @@ public class CarriereService {
                 evenements.save(evenement);
                 embaucheTracee = true;
             }
+        }
+    }
+
+    private void verifierSalaire(CarriereDtos.SalaireRequest requete, Long idEmploye) {
+        if (requete.montantBrut() == null || requete.montantBrut().signum() < 0) {
+            throw new BusinessException("SALAIRE_MONTANT_INVALIDE",
+                    "Le montant du salaire ne peut pas etre negatif.");
+        }
+        if (requete.dateEffet() == null) {
+            throw new BusinessException("SALAIRE_DATE_OBLIGATOIRE",
+                    "La date d'effet du salaire est obligatoire.");
+        }
+        if (!MOTIFS_SALAIRE.contains(requete.motif())) {
+            throw new BusinessException("SALAIRE_MOTIF_INVALIDE",
+                    "Le motif de salaire est invalide : " + requete.motif());
+        }
+        if (requete.idContrat() == null && requete.idMouvement() == null
+                && requete.idAvenant() == null) {
+            throw new BusinessException("SALAIRE_SANS_PREUVE",
+                    "Un salaire doit etre rattache a un contrat, un avenant ou un mouvement valide.");
+        }
+        if (requete.idContrat() == null) {
+            return;
+        }
+        Contrat contrat = contrats.findById(requete.idContrat())
+                .orElseThrow(() -> BusinessException.notFound(
+                        "Le contrat " + requete.idContrat() + " n'existe pas."));
+        if (!idEmploye.equals(contrat.getIdEmploye())) {
+            throw new BusinessException("SALAIRE_CONTRAT_INCOHERENT",
+                    "Le contrat " + requete.idContrat() + " n'appartient pas au salarie " + idEmploye + ".");
+        }
+        if (requete.dateEffet().isBefore(contrat.getDateDebut())) {
+            throw new BusinessException("SALAIRE_HORS_CONTRAT",
+                    "La date d'effet precede le debut du contrat " + contrat.getNumero() + ".");
+        }
+        if (contrat.getDateFinPrevue() != null
+                && requete.dateEffet().isAfter(contrat.getDateFinPrevue())) {
+            throw new BusinessException("SALAIRE_HORS_CONTRAT",
+                    "La date d'effet depasse la fin du contrat " + contrat.getNumero() + ".");
         }
     }
 

@@ -90,6 +90,12 @@ public class MouvementCarriere {
     @Column(name = "conditions_verifiees", columnDefinition = "TEXT")
     private String conditionsVerifiees;
 
+    @Column(name = "ancienne_situation", columnDefinition = "TEXT")
+    private String ancienneSituation;
+
+    @Column(name = "nouvelle_situation", columnDefinition = "TEXT")
+    private String nouvelleSituation;
+
     @Column(name = "date_creation", nullable = false)
     private LocalDateTime dateCreation;
 

@@ -1,5 +1,6 @@
 package com.tovo.erp.carriere.dto;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tovo.erp.carriere.model.CampagneAugmentation;
 import com.tovo.erp.carriere.model.MouvementCarriere;
 import com.tovo.erp.carriere.model.StatutMouvementCarriere;
@@ -14,6 +15,8 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 public final class CarriereMobiliteDtos {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private CarriereMobiliteDtos() {
     }
@@ -35,6 +38,8 @@ public final class CarriereMobiliteDtos {
             String motifDerogation,
             Map<String, Object> conditions,
             Map<String, Object> details,
+            Map<String, Object> ancienneSituation,
+            Map<String, Object> nouvelleSituation,
             LocalDateTime dateCreation,
             LocalDateTime dateApplication) {
 
@@ -47,7 +52,19 @@ public final class CarriereMobiliteDtos {
                     mouvement.getDateEffet(), mouvement.getStatut(), mouvement.getIdDemandeur(),
                     mouvement.getIdValidateur(), mouvement.isDerogationDirection(),
                     mouvement.getMotifDerogation(), conditions, details,
+                    lireMap(mouvement.getAncienneSituation()), lireMap(mouvement.getNouvelleSituation()),
                     mouvement.getDateCreation(), mouvement.getDateApplication());
+        }
+
+        private static Map<String, Object> lireMap(String valeur) {
+            if (valeur == null || valeur.isBlank()) {
+                return Map.of();
+            }
+            try {
+                return MAPPER.readValue(valeur, Map.class);
+            } catch (Exception e) {
+                return Map.of();
+            }
         }
     }
 
