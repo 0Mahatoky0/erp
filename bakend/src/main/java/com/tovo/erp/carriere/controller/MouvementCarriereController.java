@@ -63,6 +63,36 @@ public class MouvementCarriereController {
         return service.valider(id, requete == null ? new CarriereMobiliteDtos.DecisionRequest(null, null, null) : requete);
     }
 
+    @PostMapping("/mouvements/{id}/refuser")
+    @PreAuthorize("hasAnyRole('RH', 'DIRECTION', 'FINANCE', 'MANAGER')")
+    public CarriereMobiliteDtos.MouvementDto refuser(
+            @PathVariable Long id, @RequestParam String motif) {
+        return service.refuser(id, motif);
+    }
+
+    @PostMapping("/mouvements/{id}/avenant")
+    @PreAuthorize("hasAnyRole('RH', 'DIRECTION')")
+    public CarriereMobiliteDtos.MouvementDto preparerAvenant(@PathVariable Long id) {
+        return service.preparerAvenant(id);
+    }
+
+    @PostMapping("/mouvements/{id}/avenant/signer")
+    public CarriereMobiliteDtos.MouvementDto signerAvenant(@PathVariable Long id) {
+        return service.signerAvenant(id);
+    }
+
+    @PostMapping("/mouvements/{id}/avenant/refuser")
+    public CarriereMobiliteDtos.MouvementDto refuserParSalarie(
+            @PathVariable Long id, @RequestParam String motif) {
+        return service.refuserParSalarie(id, motif);
+    }
+
+    @PostMapping("/mouvements/{id}/planifier")
+    @PreAuthorize("hasAnyRole('RH', 'DIRECTION')")
+    public CarriereMobiliteDtos.MouvementDto planifier(@PathVariable Long id) {
+        return service.planifier(id);
+    }
+
     @PostMapping("/mouvements/{id}/appliquer")
     @PreAuthorize("hasAnyRole('RH', 'DIRECTION')")
     public CarriereMobiliteDtos.MouvementDto appliquer(@PathVariable Long id) {

@@ -4,6 +4,7 @@ import com.tovo.erp.besoin.service.PosteService;
 import com.tovo.erp.carriere.dto.CarriereMobiliteDtos;
 import com.tovo.erp.carriere.model.CampagneAugmentation;
 import com.tovo.erp.carriere.model.MouvementCarriere;
+import com.tovo.erp.carriere.model.StatutMouvementCarriere;
 import com.tovo.erp.carriere.model.TypeMouvementCarriere;
 import com.tovo.erp.carriere.repository.CampagneAugmentationRepository;
 import com.tovo.erp.carriere.repository.GrilleSalarialeRepository;
@@ -115,6 +116,31 @@ class MouvementCarriereServiceTest {
     }
 
     @Test
+    void exigeLeRoleDeLEtapeCouranteDuCircuit() {
+        when(mouvements.findById(1L)).thenReturn(Optional.of(mouvementEnValidation()));
+        when(utilisateurCourant.exiger()).thenReturn(utilisateur());
+
+        BusinessException erreur = assertThrows(BusinessException.class, () ->
+                service.valider(1L, new CarriereMobiliteDtos.DecisionRequest(null, null, null)));
+
+        assertEquals("ACCES_REFUSE", erreur.getCode());
+    }
+
+    @Test
+    void avanceDansLeCircuitApresValidationDuManager() {
+        when(mouvements.findById(1L)).thenReturn(Optional.of(mouvementEnValidation()));
+        when(mouvements.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(utilisateurCourant.exiger()).thenReturn(
+                new UtilisateurConnecte(10L, "MANAGER", "manager@erp.test", Roles.MANAGER, 3L, "Direction"));
+
+        CarriereMobiliteDtos.MouvementDto resultat =
+                service.valider(1L, new CarriereMobiliteDtos.DecisionRequest(null, null, null));
+
+        assertEquals(StatutMouvementCarriere.EN_VALIDATION, resultat.statut());
+        assertEquals(1, ((Number) resultat.conditions().get("etapeCourante")).intValue());
+    }
+
+    @Test
     void reconstitueLaCarriereALaDateDeConnaissance() {
         ContratDtos.AffectationDto affectation = new ContratDtos.AffectationDto(1L, 5L, 3L, 7L,
                 2L, 4L, 9L, "Antananarivo", LocalDate.of(2026, 1, 1), null, 100, true, null, null,
@@ -157,6 +183,20 @@ class MouvementCarriereServiceTest {
         assertFalse((Boolean) resultat.simulation().get("depasseEnveloppe"));
         verify(audit).enregistrer(any(), any(), any(), any(), any());
         assertTrue(resultat.simulation().containsKey("lignes"));
+    }
+
+    private MouvementCarriere mouvementEnValidation() {
+        MouvementCarriere mouvement = new MouvementCarriere();
+        mouvement.setId(1L);
+        mouvement.setReference("MV-2026-0001");
+        mouvement.setIdEmploye(5L);
+        mouvement.setType(TypeMouvementCarriere.PROMOTION);
+        mouvement.setIdDemandeur(8L);
+        mouvement.setStatut(StatutMouvementCarriere.EN_VALIDATION);
+        mouvement.setConditionsVerifiees(
+                "{\"circuitValidation\":[{\"role\":\"MANAGER\",\"statut\":\"EN_ATTENTE\"},"
+                        + "{\"role\":\"RH\",\"statut\":\"EN_ATTENTE\"}],\"etapeCourante\":0}");
+        return mouvement;
     }
 
     private UtilisateurConnecte utilisateur() {

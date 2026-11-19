@@ -51,6 +51,7 @@ public class MouvementCarriereService {
     private static final BigDecimal NOTE_MINIMALE = new BigDecimal("3.5");
     private static final int ANCIENNETE_MINIMALE_MOIS = 12;
     private static final int RETROACTIVITE_MAX_MOIS = 3;
+    private static final BigDecimal SEUIL_VALIDATION_MAJEURE = new BigDecimal("10");
     private static final BigDecimal CENT = BigDecimal.valueOf(100);
 
     private final MouvementCarriereRepository mouvements;
@@ -163,6 +164,8 @@ public class MouvementCarriereService {
         MouvementCarriere mouvement = mouvementEntite(id);
         exigerStatut(mouvement, StatutMouvementCarriere.BROUILLON, StatutMouvementCarriere.A_COMPLETER);
         Map<String, Object> controles = controles(mouvement);
+        controles.put("circuitValidation", circuitValidation(mouvement));
+        controles.put("etapeCourante", 0);
         mouvement.setConditionsVerifiees(json(controles));
         mouvement.setNouvelleSituation(json(situationCible(mouvement)));
         boolean conforme = controles.entrySet().stream()
@@ -174,7 +177,7 @@ public class MouvementCarriereService {
             throw new BusinessException("MOUVEMENT_NON_ELIGIBLE",
                     "Les controles automatiques ne sont pas satisfaits : " + controles);
         }
-        mouvement.setStatut(StatutMouvementCarriere.SOUMIS);
+        mouvement.setStatut(StatutMouvementCarriere.EN_VALIDATION);
         MouvementCarriere enregistre = mouvements.save(mouvement);
         audit.enregistrer("MOUVEMENT_SOUMIS", "mouvement_carriere", id, null, enregistre.getStatut().name());
         return enDto(enregistre);
@@ -183,25 +186,108 @@ public class MouvementCarriereService {
     @Transactional
     public CarriereMobiliteDtos.MouvementDto valider(Long id, CarriereMobiliteDtos.DecisionRequest requete) {
         MouvementCarriere mouvement = mouvementEntite(id);
-        exigerStatut(mouvement, StatutMouvementCarriere.SOUMIS, StatutMouvementCarriere.EN_VALIDATION);
+        exigerStatut(mouvement, StatutMouvementCarriere.EN_VALIDATION);
         var acteur = utilisateurCourant.exiger();
-        if (mouvement.getIdDemandeur().equals(acteur.getId())) {
-            throw BusinessException.forbidden("Le demandeur ne peut pas valider sa propre demande.");
+        verifierSeparationDesTaches(mouvement, acteur);
+        Map<String, Object> conditions = lireMap(mouvement.getConditionsVerifiees());
+        List<Map<String, Object>> circuit = circuitLisible(conditions, mouvement);
+        int etape = etapeCourante(conditions);
+        if (etape >= circuit.size()) {
+            throw new BusinessException("CIRCUIT_TERMINE", "Le circuit de validation est deja termine.");
         }
-        employes.idParUtilisateur(acteur.getId()).filter(mouvement.getIdEmploye()::equals)
-                .ifPresent(u -> {
-                    throw BusinessException.forbidden("Le beneficiaire ne peut pas valider son mouvement.");
-                });
-        mouvement.setStatut(StatutMouvementCarriere.VALIDE);
-        mouvement.setIdValidateur(acteur.getId());
-        mouvement.setDateDecision(LocalDateTime.now());
+        Map<String, Object> courante = circuit.get(etape);
+        String roleAttendu = String.valueOf(courante.get("role"));
+        if (!roleAttendu.equals(acteur.getRoleNom())) {
+            throw BusinessException.forbidden("L'etape " + (etape + 1) + " requiert le role " + roleAttendu + ".");
+        }
         if (requete.derogationDirection() != null && requete.derogationDirection()) {
             utilisateurCourant.exigerRole(Roles.DIRECTION);
             mouvement.setDerogationDirection(true);
             mouvement.setMotifDerogation(requete.motifDerogation());
         }
+        courante.put("statut", "APPROUVE");
+        courante.put("idUtilisateur", acteur.getId());
+        courante.put("dateDecision", LocalDateTime.now().toString());
+        int suivante = etape + 1;
+        conditions.put("etapeCourante", suivante);
+        conditions.put("circuitValidation", circuit);
+        mouvement.setConditionsVerifiees(json(conditions));
+        mouvement.setIdValidateur(acteur.getId());
+        mouvement.setDateDecision(LocalDateTime.now());
+        if (suivante == circuit.size()) {
+            mouvement.setStatut(StatutMouvementCarriere.VALIDE);
+        }
         MouvementCarriere enregistre = mouvements.save(mouvement);
-        audit.enregistrer("MOUVEMENT_VALIDE", "mouvement_carriere", id, null, enregistre.getStatut().name());
+        audit.enregistrer("MOUVEMENT_VALIDE", "mouvement_carriere", id, null,
+                enregistre.getStatut().name());
+        return enDto(enregistre);
+    }
+
+    @Transactional
+    public CarriereMobiliteDtos.MouvementDto refuser(Long id, String motif) {
+        MouvementCarriere mouvement = mouvementEntite(id);
+        exigerStatut(mouvement, StatutMouvementCarriere.EN_VALIDATION);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION, Roles.FINANCE, Roles.MANAGER);
+        verifierSeparationDesTaches(mouvement, utilisateurCourant.exiger());
+        if (motif == null || motif.isBlank()) {
+            throw new BusinessException("MOTIF_REFUS_OBLIGATOIRE", "Le motif du refus est obligatoire.");
+        }
+        mouvement.setStatut(StatutMouvementCarriere.REFUSE);
+        mouvement.setMotifRefus(motif);
+        MouvementCarriere enregistre = mouvements.save(mouvement);
+        audit.enregistrer("MOUVEMENT_REFUSE", "mouvement_carriere", id, null, motif);
+        return enDto(enregistre);
+    }
+
+    @Transactional
+    public CarriereMobiliteDtos.MouvementDto preparerAvenant(Long id) {
+        MouvementCarriere mouvement = mouvementEntite(id);
+        exigerStatut(mouvement, StatutMouvementCarriere.VALIDE);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
+        if (mouvement.getIdAvenant() == null) {
+            throw new BusinessException("AVENANT_OBLIGATOIRE",
+                    "Un avenant doit etre rattache au mouvement avant signature.");
+        }
+        mouvement.setStatut(StatutMouvementCarriere.AVENANT_EN_SIGNATURE);
+        MouvementCarriere enregistre = mouvements.save(mouvement);
+        audit.enregistrer("AVENANT_EN_SIGNATURE", "mouvement_carriere", id, null,
+                String.valueOf(mouvement.getIdAvenant()));
+        return enDto(enregistre);
+    }
+
+    @Transactional
+    public CarriereMobiliteDtos.MouvementDto signerAvenant(Long id) {
+        MouvementCarriere mouvement = mouvementEntite(id);
+        exigerStatut(mouvement, StatutMouvementCarriere.AVENANT_EN_SIGNATURE);
+        mouvement.setStatut(StatutMouvementCarriere.PLANIFIE);
+        MouvementCarriere enregistre = mouvements.save(mouvement);
+        audit.enregistrer("AVENANT_SIGNE", "mouvement_carriere", id, null, null);
+        return enDto(enregistre);
+    }
+
+    @Transactional
+    public CarriereMobiliteDtos.MouvementDto refuserParSalarie(Long id, String motif) {
+        MouvementCarriere mouvement = mouvementEntite(id);
+        exigerStatut(mouvement, StatutMouvementCarriere.AVENANT_EN_SIGNATURE);
+        if (motif == null || motif.isBlank()) {
+            throw new BusinessException("MOTIF_REFUS_OBLIGATOIRE", "Le motif du refus est obligatoire.");
+        }
+        mouvement.setStatut(StatutMouvementCarriere.REFUSE_PAR_SALARIE);
+        mouvement.setMotifRefus(motif);
+        MouvementCarriere enregistre = mouvements.save(mouvement);
+        audit.enregistrer("AVENANT_REFUSE_SALARIE", "mouvement_carriere", id, null, motif);
+        return enDto(enregistre);
+    }
+
+    @Transactional
+    public CarriereMobiliteDtos.MouvementDto planifier(Long id) {
+        MouvementCarriere mouvement = mouvementEntite(id);
+        exigerStatut(mouvement, StatutMouvementCarriere.VALIDE);
+        utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
+        mouvement.setStatut(StatutMouvementCarriere.PLANIFIE);
+        MouvementCarriere enregistre = mouvements.save(mouvement);
+        audit.enregistrer("MOUVEMENT_PLANIFIE", "mouvement_carriere", id, null,
+                String.valueOf(mouvement.getDateEffetSouhaitee()));
         return enDto(enregistre);
     }
 
@@ -209,7 +295,14 @@ public class MouvementCarriereService {
     public CarriereMobiliteDtos.MouvementDto appliquer(Long id) {
         utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
         MouvementCarriere mouvement = mouvementEntite(id);
-        exigerStatut(mouvement, StatutMouvementCarriere.VALIDE, StatutMouvementCarriere.PLANIFIE);
+        exigerStatut(mouvement, StatutMouvementCarriere.VALIDE, StatutMouvementCarriere.PLANIFIE,
+                StatutMouvementCarriere.AVENANT_EN_SIGNATURE);
+        if (mouvement.getStatut() == StatutMouvementCarriere.AVENANT_EN_SIGNATURE
+                && exigeAvenantSigne(mouvement)) {
+            throw new BusinessException("AVENANT_SIGNATURE_REQUISE",
+                    "Ce mouvement ne peut etre applique avant la signature de l'avenant."
+);
+        }
         LocalDate dateEffet = mouvement.getDateEffet() == null
                 ? mouvement.getDateEffetSouhaitee() : mouvement.getDateEffet();
         mouvement.setDateEffet(dateEffet);
@@ -230,10 +323,11 @@ public class MouvementCarriereService {
     public CarriereMobiliteDtos.MouvementDto annuler(Long id, String motif) {
         MouvementCarriere mouvement = mouvementEntite(id);
         utilisateurCourant.exigerRole(Roles.RH, Roles.DIRECTION);
-        if (mouvement.getStatut() != StatutMouvementCarriere.PLANIFIE
-                && mouvement.getStatut() != StatutMouvementCarriere.VALIDE) {
+        if (!List.of(StatutMouvementCarriere.BROUILLON, StatutMouvementCarriere.A_COMPLETER,
+                StatutMouvementCarriere.PLANIFIE, StatutMouvementCarriere.VALIDE)
+                .contains(mouvement.getStatut())) {
             throw new BusinessException("MOUVEMENT_ANNULATION_INTERDITE",
-                    "Seul un mouvement planifie ou valide peut etre annule.");
+                    "Seul un mouvement en cours avant application peut etre annule.");
         }
         mouvement.setStatut(StatutMouvementCarriere.ANNULE);
         mouvement.setMotifRefus(motif);
@@ -760,6 +854,109 @@ public class MouvementCarriereService {
         boolean connaissanceOk = enregistreLe == null || !enregistreLe.toLocalDate().isAfter(connaissance);
         boolean nonRemplacee = remplaceLe == null || remplaceLe.toLocalDate().isAfter(connaissance);
         return validite && connaissanceOk && nonRemplacee;
+    }
+
+    private void verifierSeparationDesTaches(MouvementCarriere mouvement,
+                                             com.tovo.erp.shared.UtilisateurConnecte acteur) {
+        if (mouvement.getIdDemandeur() != null && mouvement.getIdDemandeur().equals(acteur.getId())) {
+            throw BusinessException.forbidden("Le demandeur ne peut pas valider sa propre demande.");
+        }
+        employes.idParUtilisateur(acteur.getId()).filter(mouvement.getIdEmploye()::equals)
+                .ifPresent(u -> {
+                    throw BusinessException.forbidden("Le beneficiaire ne peut pas valider son mouvement.");
+                });
+    }
+
+    private List<Map<String, Object>> circuitValidation(MouvementCarriere mouvement) {
+        List<String> roles = new ArrayList<>();
+        if (mouvement.getIdCampagne() != null) {
+            roles.addAll(List.of(Roles.RH, Roles.FINANCE, Roles.DIRECTION));
+        } else if (baisseSalaire(mouvement)) {
+            roles.addAll(List.of(Roles.RH, Roles.DIRECTION));
+        } else {
+            switch (mouvement.getType()) {
+                case PROMOTION -> roles.addAll(List.of(Roles.MANAGER, Roles.RH, Roles.FINANCE, Roles.DIRECTION));
+                case CHANGEMENT_SALAIRE -> {
+                    roles.addAll(List.of(Roles.MANAGER, Roles.RH, Roles.FINANCE));
+                    if (variationMajeure(mouvement)) {
+                        roles.add(Roles.DIRECTION);
+                    }
+                }
+                case MUTATION, DETACHEMENT -> {
+                    roles.addAll(List.of(Roles.MANAGER, Roles.RH));
+                    if (geographiqueOuTemporaire(mouvement)) {
+                        roles.add(Roles.DIRECTION);
+                    }
+                }
+                case CHANGEMENT_POSTE -> roles.addAll(List.of(Roles.MANAGER, Roles.RH));
+            }
+        }
+        List<Map<String, Object>> etapes = new ArrayList<>();
+        for (String role : roles) {
+            Map<String, Object> etape = new LinkedHashMap<>();
+            etape.put("role", role);
+            etape.put("statut", "EN_ATTENTE");
+            etapes.add(etape);
+        }
+        return etapes;
+    }
+
+    private boolean geographiqueOuTemporaire(MouvementCarriere mouvement) {
+        var mutation = mutations.findByIdMouvement(mouvement.getId()).orElse(null);
+        if (mutation == null) {
+            return false;
+        }
+        return List.of("GEOGRAPHIQUE", "TEMPORAIRE", "DETACHEMENT").contains(mutation.getType());
+    }
+
+    private boolean baisseSalaire(MouvementCarriere mouvement) {
+        var courant = historique.salaireCourant(mouvement.getIdEmploye());
+        BigDecimal cible = salaireCible(mouvement);
+        return courant != null && cible != null && cible.signum() > 0
+                && cible.compareTo(courant.montantBrut()) < 0;
+    }
+
+    private boolean variationMajeure(MouvementCarriere mouvement) {
+        var courant = historique.salaireCourant(mouvement.getIdEmploye());
+        BigDecimal cible = salaireCible(mouvement);
+        if (courant == null || courant.montantBrut().signum() == 0 || cible == null) {
+            return false;
+        }
+        return cible.subtract(courant.montantBrut())
+                .multiply(CENT).divide(courant.montantBrut(), 4, java.math.RoundingMode.HALF_UP)
+                .compareTo(SEUIL_VALIDATION_MAJEURE) > 0;
+    }
+
+    private boolean exigeAvenantSigne(MouvementCarriere mouvement) {
+        if (baisseSalaire(mouvement)) {
+            return true;
+        }
+        var mutation = mutations.findByIdMouvement(mouvement.getId()).orElse(null);
+        if (mutation == null || !"EMPLOYEUR".equals(mutation.getInitiative())) {
+            return false;
+        }
+        if (List.of("TEMPORAIRE", "DETACHEMENT").contains(mutation.getType())) {
+            return true;
+        }
+        return !Objects.equals(mutation.getIdPosteOrigine(), mutation.getIdPosteDestination())
+                || !Objects.equals(mutation.getIdServiceOrigine(), mutation.getIdServiceDestination())
+                || !Objects.equals(mutation.getIdManagerOrigine(), mutation.getIdManagerDestination())
+                || !Objects.equals(mutation.getIdLieuOrigine(), mutation.getIdLieuDestination());
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> circuitLisible(Map<String, Object> conditions,
+                                                     MouvementCarriere mouvement) {
+        Object circuit = conditions.get("circuitValidation");
+        if (circuit instanceof List<?> liste) {
+            return (List<Map<String, Object>>) liste;
+        }
+        return circuitValidation(mouvement);
+    }
+
+    private int etapeCourante(Map<String, Object> conditions) {
+        Object valeur = conditions.get("etapeCourante");
+        return valeur instanceof Number nombre ? nombre.intValue() : 0;
     }
 
     private void exigerStatut(MouvementCarriere mouvement, StatutMouvementCarriere... attendus) {
