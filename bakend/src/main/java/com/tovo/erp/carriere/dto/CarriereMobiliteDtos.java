@@ -150,6 +150,7 @@ public final class CarriereMobiliteDtos {
             int trous,
             int lignesHorsContrat,
             int mouvementsSansHistorique,
+            int incoherencesPaie,
             java.util.List<String> anomalies) {
     }
 

@@ -20,6 +20,7 @@ import com.tovo.erp.employe.dto.EmployeDto;
 import com.tovo.erp.employe.service.EmployeService;
 import com.tovo.erp.evaluation.service.EvaluationService;
 import com.tovo.erp.evaluation.service.ReferentielService;
+import com.tovo.erp.paie.service.BulletinCoherenceService;
 import com.tovo.erp.shared.BusinessException;
 import com.tovo.erp.shared.MouvementAppliqueEvent;
 import com.tovo.erp.shared.Roles;
@@ -65,6 +66,7 @@ class MouvementCarriereServiceTest {
     @Mock private CarriereService historique;
     @Mock private PosteService postes;
     @Mock private RegimeTravailService regimes;
+    @Mock private BulletinCoherenceService paie;
     @Mock private EvaluationService evaluations;
     @Mock private ReferentielService referentiel;
     @Mock private EligibiliteDisciplineService eligibiliteDiscipline;
@@ -78,7 +80,7 @@ class MouvementCarriereServiceTest {
     @BeforeEach
     void setUp() {
         service = new MouvementCarriereService(mouvements, promotions, mutations, grilles,
-                campagnes, employes, contrats, historique, postes, regimes, evaluations, referentiel,
+                campagnes, employes, contrats, historique, postes, regimes, paie, evaluations, referentiel,
                 eligibiliteDiscipline, utilisateurCourant, audit, references, evenements);
     }
 

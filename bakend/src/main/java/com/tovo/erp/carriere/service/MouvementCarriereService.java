@@ -29,6 +29,7 @@ import com.tovo.erp.shared.MouvementAppliqueEvent;
 import com.tovo.erp.shared.Roles;
 import com.tovo.erp.shared.UtilisateurCourant;
 import com.tovo.erp.shared.audit.JournalAuditService;
+import com.tovo.erp.paie.service.BulletinCoherenceService;
 import com.tovo.erp.shared.reference.ReferenceService;
 import com.tovo.erp.temps.service.RegimeTravailService;
 import org.springframework.context.ApplicationEventPublisher;
@@ -67,6 +68,7 @@ public class MouvementCarriereService {
     private final CarriereService historique;
     private final PosteService postes;
     private final RegimeTravailService regimes;
+    private final BulletinCoherenceService paie;
     private final EvaluationService evaluations;
     private final ReferentielService referentiel;
     private final EligibiliteDisciplineService eligibiliteDiscipline;
@@ -85,6 +87,7 @@ public class MouvementCarriereService {
                                     CarriereService historique,
                                      PosteService postes,
                                      RegimeTravailService regimes,
+                                     BulletinCoherenceService paie,
                                      EvaluationService evaluations,
                                      ReferentielService referentiel,
                                      EligibiliteDisciplineService eligibiliteDiscipline,
@@ -103,6 +106,7 @@ public class MouvementCarriereService {
         this.historique = historique;
         this.postes = postes;
         this.regimes = regimes;
+        this.paie = paie;
         this.evaluations = evaluations;
         this.referentiel = referentiel;
         this.eligibiliteDiscipline = eligibiliteDiscipline;
@@ -467,8 +471,11 @@ public class MouvementCarriereService {
             mouvementsSansHistorique += (int) idsMouvements.stream()
                     .filter(id -> !idsHistorique.contains(id)).count();
         }
+        var ecartsPaie = paie.ecarts();
+        ecartsPaie.forEach(e -> anomalies.add("Bulletin " + e.idBulletin() + " : salaire "
+                + e.salaireBulletin() + " au lieu de " + e.salaireHistorique() + " pour " + e.mois() + "."));
         return new CarriereMobiliteDtos.RapportIntegriteDto(chevauchements, trous, horsContrat,
-                mouvementsSansHistorique, anomalies);
+                mouvementsSansHistorique, ecartsPaie.size(), anomalies);
     }
 
     @Transactional(readOnly = true)
