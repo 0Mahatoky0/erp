@@ -42,7 +42,7 @@ Chaque bloc a déjà une base commitée. Il ne s’agit pas de tout refaire, mai
 
 ---
 
-## 2. Dev 1 — Bloc 8 : Paie et fiche de paie
+## 2. Mahatoky — Bloc 8 : Paie et fiche de paie
 
 ### Objectif
 
@@ -96,7 +96,7 @@ Le spécimen du cahier donne toujours **brut 1 242 000 Ar**, **IRSA 146 932 Ar**
 
 ---
 
-## 3. Dev 2 — Bloc 9 : Évaluation, compétences et formation
+## 3. Mirado — Bloc 9 : Évaluation, compétences et formation
 
 ### Objectif
 
@@ -145,7 +145,7 @@ Les calculs du cahier sont prouvés par test, les consultations sensibles sont a
 
 ---
 
-## 4. Dev 3 — Bloc 10 : Carrière et mobilité
+## 4. Rayan — Bloc 10 : Carrière et mobilité
 
 ### Objectif
 
@@ -183,7 +183,7 @@ Le bloc 10 est totalement conforme au cahier, notamment le contrôle nocturne à
 
 ---
 
-## 5. Dev 4 — Bloc 11 : Discipline
+## 5. Alexia — Bloc 11 : Discipline
 
 ### Objectif
 
@@ -230,7 +230,7 @@ Le dossier disciplinaire est conforme, la prescription est configurable et les a
 
 ---
 
-## 6. Dev 5 — Bloc 12 : Rupture et offboarding
+## 6. Ny Antema — Bloc 12 : Rupture et offboarding
 
 ### Objectif
 
