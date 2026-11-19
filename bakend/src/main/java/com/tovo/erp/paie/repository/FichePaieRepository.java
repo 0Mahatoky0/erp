@@ -12,4 +12,6 @@ public interface FichePaieRepository extends JpaRepository<FichePaie, Long> {
     List<FichePaie> findByIdEmployeOrderByMoisDesc(Long idEmploye);
 
     Optional<FichePaie> findByIdPeriodeAndIdEmploye(Long idPeriode, Long idEmploye);
+
+    Optional<FichePaie> findByIdBulletin(Long idBulletin);
 }
